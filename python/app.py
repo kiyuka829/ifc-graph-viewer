@@ -35,8 +35,16 @@ def upload_file():
         file_path = UPLOAD_FOLDER / filename
         file.save(file_path)
 
-        print(get_ifcproject(file_path))
-        return jsonify({"message": "ファイルがアップロードされました。"}), 200
+        ifcproject = get_ifcproject(file_path)
+        return (
+            jsonify(
+                {
+                    "message": "ファイルがアップロードされました。",
+                    "model": ifcproject,
+                }
+            ),
+            200,
+        )
 
     return jsonify({"message": "許可されていないファイル形式です。"}), 400
 

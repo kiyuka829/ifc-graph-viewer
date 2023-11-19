@@ -8,14 +8,14 @@ export interface Node {
 
 export interface Attribute {
   name: string;
-  content: string; // 接続先のIDまたはテキストデータ
+  content: string | string[]; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   visible: boolean; // 接続先の表示状態
   edgePosition?: Position; // エッジの接続位置
 }
 
 export interface Edge {
-  id: string,
+  id: string;
   from: {
     nodeId: string;
     attrName: string;
