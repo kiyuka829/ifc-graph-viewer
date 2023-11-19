@@ -181,6 +181,7 @@ const isId = (value: string | string[]): boolean => {
   /* width: 200px; */
   min-width: 200px;
   font-family: Arial, sans-serif;
+  background-color: #fafafa;
 }
 
 .node-header {

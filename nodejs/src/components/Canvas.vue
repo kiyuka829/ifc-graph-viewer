@@ -201,12 +201,23 @@ const addNode = (
   <input type="file" @change="uploadFile" class="fileInput" />
 
   <div class="canvas">
-    <EdgeComponent
-      v-for="edge in edgePosition"
-      :key="edge.id"
-      :from="edge.from"
-      :to="edge.to"
-    />
+    <svg
+      :style="{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+      }"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <EdgeComponent
+        v-for="edge in edgePosition"
+        :key="edge.id"
+        :from="edge.from"
+        :to="edge.to"
+      />
+    </svg>
     <NodeComponent
       v-for="(node, _) in nodes"
       :key="node.id"
