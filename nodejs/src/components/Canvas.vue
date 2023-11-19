@@ -212,36 +212,41 @@ const addNode = (
     );
   });
 };
+
+const scale = ref(1);
+
+const handleWheel = (event: WheelEvent) => {
+  event.preventDefault();
+  const zoomIntensity = 0.1;
+  const wheelDelta = event.deltaY;
+  // Zoom in or out
+  scale.value += wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
+  // Prevent scale from becoming too small or too large
+  scale.value = Math.min(Math.max(0.1, scale.value), 2);
+};
 </script>
 
 <template>
   <input type="file" @change="uploadFile" class="fileInput" />
 
-  <div class="canvas">
-    <svg
-      :style="{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-      }"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <EdgeComponent
-        v-for="edge in edgePosition"
-        :key="edge.id"
-        :from="edge.from"
-        :to="edge.to"
+  <div class="canvas" @wheel="handleWheel">
+    <div class="inner-div" :style="{ transform: `scale(${scale})` }">
+      <svg class="svg-style" xmlns="http://www.w3.org/2000/svg">
+        <EdgeComponent
+          v-for="edge in edgePosition"
+          :key="edge.id"
+          :from="edge.from"
+          :to="edge.to"
+        />
+      </svg>
+      <NodeComponent
+        v-for="(node, _) in nodes"
+        :key="node.id"
+        :node="node"
+        @update:position="updateNodePosition(node.id, $event)"
+        @add:node="addNode(node.id, $event)"
       />
-    </svg>
-    <NodeComponent
-      v-for="(node, _) in nodes"
-      :key="node.id"
-      :node="node"
-      @update:position="updateNodePosition(node.id, $event)"
-      @add:node="addNode(node.id, $event)"
-    />
+    </div>
   </div>
 </template>
 
@@ -251,5 +256,26 @@ const addNode = (
   top: 20px;
   left: 20px;
   z-index: 1;
+}
+.canvas {
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  position: relative;
+}
+
+.inner-div {
+  transform-origin: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.svg-style {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 </style>
