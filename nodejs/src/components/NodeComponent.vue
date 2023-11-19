@@ -61,6 +61,24 @@ const lastMousePosition = ref({ x: 0, y: 0 });
 const onDotMouseDown = (event: MouseEvent, attribute) => {
   event.stopPropagation();
 
+  // 座標表示用
+  // const dotElement = event.target;
+  // const nodeElement = event.currentTarget.closest(".node");
+
+  // // dotElementとnodeElementの位置情報を取得
+  // const dotRect = dotElement.getBoundingClientRect();
+  // const nodeRect = nodeElement.getBoundingClientRect();
+
+  // // dotの中心位置を計算（ビューポートに対する相対位置）
+  // const dotCenterX = dotRect.left + dotRect.width / 2;
+  // const dotCenterY = dotRect.top + dotRect.height / 2;
+
+  // // nodeからの相対位置を計算
+  // const relativeCenterX = dotCenterX - nodeRect.left;
+  // const relativeCenterY = dotCenterY - nodeRect.top;
+
+  // console.log("Dot center relative to node:", relativeCenterX, relativeCenterY);
+
   // dot のドラッグを開始
   isDotDragging.value = true;
 
@@ -157,6 +175,7 @@ const isId = (value: string | string[]): boolean => {
 
 <style scoped>
 .node {
+  position: relative;
   border: 1px solid #ccc;
   border-radius: 5px;
   /* width: 200px; */
@@ -178,14 +197,16 @@ const isId = (value: string | string[]): boolean => {
 }
 
 .icon {
+  position: absolute;
+  left: -5px;
+  height: 10px;
+  width: 10px;
   background-color: green;
   color: white;
-  padding: 3px;
   border-radius: 50%;
 }
 
 .node-body {
-  position: relative;
   padding: 10px;
 }
 
@@ -212,9 +233,5 @@ const isId = (value: string | string[]): boolean => {
 }
 .inverse-attribute .dot {
   left: -5px;
-}
-
-.attribute.ref {
-  font-style: italic;
 }
 </style>

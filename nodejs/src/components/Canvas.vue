@@ -4,7 +4,7 @@ import axios from "axios";
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
 
-import { Node, Edge } from "./interfaces";
+import { Node, Edge, Position, Attribute } from "./interfaces";
 
 // 選択したファイルを保持する変数
 const filepath = ref<string>("");
@@ -40,6 +40,15 @@ const uploadFile = async (event: Event) => {
   }
 };
 
+// attributeに値があるかどうか
+const hasValue = (value: string | string[]): boolean => {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  } else {
+    return value !== null && value !== undefined && value !== "";
+  }
+};
+
 // レスポンスデータをNodeに変換
 function convertToNode(data: any): Node {
   const node: Node = {
@@ -50,14 +59,16 @@ function convertToNode(data: any): Node {
   };
 
   // attributes
+  let count = 0;
   for (const attr of data.attributes) {
     const attribute = {
       name: attr.name,
       content: attr.value,
-      edgePosition: { x: 0, y: 0 },
+      edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
       inverse: attr.inverse,
       visible: true,
     };
+    hasValue(attr.value) && count++;
     node.attributes.push(attribute);
   }
 
@@ -83,16 +94,6 @@ const updateNodePosition = (
   if (node) {
     node.position = newPosition;
   }
-
-  // // 関連するエッジの位置を更新
-  // edges.value.forEach(edge => {
-  //   if (edge.from.nodeId === nodeId) {
-  //     edge.from.position = newPosition;
-  //   }
-  //   if (edge.to.nodeId === nodeId) {
-  //     edge.to.position = newPosition;
-  //   }
-  // });
 };
 
 const edgePosition = computed(() => {
@@ -112,8 +113,9 @@ const edgePosition = computed(() => {
     const to_attr = to_node?.attributes.find((c) => c.name === to.attrName);
     const to_edge = {
       x: (to_node?.position.x ?? 0) + (to_attr?.edgePosition?.x ?? 0),
-      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition?.y ?? 0),
+      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition?.y ?? 22.5),
     };
+
     return {
       id: edge.id,
       from: from_edge,
@@ -122,8 +124,27 @@ const edgePosition = computed(() => {
   });
 });
 
-const addNode = (nodeId: string, data: any) => {
+const addNode = (
+  nodeId: string,
+  data: { position: Position; attribute: Attribute }
+) => {
   const id = data.attribute.content;
+
+  const to: { nodeId: string; attrName: string } = { nodeId: "", attrName: "" };
+  const from: { nodeId: string; attrName: string } = {
+    nodeId: "",
+    attrName: "",
+  };
+  if (data.attribute.inverse) {
+    to.nodeId = nodeId;
+    to.attrName = data.attribute.name;
+    from.nodeId = Array.isArray(id) ? id[0].value : id;
+  } else {
+    from.nodeId = nodeId;
+    from.attrName = data.attribute.name;
+    to.nodeId = Array.isArray(id) ? id[0].value : id;
+  }
+
   const config = {
     method: "post",
     url: "http://localhost:5000/get_node",
@@ -137,10 +158,42 @@ const addNode = (nodeId: string, data: any) => {
       // レスポンスを処理
       console.log(response.data);
       const node = convertToNode(response.data.node);
-      node.position = data.position;
-      nodes.value.push(node);
+      if (
+        !nodes.value.find(
+          (c) => c.id === (Array.isArray(id) ? id[0].value : id)
+        )
+      ) {
+        node.position = data.position;
+        nodes.value.push(node);
+      }
+
+      // nodeIdと一致するattributeのnameを取得
+      const targetAttr = node.attributes.find((attr) => {
+        if (Array.isArray(attr.content)) {
+          if (attr.content.find((c) => c.value === nodeId)) {
+            return true;
+          }
+        } else if (typeof attr.content === "number") {
+          return attr.content === nodeId;
+        } else {
+          return false;
+        }
+      });
+      if (data.attribute.inverse) {
+        from.attrName = targetAttr?.name;
+      } else {
+        to.attrName = targetAttr?.name;
+      }
+
+      edges.value.push({
+        id: "edge1",
+        from: from,
+        to: to,
+      });
     })
-    .catch((error) => {});
+    .catch((error) => {
+      console.log(error);
+    });
 };
 </script>
 
