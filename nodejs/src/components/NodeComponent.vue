@@ -91,16 +91,32 @@ const onMouseUp = () => {
 function stringifyValue(value: string | string[]) {
   if (Array.isArray(value)) {
     // 配列の場合、カンマ区切りの文字列に変換します
-    return `(${value.map((v) => v.value).join(", ")})`;
+    return `${value.map((v) => `#${v.value}`).join(", ")}`;
+  } else if (typeof value === "number") {
+    // 数値はID
+    return `#${value}`;
   } else {
     // 配列でない場合、そのまま文字列に変換します
     return value;
   }
 }
+
+// attributeに値があるかどうか
+const hasValue = (value: string | string[]): boolean => {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  } else {
+    return value !== null && value !== undefined && value !== "";
+  }
+};
+
+// id判定
+const isId = (value: string | string[]): boolean => {
+  return typeof value === "number" || Array.isArray(value);
+};
 </script>
 
 <template>
-  <!-- ref="nodeElement" -->
   <div
     class="node"
     :style="{
@@ -111,21 +127,22 @@ function stringifyValue(value: string | string[]) {
     @mousedown="onMouseDown"
   >
     <div class="node-header">
-      <span class="id">{{ node.id }}</span>
+      <span class="id">#{{ node.id }}</span>
       <span class="title">{{ node.type }}</span>
       <span class="icon"></span>
     </div>
     <div class="node-body">
-      <div
-        class="attribute"
-        v-for="(attribute, index) in node.attributes"
-        :key="index"
-      >
-        <span>{{ attribute.name }}</span>
-        <!-- <span>{{ stringifyValue(attribute.content) }}</span> -->
-        <!-- <span class="dot" v-if="!isRefAttribute(attribute)"></span> -->
-        <span class="dot"></span>
-      </div>
+      <template v-for="(attribute, _) in node.attributes" :key="attribute.name">
+        <div
+          class="attribute"
+          v-if="hasValue(attribute.content)"
+          :class="{ 'inverse-attribute': attribute.inverse }"
+        >
+          <span>{{ attribute.name }}</span>
+          <!-- <span>{{ stringifyValue(attribute.content) }}</span> -->
+          <span class="dot" v-if="isId(attribute.content)"></span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -134,7 +151,8 @@ function stringifyValue(value: string | string[]) {
 .node {
   border: 1px solid #ccc;
   border-radius: 5px;
-  width: 200px;
+  /* width: 200px; */
+  min-width: 200px;
   font-family: Arial, sans-serif;
 }
 
@@ -159,6 +177,7 @@ function stringifyValue(value: string | string[]) {
 }
 
 .node-body {
+  position: relative;
   padding: 10px;
 }
 
@@ -169,12 +188,22 @@ function stringifyValue(value: string | string[]) {
   justify-content: space-between;
 }
 
+.inverse-attribute {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
 .dot {
+  position: absolute;
+  right: -5px;
   height: 10px;
   width: 10px;
   background-color: orange;
   border-radius: 50%;
   display: inline-block;
+}
+.inverse-attribute .dot {
+  left: -5px;
 }
 
 .attribute.ref {
