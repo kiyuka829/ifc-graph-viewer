@@ -8,6 +8,7 @@ export interface Node {
 
 export interface Attribute {
   name: string;
+  // 数値だったらID判定してるけどダメです。型を判別するための変数が必要。
   content: string | string[]; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   visible: boolean; // 接続先の表示状態

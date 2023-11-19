@@ -124,33 +124,19 @@ const edgePosition = computed(() => {
   });
 });
 
-const addNode = (
-  nodeId: string,
-  data: { position: Position; attribute: Attribute }
+const addNode_ = (
+  srcId: string,
+  dstId: string,
+  srcName: string,
+  inverse: boolean,
+  dstPosition: Position
 ) => {
-  const id = data.attribute.content;
-
-  const to: { nodeId: string; attrName: string } = { nodeId: "", attrName: "" };
-  const from: { nodeId: string; attrName: string } = {
-    nodeId: "",
-    attrName: "",
-  };
-  if (data.attribute.inverse) {
-    to.nodeId = nodeId;
-    to.attrName = data.attribute.name;
-    from.nodeId = Array.isArray(id) ? id[0].value : id;
-  } else {
-    from.nodeId = nodeId;
-    from.attrName = data.attribute.name;
-    to.nodeId = Array.isArray(id) ? id[0].value : id;
-  }
-
   const config = {
     method: "post",
     url: "http://localhost:5000/get_node",
     data: {
       path: filepath.value,
-      id: Array.isArray(id) ? id[0].value : id,
+      id: dstId,
     },
   };
   axios(config)
@@ -158,30 +144,44 @@ const addNode = (
       // レスポンスを処理
       console.log(response.data);
       const node = convertToNode(response.data.node);
-      if (
-        !nodes.value.find(
-          (c) => c.id === (Array.isArray(id) ? id[0].value : id)
-        )
-      ) {
-        node.position = data.position;
+
+      // 表示済みならノードを追加しない
+      if (!nodes.value.find((c) => c.id === dstId)) {
+        node.position = dstPosition;
         nodes.value.push(node);
       }
 
       // nodeIdと一致するattributeのnameを取得
       const targetAttr = node.attributes.find((attr) => {
         if (Array.isArray(attr.content)) {
-          if (attr.content.find((c) => c.value === nodeId)) {
+          if (attr.content.find((c) => c.value === srcId)) {
             return true;
           }
         } else if (typeof attr.content === "number") {
-          return attr.content === nodeId;
+          return attr.content === srcId;
         } else {
           return false;
         }
       });
-      if (data.attribute.inverse) {
+
+      // エッジ作成
+      const from: { nodeId: string; attrName: string } = {
+        nodeId: "",
+        attrName: "",
+      };
+      const to: { nodeId: string; attrName: string } = {
+        nodeId: "",
+        attrName: "",
+      };
+      if (inverse) {
+        from.nodeId = dstId;
         from.attrName = targetAttr?.name;
+        to.nodeId = srcId;
+        to.attrName = srcName;
       } else {
+        from.nodeId = srcId;
+        from.attrName = srcName;
+        to.nodeId = dstId;
         to.attrName = targetAttr?.name;
       }
 
@@ -194,6 +194,23 @@ const addNode = (
     .catch((error) => {
       console.log(error);
     });
+};
+
+const addNode = (
+  nodeId: string,
+  data: { position: Position; attribute: Attribute }
+) => {
+  const id = data.attribute.content;
+  const ids = Array.isArray(id) ? id : [{ value: id }];
+  ids.forEach((id) => {
+    addNode_(
+      nodeId,
+      id.value,
+      data.attribute.name,
+      data.attribute.inverse,
+      data.position
+    );
+  });
 };
 </script>
 

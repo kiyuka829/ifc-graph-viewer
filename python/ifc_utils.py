@@ -33,7 +33,7 @@ def attribute_info(key, val):
             if isinstance(v, ifcopenshell.entity_instance):
                 values.append(dict(attribute_type="id", value=v.id()))
             else:
-                # これ存在するの？
+                # これ存在するの？ -> (0, 0, 0) みたいな座標で使用されている
                 print("@@@@@@@@@@@@@@@", key, val)
                 values.append(dict(attribute_type="value", value=v))
 
