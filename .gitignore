@@ -23,4 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
-.vscode
+.vscode/
+bk/
+uploads/
+docs/
+__pycache__/
+.ipynb_checkpoints/
+*.ipynb
