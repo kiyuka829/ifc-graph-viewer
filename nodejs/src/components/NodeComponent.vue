@@ -1,50 +1,21 @@
 <script setup lang="ts">
-// import { ref } from "vue";
 import { ref, onMounted } from "vue";
 import { Node, Position } from "./interfaces";
 
-// Props を定義します
+// // Props を定義します
 const props = defineProps<{
   node: Node;
 }>();
 const node = props.node;
 
 // Emit the update event to the parent component with the new position
-const emit = defineEmits(["update:position"]);
+const emit = defineEmits(["update:position", "add:node"]);
 
-// const nodeElement = ref(null);
-// const dotRefs = ref([]);
-
-// const addDotRef = el => {
-//   if (el) {
-//     dotRefs.value.push(el);
-//   }
-// };
+const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
 
 onMounted(() => {
   // updateEdgePositions();
 });
-
-// const getDotPosition = (dot) => {
-//   const nodeRect = nodeElement.value.getBoundingClientRect();
-//   const dotRect = dot.getBoundingClientRect();
-//   return {
-//     x: dotRect.left - nodeRect.left + dotRect.width / 2,
-//     y: dotRect.top - nodeRect.top + dotRect.height / 2
-//   };
-// };
-
-// // ノードや属性が更新された際にエッジの位置を再計算
-// const updateEdgePositions = () => {
-//   const dots = nodeElement.value.querySelectorAll('.dot');
-//   dots.forEach((dot, index) => {
-//     const position = getDotPosition(dot);
-//     console.log(position)
-//     // node.attributes[index].edgePosition = position
-//     // ここでエッジの位置を更新する
-//     // 例: updateEdgePosition(node.attributes[index].id, position);
-//   });
-// };
 
 const isDragging = ref(false);
 const startPosition = ref<Position>({ x: 0, y: 0 });
@@ -84,9 +55,42 @@ const onMouseUp = () => {
   document.removeEventListener("mouseup", onMouseUp);
 };
 
-// const isRefAttribute = (attribute: string): boolean => {
-//   return false;
-// };
+const isDotDragging = ref(false);
+const lastMousePosition = ref({ x: 0, y: 0 });
+
+const onDotMouseDown = (event: MouseEvent, attribute) => {
+  event.stopPropagation();
+
+  // dot のドラッグを開始
+  isDotDragging.value = true;
+
+  // dot 専用のイベントリスナーを設定
+  currentMouseUpHandler.value = () => onDotMouseUp(attribute);
+  document.addEventListener("mousemove", onDotMouseMove);
+  document.addEventListener("mouseup", currentMouseUpHandler.value);
+};
+
+const onDotMouseMove = (event: MouseEvent) => {
+  if (!isDotDragging.value) return;
+  lastMousePosition.value = { x: event.clientX, y: event.clientY };
+};
+
+const onDotMouseUp = (attribute) => {
+  // dot のドラッグを終了
+  isDotDragging.value = false;
+
+  // イベントリスナーを削除
+  if (currentMouseUpHandler.value) {
+    document.removeEventListener("mousemove", onDotMouseMove);
+    document.removeEventListener("mouseup", currentMouseUpHandler.value);
+    currentMouseUpHandler.value = null; // ハンドラの参照をクリア
+  }
+
+  emit("add:node", {
+    position: lastMousePosition.value,
+    attribute: attribute,
+  });
+};
 
 function stringifyValue(value: string | string[]) {
   if (Array.isArray(value)) {
@@ -140,7 +144,11 @@ const isId = (value: string | string[]): boolean => {
         >
           <span>{{ attribute.name }}</span>
           <!-- <span>{{ stringifyValue(attribute.content) }}</span> -->
-          <span class="dot" v-if="isId(attribute.content)"></span>
+          <span
+            class="dot"
+            v-if="isId(attribute.content)"
+            @mousedown.prevent="(event) => onDotMouseDown(event, attribute)"
+          ></span>
         </div>
       </template>
     </div>

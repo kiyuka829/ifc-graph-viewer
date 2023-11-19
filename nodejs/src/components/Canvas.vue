@@ -7,16 +7,16 @@ import EdgeComponent from "./EdgeComponent.vue";
 import { Node, Edge } from "./interfaces";
 
 // 選択したファイルを保持する変数
-const selectedFile = ref<File | null>(null);
+const filepath = ref<string>("");
 
 const uploadFile = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files?.length) {
-    selectedFile.value = input.files[0];
+    const selectedFile = input.files[0];
 
     // FormData オブジェクトを作成してファイルを追加
     const formData = new FormData();
-    formData.append("file", selectedFile.value);
+    formData.append("file", selectedFile);
 
     // ファイルをサーバーにアップロード
     axios
@@ -30,6 +30,7 @@ const uploadFile = async (event: Event) => {
         console.log(response.data.model);
         const node = convertToNode(response.data.model);
         nodes.value.push(node);
+        filepath.value = response.data.path;
         console.log(node);
       })
       .catch((error) => {
@@ -65,44 +66,6 @@ function convertToNode(data: any): Node {
 
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
-
-// const nodes = ref<Node[]>([
-//   {
-//     id: "node1",
-//     type: "typeA",
-//     attributes: [
-//       {
-//         name: "attr1",
-//         content: "node2",
-//         edgePosition: { x: 186, y: 68 },
-//         inverse: false,
-//         visible: true,
-//       },
-//       {
-//         name: "attr2",
-//         content: "Some text",
-//         edgePosition: { x: 186, y: 97 },
-//         inverse: true,
-//         visible: false,
-//       },
-//     ],
-//     position: { x: 100, y: 100 },
-//   },
-//   {
-//     id: "node2",
-//     type: "typeB",
-//     attributes: [
-//       {
-//         name: "attr3",
-//         content: "node1",
-//         edgePosition: { x: 186, y: 68 },
-//         inverse: false,
-//         visible: true,
-//       },
-//     ],
-//     position: { x: 300, y: 200 },
-//   },
-// ]);
 
 // const edges = ref<Edge[]>([
 //   {
@@ -158,6 +121,27 @@ const edgePosition = computed(() => {
     };
   });
 });
+
+const addNode = (nodeId: string, data: any) => {
+  const id = data.attribute.content;
+  const config = {
+    method: "post",
+    url: "http://localhost:5000/get_node",
+    data: {
+      path: filepath.value,
+      id: Array.isArray(id) ? id[0].value : id,
+    },
+  };
+  axios(config)
+    .then((response) => {
+      // レスポンスを処理
+      console.log(response.data);
+      const node = convertToNode(response.data.node);
+      node.position = data.position;
+      nodes.value.push(node);
+    })
+    .catch((error) => {});
+};
 </script>
 
 <template>
@@ -175,6 +159,7 @@ const edgePosition = computed(() => {
       :key="node.id"
       :node="node"
       @update:position="updateNodePosition(node.id, $event)"
+      @add:node="addNode(node.id, $event)"
     />
   </div>
 </template>

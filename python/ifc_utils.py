@@ -18,6 +18,12 @@ def get_ifcproject(path):
     return get_node_info(item)
 
 
+def get_by_id(path, id):
+    model = load_model(path)
+    item = model.by_id(id)
+    return get_node_info(item)
+
+
 def attribute_info(key, val):
     if isinstance(val, ifcopenshell.entity_instance):
         return dict(name=key, attribute_type="id", value=val.id())

@@ -3,7 +3,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from pathlib import Path
 
-from ifc_utils import get_ifcproject
+import ifc_utils as ifc
 
 app = Flask(__name__)
 CORS(app)
@@ -35,18 +35,36 @@ def upload_file():
         file_path = UPLOAD_FOLDER / filename
         file.save(file_path)
 
-        ifcproject = get_ifcproject(file_path)
+        ifcproject = ifc.get_ifcproject(file_path)
         return (
             jsonify(
                 {
                     "message": "ファイルがアップロードされました。",
                     "model": ifcproject,
+                    "path": file_path.as_posix(),
                 }
             ),
             200,
         )
 
     return jsonify({"message": "許可されていないファイル形式です。"}), 400
+
+
+@app.route("/get_node", methods=["POST"])
+def get_node():
+    data = request.get_json()
+    print(data)
+
+    node = ifc.get_by_id(data.get("path"), data.get("id"))
+    return (
+        jsonify(
+            {
+                "message": "ノード追加に成功しました。",
+                "node": node,
+            }
+        ),
+        200,
+    )
 
 
 if __name__ == "__main__":
