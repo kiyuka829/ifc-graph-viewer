@@ -5,6 +5,7 @@ import { Node, Position } from "./interfaces";
 // // Props を定義します
 const props = defineProps<{
   node: Node;
+  scale: number;
 }>();
 const node = props.node;
 
@@ -18,14 +19,19 @@ onMounted(() => {
 });
 
 const isDragging = ref(false);
-const startPosition = ref<Position>({ x: 0, y: 0 });
+const startNodePosition = ref<Position>({ x: 0, y: 0 });
+const startMousePosition = ref<Position>({ x: 0, y: 0 });
 
 const onMouseDown = (event: MouseEvent) => {
   // Start dragging and record the starting position
   isDragging.value = true;
-  startPosition.value = {
-    x: event.clientX - node.position.x,
-    y: event.clientY - node.position.y,
+  startNodePosition.value = {
+    x: node.position.x,
+    y: node.position.y,
+  };
+  startMousePosition.value = {
+    x: event.clientX,
+    y: event.clientY,
   };
 
   // Attach the event listeners for mouse move and up
@@ -38,12 +44,13 @@ const onMouseMove = (event: MouseEvent) => {
   if (!isDragging.value) return;
 
   // Update the position of the node
-  const newX = event.clientX - startPosition.value.x;
-  const newY = event.clientY - startPosition.value.y;
+  const newX =
+    startNodePosition.value.x +
+    (event.clientX - startMousePosition.value.x) / props.scale;
+  const newY =
+    startNodePosition.value.y +
+    (event.clientY - startMousePosition.value.y) / props.scale;
   emit("update:position", { x: newX, y: newY });
-
-  // console.log(newX, newY)
-  // updateEdgePositions()
 };
 
 const onMouseUp = () => {

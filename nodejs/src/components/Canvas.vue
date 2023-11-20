@@ -243,6 +243,7 @@ const handleWheel = (event: WheelEvent) => {
         v-for="(node, _) in nodes"
         :key="node.id"
         :node="node"
+        :scale="scale"
         @update:position="updateNodePosition(node.id, $event)"
         @add:node="addNode(node.id, $event)"
       />
