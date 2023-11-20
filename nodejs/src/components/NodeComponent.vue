@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Node, Position } from "./interfaces";
+import { Attribute, Node, Position } from "./interfaces";
 
 // // Props を定義します
 const props = defineProps<{
@@ -20,6 +20,7 @@ onMounted(() => {
 
 const isDragging = ref(false);
 const startNodePosition = ref<Position>({ x: 0, y: 0 });
+const startEdgePosition = ref<Position>({ x: 0, y: 0 });
 const startMousePosition = ref<Position>({ x: 0, y: 0 });
 
 const onMouseDown = (event: MouseEvent) => {
@@ -67,7 +68,7 @@ const onMouseUp = () => {
 const isDotDragging = ref(false);
 const lastMousePosition = ref({ x: 0, y: 0 });
 
-const onDotMouseDown = (event: MouseEvent, attribute) => {
+const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   event.stopPropagation();
 
   // 座標表示用
@@ -91,6 +92,12 @@ const onDotMouseDown = (event: MouseEvent, attribute) => {
   // dot のドラッグを開始
   isDotDragging.value = true;
 
+  startEdgePosition.value.x =
+    (attribute.edgePosition?.x ?? event.clientX) + node.position.x;
+  startEdgePosition.value.y =
+    (attribute.edgePosition?.y ?? event.clientY) + node.position.y;
+  startMousePosition.value = { x: event.clientX, y: event.clientY };
+
   // dot 専用のイベントリスナーを設定
   currentMouseUpHandler.value = () => onDotMouseUp(attribute);
   document.addEventListener("mousemove", onDotMouseMove);
@@ -102,7 +109,7 @@ const onDotMouseMove = (event: MouseEvent) => {
   lastMousePosition.value = { x: event.clientX, y: event.clientY };
 };
 
-const onDotMouseUp = (attribute) => {
+const onDotMouseUp = (attribute: Attribute) => {
   // dot のドラッグを終了
   isDotDragging.value = false;
 
@@ -113,8 +120,17 @@ const onDotMouseUp = (attribute) => {
     currentMouseUpHandler.value = null; // ハンドラの参照をクリア
   }
 
+  const position = {
+    x:
+      startEdgePosition.value.x +
+      (lastMousePosition.value.x - startMousePosition.value.x) / props.scale,
+    y:
+      startEdgePosition.value.y +
+      (lastMousePosition.value.y - startMousePosition.value.y) / props.scale,
+  };
+
   emit("add:node", {
-    position: lastMousePosition.value,
+    position: position,
     attribute: attribute,
   });
 };
