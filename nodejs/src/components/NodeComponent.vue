@@ -23,6 +23,8 @@ const startNodePosition = ref<Position>({ x: 0, y: 0 });
 const startMousePosition = ref<Position>({ x: 0, y: 0 });
 
 const onMouseDown = (event: MouseEvent) => {
+  event.stopPropagation();
+
   // Start dragging and record the starting position
   isDragging.value = true;
   startNodePosition.value = {

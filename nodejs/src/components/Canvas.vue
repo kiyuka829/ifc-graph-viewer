@@ -6,6 +6,31 @@ import EdgeComponent from "./EdgeComponent.vue";
 
 import { Node, Edge, Position, Attribute } from "./interfaces";
 
+// ドラッグ中の位置を追跡するための状態
+const position = ref({ x: 0, y: 0 });
+const dragging = ref(false);
+let start = { x: 0, y: 0 };
+
+function startDrag(event: MouseEvent) {
+  dragging.value = true;
+  start = { x: event.clientX, y: event.clientY };
+  // テキスト選択やスクロールを防ぐ
+  document.body.style.userSelect = "none";
+}
+
+function drag(event: MouseEvent) {
+  if (dragging.value) {
+    position.value.x += event.clientX - start.x;
+    position.value.y += event.clientY - start.y;
+    start = { x: event.clientX, y: event.clientY };
+  }
+}
+
+function endDrag() {
+  dragging.value = false;
+  document.body.style.userSelect = "auto";
+}
+
 // 選択したファイルを保持する変数
 const filepath = ref<string>("");
 
@@ -228,17 +253,36 @@ const handleWheel = (event: WheelEvent) => {
 
 <template>
   <input type="file" @change="uploadFile" class="fileInput" />
-
-  <div class="canvas" @wheel="handleWheel">
-    <div class="inner-div" :style="{ transform: `scale(${scale})` }">
-      <svg class="svg-style" xmlns="http://www.w3.org/2000/svg">
+  <div
+    class="canvas"
+    @mousedown="startDrag"
+    @mousemove="drag"
+    @mouseup="endDrag"
+    @mouseleave="endDrag"
+    @wheel="handleWheel"
+  >
+    <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
+      <g
+        :style="{
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          transformOrigin: 'center',
+        }"
+      >
         <EdgeComponent
           v-for="edge in edgePosition"
           :key="edge.id"
           :from="edge.from"
           :to="edge.to"
         />
-      </svg>
+      </g>
+    </svg>
+
+    <div
+      class="node-container"
+      :style="{
+        transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+      }"
+    >
       <NodeComponent
         v-for="(node, _) in nodes"
         :key="node.id"
@@ -265,14 +309,16 @@ const handleWheel = (event: WheelEvent) => {
   position: relative;
 }
 
-.inner-div {
+.node-container {
   transform-origin: center;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  position: relative;
 }
 
-.svg-style {
+.edge-container {
   position: absolute;
   top: 0;
   left: 0;
