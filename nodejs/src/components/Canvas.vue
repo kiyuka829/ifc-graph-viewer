@@ -12,6 +12,8 @@ const dragging = ref(false);
 let start = { x: 0, y: 0 };
 
 function startDrag(event: MouseEvent) {
+  clearSelect(event);
+
   dragging.value = true;
   start = { x: event.clientX, y: event.clientY };
   // テキスト選択やスクロールを防ぐ
@@ -81,6 +83,7 @@ function convertToNode(data: any): Node {
     type: data.type,
     attributes: [],
     position: { x: 0, y: 0 },
+    selected: false,
   };
 
   // attributes
@@ -248,6 +251,15 @@ const handleWheel = (event: WheelEvent) => {
   scale.value += wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
   // Prevent scale from becoming too small or too large
   scale.value = Math.min(Math.max(0.1, scale.value), 2);
+};
+
+const clearSelect = (event: MouseEvent) => {
+  const targetElement = event.target as Element;
+  if (!targetElement.closest(".node")) {
+    nodes.value.forEach((node) => {
+      node.selected = false;
+    });
+  }
 };
 </script>
 

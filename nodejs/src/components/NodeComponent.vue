@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 import { Attribute, Node, Position } from "./interfaces";
 
-// // Props を定義します
 const props = defineProps<{
   node: Node;
   scale: number;
@@ -25,6 +24,9 @@ const startMousePosition = ref<Position>({ x: 0, y: 0 });
 
 const onMouseDown = (event: MouseEvent) => {
   event.stopPropagation();
+
+  // ノードを選択
+  node.selected = true;
 
   // Start dragging and record the starting position
   isDragging.value = true;
@@ -166,6 +168,7 @@ const isId = (value: string | string[]): boolean => {
 <template>
   <div
     class="node"
+    :class="{ selected: node.selected }"
     :style="{
       position: 'absolute',
       top: node.position.y + 'px',
@@ -259,5 +262,9 @@ const isId = (value: string | string[]): boolean => {
 }
 .inverse-attribute .dot {
   left: -5px;
+}
+
+.selected {
+  border-color: blue; /* 選択されたノードのボーダーの色を変更 */
 }
 </style>

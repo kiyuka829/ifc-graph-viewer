@@ -3,6 +3,7 @@ export interface Node {
   type: string;
   attributes: Attribute[];
   position: Position;
+  selected: boolean;
   // folded: boolean; // 折りたたみ状態
 }
 
