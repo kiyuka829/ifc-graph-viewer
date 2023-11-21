@@ -178,7 +178,7 @@ const isId = (value: string | string[]): boolean => {
   >
     <div class="node-header">
       <span class="id">#{{ node.id }}</span>
-      <span class="title">{{ node.type }}</span>
+      <span class="title" :title="node.type">{{ node.type }}</span>
       <span class="icon"></span>
     </div>
     <div class="node-body">
@@ -188,7 +188,7 @@ const isId = (value: string | string[]): boolean => {
           v-if="hasValue(attribute.content)"
           :class="{ 'inverse-attribute': attribute.inverse }"
         >
-          <span>{{ attribute.name }}</span>
+          <span :title="attribute.name">{{ attribute.name }}</span>
           <!-- <span>{{ stringifyValue(attribute.content) }}</span> -->
           <span
             class="dot"
@@ -206,8 +206,7 @@ const isId = (value: string | string[]): boolean => {
   position: relative;
   border: 1px solid #ccc;
   border-radius: 5px;
-  /* width: 200px; */
-  min-width: 200px;
+  width: 200px;
   font-family: Arial, sans-serif;
   background-color: #fafafa;
 }
@@ -219,6 +218,7 @@ const isId = (value: string | string[]): boolean => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
 }
 
 .id {
@@ -237,6 +237,7 @@ const isId = (value: string | string[]): boolean => {
 
 .node-body {
   padding: 10px;
+  overflow: hidden;
 }
 
 .attribute {
