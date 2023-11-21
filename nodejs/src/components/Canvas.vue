@@ -1,10 +1,31 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
 
 import { Node, Edge, Position, Attribute } from "./interfaces";
+
+function handleKeyDown(event: KeyboardEvent) {
+  if (event.key === "Delete") {
+    // 選択されたノードとそれに紐づくエッジを削除
+    edges.value = edges.value.filter(
+      (edge) =>
+        !nodes.value.find((node) => node.id === edge.from.nodeId)?.selected &&
+        !nodes.value.find((node) => node.id === edge.to.nodeId)?.selected
+    );
+    nodes.value = nodes.value.filter((node) => !node.selected);
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
+});
 
 // ドラッグ中の位置を追跡するための状態
 const position = ref({ x: 0, y: 0 });
