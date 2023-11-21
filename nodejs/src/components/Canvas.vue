@@ -234,8 +234,12 @@ const addNode_ = (
         to.attrName = targetAttr?.name;
       }
 
+      const id = `${from.nodeId}-${from.attrName}-${to.nodeId}-${to.attrName}`;
+      if (edges.value.find((c) => c.id === id)) {
+        return;
+      }
       edges.value.push({
-        id: "edge1",
+        id: id,
         from: from,
         to: to,
       });
