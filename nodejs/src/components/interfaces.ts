@@ -10,10 +10,15 @@ export interface Node {
 export interface Attribute {
   name: string;
   // 数値だったらID判定してるけどダメです。型を判別するための変数が必要。
-  content: string | string[]; // 接続先のIDまたはテキストデータ
+  content: AttrContent | AttrContent[]; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   visible: boolean; // 接続先の表示状態
   edgePosition?: Position; // エッジの接続位置
+}
+
+export interface AttrContent {
+  type: string;
+  value: string | number;
 }
 
 export interface Edge {

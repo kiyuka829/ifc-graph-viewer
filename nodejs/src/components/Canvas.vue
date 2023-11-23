@@ -112,12 +112,12 @@ function convertToNode(data: any): Node {
   for (const attr of data.attributes) {
     const attribute = {
       name: attr.name,
-      content: attr.value,
+      content: attr.content,
       edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
       inverse: attr.inverse,
       visible: true,
     };
-    hasValue(attr.value) && count++;
+    hasValue(attr.content) && count++;
     node.attributes.push(attribute);
   }
 
@@ -126,14 +126,6 @@ function convertToNode(data: any): Node {
 
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
-
-// const edges = ref<Edge[]>([
-//   {
-//     id: "edge1",
-//     from: { nodeId: "node1", attrName: "attr1" },
-//     to: { nodeId: "node2", attrName: "attr3" },
-//   },
-// ]);
 
 const updateNodePosition = (
   nodeId: string,
@@ -154,7 +146,7 @@ const edgePosition = computed(() => {
     );
     const from_edge = {
       x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition?.x ?? 0),
-      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition?.y ?? 0),
+      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition?.y ?? 22.5),
     };
 
     const to = edge.to;
@@ -203,13 +195,11 @@ const addNode_ = (
       // nodeIdと一致するattributeのnameを取得
       const targetAttr = node.attributes.find((attr) => {
         if (Array.isArray(attr.content)) {
-          if (attr.content.find((c) => c.value === srcId)) {
+          if (attr.content.find((c) => c.type === "id" && c.value === srcId)) {
             return true;
           }
-        } else if (typeof attr.content === "number") {
-          return attr.content === srcId;
         } else {
-          return false;
+          return attr.content.type === "id" && attr.content.value === srcId;
         }
       });
 
@@ -253,8 +243,9 @@ const addNode = (
   nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
+  console.log(data);
   const id = data.attribute.content;
-  const ids = Array.isArray(id) ? id : [{ value: id }];
+  const ids = Array.isArray(id) ? id : [id];
   ids.forEach((id) => {
     addNode_(
       nodeId,

@@ -26,20 +26,19 @@ def get_by_id(path, id):
 
 def attribute_info(key, val):
     if isinstance(val, ifcopenshell.entity_instance):
-        return dict(name=key, attribute_type="id", value=val.id())
+        return dict(name=key, content=dict(type="id", value=val.id()))
     elif isinstance(val, tuple):
         values = []
         for v in val:
             if isinstance(v, ifcopenshell.entity_instance):
-                values.append(dict(attribute_type="id", value=v.id()))
+                values.append(dict(type="id", value=v.id()))
             else:
-                # これ存在するの？ -> (0, 0, 0) みたいな座標で使用されている
-                print("@@@@@@@@@@@@@@@", key, val)
-                values.append(dict(attribute_type="value", value=v))
+                # (0, 0, 0) みたいな座標の場合
+                values.append(dict(type="value", value=v))
 
-        return dict(name=key, attribute_type="list", value=values)
+        return dict(name=key, content=values)
     else:
-        return dict(name=key, attribute_type="value", value=val)
+        return dict(name=key, content=dict(type="value", value=val))
 
 
 def get_node_info(item):
@@ -59,7 +58,6 @@ def get_node_info(item):
     # inverse_attributes = []
     node_info = {}
     node_info["attributes"] = attributes
-    # node_info["inverse_attributes"] = inverse_attributes
     for key, val in item.get_info().items():
         if key == "id":
             node_info["id"] = val

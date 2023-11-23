@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Attribute, Node, Position } from "./interfaces";
+import { AttrContent, Attribute, Node, Position } from "./interfaces";
 
 const props = defineProps<{
   node: Node;
@@ -160,8 +160,12 @@ const hasValue = (value: string | string[]): boolean => {
 };
 
 // id判定
-const isId = (value: string | string[]): boolean => {
-  return typeof value === "number" || Array.isArray(value);
+const isId = (content: AttrContent | AttrContent[]): boolean => {
+  if (Array.isArray(content)) {
+    return content[0].type === "id";
+  } else {
+    return content.type === "id";
+  }
 };
 </script>
 
