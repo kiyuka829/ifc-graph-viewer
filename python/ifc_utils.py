@@ -26,7 +26,12 @@ def get_by_id(path, id):
 
 def attribute_info(key, val):
     if isinstance(val, ifcopenshell.entity_instance):
-        return dict(name=key, content=dict(type="id", value=val.id()))
+        if val.id() == 0:
+            # IFCXX($,$,IFCINTEGER(2),$) みたく直接IFCの場合
+            content = dict(type="value", value=val.wrappedValue)
+            return dict(name=key, content=content)
+        else:
+            return dict(name=key, content=dict(type="id", value=val.id()))
     elif isinstance(val, tuple):
         values = []
         for v in val:
