@@ -6,6 +6,7 @@ import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
 
 import { Node, Edge, Position, Attribute } from "./interfaces";
+import { hasValue } from "./utils";
 
 function handleKeyDown(event: KeyboardEvent) {
   if (event.key === "Delete") {
@@ -85,15 +86,6 @@ const uploadFile = async (event: Event) => {
         // エラー処理
         console.error("ファイルのアップロードに失敗しました:", error);
       });
-  }
-};
-
-// attributeに値があるかどうか
-const hasValue = (value: string | string[]): boolean => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  } else {
-    return value !== null && value !== undefined && value !== "";
   }
 };
 

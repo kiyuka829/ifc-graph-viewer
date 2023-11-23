@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { AttrContent, Attribute, Node, Position } from "./interfaces";
+import { hasValue } from "./utils";
 
 const props = defineProps<{
   node: Node;
@@ -149,15 +150,6 @@ function stringifyValue(value: string | string[]) {
     return value;
   }
 }
-
-// attributeに値があるかどうか
-const hasValue = (value: string | string[]): boolean => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  } else {
-    return value !== null && value !== undefined && value !== "";
-  }
-};
 
 // id判定
 const isId = (content: AttrContent | AttrContent[]): boolean => {
