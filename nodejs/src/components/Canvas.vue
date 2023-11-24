@@ -175,7 +175,7 @@ const addNode_ = (
   axios(config)
     .then((response) => {
       // レスポンスを処理
-      console.log(response.data);
+      // console.log(response.data);
       const node = convertToNode(response.data.node);
 
       // 表示済みならノードを追加しない
@@ -235,7 +235,7 @@ const addNode = (
   nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
-  console.log(data);
+  // console.log(data);
   const id = data.attribute.content;
   const ids = Array.isArray(id) ? id : [id];
   ids.forEach((id) => {
@@ -273,49 +273,63 @@ const clearSelect = (event: MouseEvent) => {
 
 <template>
   <input type="file" @change="uploadFile" class="fileInput" />
-  <div
-    class="canvas"
-    @mousedown="startDrag"
-    @mousemove="drag"
-    @mouseup="endDrag"
-    @mouseleave="endDrag"
-    @wheel="handleWheel"
-  >
-    <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
-      <g
+  <div class="container">
+    <div
+      class="canvas"
+      @mousedown="startDrag"
+      @mousemove="drag"
+      @mouseup="endDrag"
+      @mouseleave="endDrag"
+      @wheel="handleWheel"
+    >
+      <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
+        <g
+          :style="{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transformOrigin: 'center',
+          }"
+        >
+          <EdgeComponent
+            v-for="edge in edgePosition"
+            :key="edge.id"
+            :from="edge.from"
+            :to="edge.to"
+          />
+        </g>
+      </svg>
+
+      <div
+        class="node-container"
         :style="{
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          transformOrigin: 'center',
         }"
       >
-        <EdgeComponent
-          v-for="edge in edgePosition"
-          :key="edge.id"
-          :from="edge.from"
-          :to="edge.to"
+        <NodeComponent
+          v-for="(node, _) in nodes"
+          :key="node.id"
+          :node="node"
+          :scale="scale"
+          @update:position="updateNodePosition(node.id, $event)"
+          @add:node="addNode(node.id, $event)"
         />
-      </g>
-    </svg>
-
-    <div
-      class="node-container"
-      :style="{
-        transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-      }"
-    >
-      <NodeComponent
-        v-for="(node, _) in nodes"
-        :key="node.id"
-        :node="node"
-        :scale="scale"
-        @update:position="updateNodePosition(node.id, $event)"
-        @add:node="addNode(node.id, $event)"
-      />
+      </div>
+    </div>
+    <div class="sidebar">
+      <!-- ここに設定やプロパティ -->
     </div>
   </div>
 </template>
 
 <style scoped>
+.container {
+  display: flex;
+  height: 100vh;
+}
+.sidebar {
+  flex: 1;
+  background-color: #f0f0f0;
+  /* サイドバーのスタイル */
+}
 .fileInput {
   position: absolute;
   top: 20px;
@@ -327,6 +341,7 @@ const clearSelect = (event: MouseEvent) => {
   height: 100vh;
   overflow: auto;
   position: relative;
+  flex: 3;
 }
 
 .node-container {

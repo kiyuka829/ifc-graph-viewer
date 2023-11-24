@@ -100,6 +100,7 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   startEdgePosition.value.y =
     (attribute.edgePosition?.y ?? event.clientY) + node.position.y;
   startMousePosition.value = { x: event.clientX, y: event.clientY };
+  lastMousePosition.value = { ...startMousePosition.value };
 
   // dot 専用のイベントリスナーを設定
   currentMouseUpHandler.value = () => onDotMouseUp(attribute);
@@ -138,16 +139,16 @@ const onDotMouseUp = (attribute: Attribute) => {
   });
 };
 
-function stringifyValue(value: string | string[]) {
-  if (Array.isArray(value)) {
+function stringifyValue(content: AttrContent | AttrContent[]) {
+  if (Array.isArray(content)) {
     // 配列の場合、カンマ区切りの文字列に変換します
-    return `${value.map((v) => `#${v.value}`).join(", ")}`;
-  } else if (typeof value === "number") {
+    return `${content.map((v) => `#${v.value}`).join(", ")}`;
+  } else if (content.type === "id") {
     // 数値はID
-    return `#${value}`;
+    return `#${content.value}`;
   } else {
     // 配列でない場合、そのまま文字列に変換します
-    return value;
+    return content.value.toString();
   }
 }
 
@@ -189,7 +190,13 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
           <span class="truncate-text" :title="attribute.name">{{
             attribute.name
           }}</span>
-          <!-- <span>{{ stringifyValue(attribute.content) }}</span> -->
+          <!--
+          <span
+            class="truncate-text"
+            :title="stringifyValue(attribute.content)"
+            >{{ stringifyValue(attribute.content) }}</span
+          >
+           -->
           <span
             class="dot"
             v-if="isId(attribute.content)"
