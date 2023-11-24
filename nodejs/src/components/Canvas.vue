@@ -23,6 +23,7 @@ const filepath = ref<string>("");
 
 // 拡大縮小
 const scale = ref(1);
+const zoomContainer = ref<HTMLElement | null>(null);
 
 // ライフサイクルフック
 onMounted(() => {
@@ -270,12 +271,25 @@ const addNode = (
 // ホイールイベントのハンドラ
 const handleWheel = (event: WheelEvent) => {
   event.preventDefault();
+  const container = zoomContainer.value;
+  if (!container) return;
+
+  const previousScale = scale.value;
+
   const zoomIntensity = 0.1;
   const wheelDelta = event.deltaY;
   // ズームインまたはズームアウト
-  scale.value += wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
+  const scaleChange = wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
   // スケールが小さすぎるか大きすぎないように制限する
-  scale.value = Math.min(Math.max(0.1, scale.value), 2);
+  scale.value = Math.min(Math.max(0.1, scale.value + scaleChange), 2);
+  if (previousScale === scale.value) return;
+
+  // スケール変更に基づいて位置を調整
+  const rect = container.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  position.value.x -= (x - position.value.x) * (scaleChange / previousScale);
+  position.value.y -= (y - position.value.y) * (scaleChange / previousScale);
 };
 
 // ノード以外の領域をクリックした場合に選択を解除する
@@ -300,12 +314,13 @@ const clearSelect = (event: MouseEvent) => {
       @mouseup="endDrag"
       @mouseleave="endDrag"
       @wheel="handleWheel"
+      ref="zoomContainer"
     >
       <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
         <g
           :style="{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            transformOrigin: 'center',
+            transformOrigin: '0 0',
           }"
         >
           <EdgeComponent
@@ -371,7 +386,7 @@ const clearSelect = (event: MouseEvent) => {
   background-color: #f0f0f0;
 }
 .node-container {
-  transform-origin: center;
+  transform-origin: 0 0;
   position: absolute;
   top: 0;
   left: 0;

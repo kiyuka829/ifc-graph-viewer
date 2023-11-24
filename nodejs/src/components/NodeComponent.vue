@@ -218,6 +218,7 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
   width: 200px;
   font-family: Arial, sans-serif;
   background-color: #fafafacc;
+  user-select: none;
 }
 
 .node-header {
