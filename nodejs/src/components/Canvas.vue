@@ -1,13 +1,36 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-
 import { Node, Edge, Position, Attribute } from "./interfaces";
 import { hasValue } from "./utils";
 
+// ノードとエッジのデータ
+const nodes = ref<Node[]>([]);
+const edges = ref<Edge[]>([]);
+
+// ドラッグ中の位置を追跡するための状態
+const position = ref({ x: 0, y: 0 });
+const dragging = ref(false);
+let start = { x: 0, y: 0 };
+
+// アップロードしたファイルパス
+const filepath = ref<string>("");
+
+// 拡大縮小
+const scale = ref(1);
+
+// ライフサイクルフック
+onMounted(() => {
+  window.addEventListener("keydown", handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
+});
+
+// キーボードイベントのハンドラ
 function handleKeyDown(event: KeyboardEvent) {
   if (event.key === "Delete") {
     // 選択されたノードとそれに紐づくエッジを削除
@@ -20,19 +43,7 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  window.addEventListener("keydown", handleKeyDown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-});
-
-// ドラッグ中の位置を追跡するための状態
-const position = ref({ x: 0, y: 0 });
-const dragging = ref(false);
-let start = { x: 0, y: 0 };
-
+// ドラッグ操作のハンドラ
 function startDrag(event: MouseEvent) {
   clearSelect(event);
 
@@ -55,10 +66,8 @@ function endDrag() {
   document.body.style.userSelect = "auto";
 }
 
-// 選択したファイルを保持する変数
-const filepath = ref<string>("");
-
-const uploadFile = async (event: Event) => {
+// ファイルのアップロード
+const uploadFile = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files?.length) {
     const selectedFile = input.files[0];
@@ -116,9 +125,7 @@ function convertToNode(data: any): Node {
   return node;
 }
 
-const nodes = ref<Node[]>([]);
-const edges = ref<Edge[]>([]);
-
+// ノードの位置を更新するハンドラ
 const updateNodePosition = (
   nodeId: string,
   newPosition: { x: number; y: number }
@@ -129,6 +136,7 @@ const updateNodePosition = (
   }
 };
 
+// エッジの位置を計算する
 const edgePosition = computed(() => {
   return edges.value.map((edge) => {
     const from = edge.from;
@@ -157,6 +165,7 @@ const edgePosition = computed(() => {
   });
 });
 
+// ノードを追加するハンドラ
 const addNode_ = (
   srcId: string,
   dstId: string,
@@ -249,18 +258,18 @@ const addNode = (
   });
 };
 
-const scale = ref(1);
-
+// ホイールイベントのハンドラ
 const handleWheel = (event: WheelEvent) => {
   event.preventDefault();
   const zoomIntensity = 0.1;
   const wheelDelta = event.deltaY;
-  // Zoom in or out
+  // ズームインまたはズームアウト
   scale.value += wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
-  // Prevent scale from becoming too small or too large
+  // スケールが小さすぎるか大きすぎないように制限する
   scale.value = Math.min(Math.max(0.1, scale.value), 2);
 };
 
+// ノード以外の領域をクリックした場合に選択を解除する
 const clearSelect = (event: MouseEvent) => {
   const targetElement = event.target as Element;
   if (!targetElement.closest(".node")) {

@@ -8,9 +8,16 @@ const props = defineProps<{
   scale: number;
 }>();
 const node = props.node;
-
-// Emit the update event to the parent component with the new position
 const emit = defineEmits(["update:position", "add:node"]);
+
+// ドラッグ制御用
+const isDragging = ref(false);
+const startNodePosition = ref<Position>({ x: 0, y: 0 });
+const startEdgePosition = ref<Position>({ x: 0, y: 0 });
+const startMousePosition = ref<Position>({ x: 0, y: 0 });
+
+const isDotDragging = ref(false);
+const lastMousePosition = ref({ x: 0, y: 0 });
 
 const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
 
@@ -18,11 +25,7 @@ onMounted(() => {
   // updateEdgePositions();
 });
 
-const isDragging = ref(false);
-const startNodePosition = ref<Position>({ x: 0, y: 0 });
-const startEdgePosition = ref<Position>({ x: 0, y: 0 });
-const startMousePosition = ref<Position>({ x: 0, y: 0 });
-
+// ノードの移動
 const onMouseDown = (event: MouseEvent) => {
   event.stopPropagation();
 
@@ -68,9 +71,7 @@ const onMouseUp = () => {
   document.removeEventListener("mouseup", onMouseUp);
 };
 
-const isDotDragging = ref(false);
-const lastMousePosition = ref({ x: 0, y: 0 });
-
+// エッジドラッグ時のノード追加処理
 const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   event.stopPropagation();
 
