@@ -5,6 +5,7 @@ import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
 import { Node, Edge, Position, Attribute } from "./interfaces";
 import { hasValue } from "./utils";
+import PropertyArea from "./PropertyArea.vue";
 
 // ノードとエッジのデータ
 const nodes = ref<Node[]>([]);
@@ -163,6 +164,14 @@ const edgePosition = computed(() => {
       to: to_edge,
     };
   });
+});
+
+// 選択されたノード
+const selectNode = computed(() => {
+  const select = nodes.value.filter((node) => node.selected);
+  if (select.length === 1) {
+    return select[0];
+  }
 });
 
 // ノードを追加するハンドラ
@@ -324,7 +333,9 @@ const clearSelect = (event: MouseEvent) => {
       </div>
     </div>
     <div class="sidebar">
-      <!-- ここに設定やプロパティ -->
+      <div v-if="selectNode">
+        <PropertyArea :node="selectNode" />
+      </div>
     </div>
   </div>
 </template>
@@ -334,11 +345,6 @@ const clearSelect = (event: MouseEvent) => {
   display: flex;
   height: 100vh;
 }
-.sidebar {
-  flex: 1;
-  background-color: #f0f0f0;
-  /* サイドバーのスタイル */
-}
 .fileInput {
   position: absolute;
   top: 20px;
@@ -346,13 +352,22 @@ const clearSelect = (event: MouseEvent) => {
   z-index: 1;
 }
 .canvas {
-  width: 100vw;
+  width: 75vw;
   height: 100vh;
   overflow: auto;
   position: relative;
-  flex: 3;
 }
-
+.sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 25vw; /* 1/4 of the screen width */
+  height: 100vh; /* Full height of the container */
+  z-index: 2; /* Overlay on top of the canvas */
+  word-wrap: break-word; /* 長い単語でも折り返しを行う */
+  overflow: auto; /* 必要に応じてスクロールバーを表示 */
+  background-color: #f0f0f0;
+}
 .node-container {
   transform-origin: center;
   position: absolute;
