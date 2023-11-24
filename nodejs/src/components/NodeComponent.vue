@@ -8,7 +8,7 @@ const props = defineProps<{
   scale: number;
 }>();
 const node = props.node;
-const emit = defineEmits(["update:position", "add:node"]);
+const emit = defineEmits(["update:position", "add:node", "select:node"]);
 
 // ドラッグ制御用
 const isDragging = ref(false);
@@ -31,6 +31,7 @@ const onMouseDown = (event: MouseEvent) => {
 
   // ノードを選択
   node.selected = true;
+  emit("select:node");
 
   // Start dragging and record the starting position
   isDragging.value = true;

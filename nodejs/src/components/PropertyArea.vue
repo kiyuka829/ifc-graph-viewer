@@ -54,17 +54,6 @@ const stringifyContent = (content: AttrContent | AttrContent[]) => {
 </template>
 
 <style>
-.table-container {
-  font-family: "Arial", sans-serif;
-  font-size: 0.5rem;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-  max-height: 300px; /* 適切な高さに設定 */
-  border: 1px solid #ccc;
-}
-
 table {
   width: 100%;
   border-collapse: collapse;
@@ -74,6 +63,7 @@ table,
 th,
 td {
   border: 1px solid #ddd;
+  font-size: 0.8rem;
 }
 
 th,

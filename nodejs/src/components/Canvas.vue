@@ -11,6 +11,8 @@ import PropertyArea from "./PropertyArea.vue";
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
 
+const selectedNode = ref<Node | null>(null);
+
 // ドラッグ中の位置を追跡するための状態
 const position = ref({ x: 0, y: 0 });
 const dragging = ref(false);
@@ -139,6 +141,7 @@ const updateNodePosition = (
 
 // エッジの位置を計算する
 const edgePosition = computed(() => {
+  /* パフォーマンス悪いかも */
   return edges.value.map((edge) => {
     const from = edge.from;
     const from_node = nodes.value.find((c) => c.id === from.nodeId);
@@ -166,13 +169,10 @@ const edgePosition = computed(() => {
   });
 });
 
-// 選択されたノード
-const selectNode = computed(() => {
-  const select = nodes.value.filter((node) => node.selected);
-  if (select.length === 1) {
-    return select[0];
-  }
-});
+// ノードの選択処理
+const selectNode = (node: Node) => {
+  selectedNode.value = node;
+};
 
 // ノードを追加するハンドラ
 const addNode_ = (
@@ -280,6 +280,7 @@ const handleWheel = (event: WheelEvent) => {
 
 // ノード以外の領域をクリックした場合に選択を解除する
 const clearSelect = (event: MouseEvent) => {
+  selectedNode.value = null;
   const targetElement = event.target as Element;
   if (!targetElement.closest(".node")) {
     nodes.value.forEach((node) => {
@@ -329,12 +330,13 @@ const clearSelect = (event: MouseEvent) => {
           :scale="scale"
           @update:position="updateNodePosition(node.id, $event)"
           @add:node="addNode(node.id, $event)"
+          @select:node="selectNode(node)"
         />
       </div>
     </div>
     <div class="sidebar">
-      <div v-if="selectNode">
-        <PropertyArea :node="selectNode" />
+      <div v-if="selectedNode">
+        <PropertyArea :node="selectedNode" />
       </div>
     </div>
   </div>
