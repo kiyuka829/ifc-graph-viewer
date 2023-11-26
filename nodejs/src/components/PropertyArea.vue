@@ -5,6 +5,7 @@ import { Node, AttrContent } from "./interfaces";
 const props = defineProps<{
   node: Node;
 }>();
+props;
 
 const stringifyContent = (content: AttrContent | AttrContent[]) => {
   if (Array.isArray(content)) {

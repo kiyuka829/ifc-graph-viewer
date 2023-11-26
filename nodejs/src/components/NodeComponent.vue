@@ -153,6 +153,7 @@ function stringifyValue(content: AttrContent | AttrContent[]) {
     return content.value.toString();
   }
 }
+stringifyValue;
 
 // id判定
 const isId = (content: AttrContent | AttrContent[]): boolean => {

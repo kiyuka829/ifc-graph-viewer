@@ -1,5 +1,5 @@
 export interface Node {
-  id: string;
+  id: number;
   type: string;
   attributes: Attribute[];
   position: Position;
@@ -23,13 +23,13 @@ export interface AttrContent {
 export interface Edge {
   id: string;
   from: {
-    nodeId: string;
-    attrName: string;
+    nodeId: number;
+    attrName: string | undefined;
     // position: Position;
   };
   to: {
-    nodeId: string;
-    attrName: string;
+    nodeId: number;
+    attrName: string | undefined;
     // position: Position;
   };
 }

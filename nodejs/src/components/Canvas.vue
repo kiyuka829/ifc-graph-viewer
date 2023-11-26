@@ -134,7 +134,7 @@ function convertToNode(data: any): Node {
 
 // ノードの位置を更新するハンドラ
 const updateNodePosition = (
-  nodeId: string,
+  nodeId: number,
   newPosition: { x: number; y: number }
 ) => {
   const node = nodes.value.find((c) => c.id === nodeId);
@@ -180,8 +180,8 @@ const selectNode = (node: Node) => {
 
 // ノードを追加するハンドラ
 const addNode_ = (
-  srcId: string,
-  dstId: string,
+  srcId: number,
+  dstId: number,
   srcName: string,
   inverse: boolean,
   dstPosition: Position
@@ -218,12 +218,12 @@ const addNode_ = (
       });
 
       // エッジ作成
-      const from: { nodeId: string; attrName: string } = {
-        nodeId: "",
+      const from: { nodeId: number; attrName: string | undefined } = {
+        nodeId: 0,
         attrName: "",
       };
-      const to: { nodeId: string; attrName: string } = {
-        nodeId: "",
+      const to: { nodeId: number; attrName: string | undefined } = {
+        nodeId: 0,
         attrName: "",
       };
       if (inverse) {
@@ -254,7 +254,7 @@ const addNode_ = (
 };
 
 const addNode = (
-  nodeId: string,
+  nodeId: number,
   data: { position: Position; attribute: Attribute }
 ) => {
   // console.log(data);
@@ -263,7 +263,7 @@ const addNode = (
   ids.forEach((id) => {
     addNode_(
       nodeId,
-      id.value,
+      id.value as number,
       data.attribute.name,
       data.attribute.inverse,
       data.position
