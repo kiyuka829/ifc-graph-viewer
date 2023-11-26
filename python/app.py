@@ -36,11 +36,13 @@ def upload_file():
         file.save(file_path)
 
         ifcproject = ifc.get_ifcproject(file_path)
+        entityies = ifc.get_entities(file_path)
         return (
             jsonify(
                 {
                     "message": "ファイルがアップロードされました。",
                     "model": ifcproject,
+                    "entities": entityies,
                     "path": file_path.as_posix(),
                 }
             ),
@@ -56,6 +58,23 @@ def get_node():
     print(data)
 
     node = ifc.get_by_id(data.get("path"), data.get("id"))
+    return (
+        jsonify(
+            {
+                "message": "ノード追加に成功しました。",
+                "node": node,
+            }
+        ),
+        200,
+    )
+
+
+@app.route("/get_node_by_type", methods=["POST"])
+def get_node_by_type():
+    data = request.get_json()
+    print(data)
+
+    node = ifc.get_by_type(data.get("path"), data.get("type"))
     return (
         jsonify(
             {

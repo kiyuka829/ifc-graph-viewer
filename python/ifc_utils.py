@@ -24,6 +24,22 @@ def get_by_id(path, id):
     return get_node_info(item)
 
 
+def get_by_type(path, type):
+    model = load_model(path)
+    item = model.by_type(type)[0]
+    return get_node_info(item)
+    items = model.by_type(type)
+    return [get_node_info(item) for item in items]
+
+
+def get_entities(path):
+    model = load_model(path)
+    entities = set()
+    for item in model:
+        entities.add(item.is_a())
+    return sorted(list(entities))
+
+
 def attribute_info(key, val):
     if isinstance(val, ifcopenshell.entity_instance):
         if val.id() == 0:

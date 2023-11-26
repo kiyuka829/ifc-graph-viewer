@@ -6,12 +6,15 @@ import EdgeComponent from "./EdgeComponent.vue";
 import { Node, Edge, Position, Attribute } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
+import SearchEntity from "./SearchEntity.vue";
 
 // ノードとエッジのデータ
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
 
 const selectedNode = ref<Node | null>(null);
+
+const ifcElements = ref([]);
 
 // ドラッグ中の位置を追跡するための状態
 const position = ref({ x: 0, y: 0 });
@@ -89,7 +92,7 @@ const uploadFile = (event: Event) => {
       })
       .then((response) => {
         // レスポンスを処理
-        console.log(response.data.model);
+        ifcElements.value = response.data.entities;
         const node = convertToNode(response.data.model);
         nodes.value.push(node);
         filepath.value = response.data.path;
@@ -302,10 +305,45 @@ const clearSelect = (event: MouseEvent) => {
     });
   }
 };
+
+const selectEntity = (item: string) => {
+  // 選択された項目の処理
+  addNodeByType(item, { x: 0, y: 0 });
+};
+const addNodeByType = (type: string, dstPosition: Position) => {
+  const config = {
+    method: "post",
+    url: "http://localhost:5000/get_node_by_type",
+    data: {
+      path: filepath.value,
+      type: type,
+    },
+  };
+  axios(config)
+    .then((response) => {
+      // レスポンスを処理
+      const node = convertToNode(response.data.node);
+      console.log(node);
+
+      // 表示済みならノードを追加しない
+      if (!nodes.value.find((c) => c.id === node.id)) {
+        node.position = dstPosition;
+        nodes.value.push(node);
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+};
 </script>
 
 <template>
   <input type="file" @change="uploadFile" class="fileInput" />
+
+  <div class="add-menu">
+    <SearchEntity :elements="ifcElements" @select="selectEntity" />
+  </div>
+
   <div class="container">
     <div
       class="canvas"
@@ -400,5 +438,14 @@ const clearSelect = (event: MouseEvent) => {
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.add-menu {
+  position: absolute;
+  overflow: auto;
+  height: 50vh;
+  top: 50px;
+  left: 20px;
+  z-index: 1;
 }
 </style>
