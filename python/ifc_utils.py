@@ -1,4 +1,5 @@
 import ifcopenshell
+from collections import defaultdict
 
 load_models = {}
 
@@ -34,10 +35,20 @@ def get_by_type(path, type):
 
 def get_entities(path):
     model = load_model(path)
-    entities = set()
+    entities = defaultdict(list)
     for item in model:
-        entities.add(item.is_a())
-    return sorted(list(entities))
+        entities[item.is_a()].append(item.id())
+    for key, val in entities.items():
+        val.sort()
+    return entities
+
+
+def get_lines(path):
+    model = load_model(path)
+    entities = []
+    for item in model:
+        entities.append((item.id(), item.is_a()))
+    return sorted(entities)
 
 
 def attribute_info(key, val):

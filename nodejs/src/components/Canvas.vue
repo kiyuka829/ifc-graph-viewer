@@ -14,18 +14,23 @@ const edges = ref<Edge[]>([]);
 
 const selectedNode = ref<Node | null>(null);
 
-const ifcElements = ref([]);
+const ifcElements = ref<{ [key: string]: number[] }>({});
+
+const showSearch = ref<boolean>(false);
 
 // ドラッグ中の位置を追跡するための状態
-const position = ref({ x: 0, y: 0 });
 const dragging = ref(false);
 let start = { x: 0, y: 0 };
+
+// 右クリック位置
+const rightClickPosition = ref({ x: 0, y: 0 });
 
 // アップロードしたファイルパス
 const filepath = ref<string>("");
 
-// 拡大縮小
+// 描画領域の拡大縮小、移動
 const scale = ref(1);
+const position = ref({ x: 0, y: 0 });
 const zoomContainer = ref<HTMLElement | null>(null);
 
 // ライフサイクルフック
@@ -52,6 +57,10 @@ function handleKeyDown(event: KeyboardEvent) {
 
 // ドラッグ操作のハンドラ
 function startDrag(event: MouseEvent) {
+  if (event.button === 2) {
+    // 右クリックは処理しない
+    return;
+  }
   clearSelect(event);
 
   dragging.value = true;
@@ -306,24 +315,23 @@ const clearSelect = (event: MouseEvent) => {
   }
 };
 
-const selectEntity = (item: string) => {
+const selectEntity = (id: number) => {
   // 選択された項目の処理
-  addNodeByType(item, { x: 0, y: 0 });
+  addNodeById(id, { ...rightClickPosition.value });
 };
-const addNodeByType = (type: string, dstPosition: Position) => {
+const addNodeById = (id: number, dstPosition: Position) => {
   const config = {
     method: "post",
-    url: "http://localhost:5000/get_node_by_type",
+    url: "http://localhost:5000/get_node",
     data: {
       path: filepath.value,
-      type: type,
+      id: id,
     },
   };
   axios(config)
     .then((response) => {
       // レスポンスを処理
       const node = convertToNode(response.data.node);
-      console.log(node);
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === node.id)) {
@@ -335,14 +343,35 @@ const addNodeByType = (type: string, dstPosition: Position) => {
       console.log(error);
     });
 };
+
+const getRelativePosition = (event: MouseEvent) => {
+  const container = zoomContainer.value;
+  if (!container) return { x: 0, y: 0 };
+
+  const rect = container.getBoundingClientRect();
+
+  // 要素内でのマウスの相対座標
+  const relativeX =
+    (event.clientX - rect.left - position.value.x) / scale.value;
+  const relativeY = (event.clientY - rect.top - position.value.y) / scale.value;
+
+  return { x: relativeX, y: relativeY };
+};
+
+const handleRightClick = (event: MouseEvent) => {
+  event.preventDefault(); // デフォルトのコンテキストメニューを防ぐ
+  const relativePosition = getRelativePosition(event);
+  rightClickPosition.value = relativePosition;
+  showSearch.value = true;
+};
+
+const closeSearch = () => {
+  showSearch.value = false;
+};
 </script>
 
 <template>
   <input type="file" @change="uploadFile" class="fileInput" />
-
-  <div class="add-menu">
-    <SearchEntity :elements="ifcElements" @select="selectEntity" />
-  </div>
 
   <div class="container">
     <div
@@ -352,6 +381,7 @@ const addNodeByType = (type: string, dstPosition: Position) => {
       @mouseup="endDrag"
       @mouseleave="endDrag"
       @wheel="handleWheel"
+      @contextmenu.prevent="handleRightClick"
       ref="zoomContainer"
     >
       <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
@@ -391,6 +421,10 @@ const addNodeByType = (type: string, dstPosition: Position) => {
       <div v-if="selectedNode">
         <PropertyArea :node="selectedNode" />
       </div>
+    </div>
+
+    <div class="add-menu" v-if="showSearch" @click="closeSearch">
+      <SearchEntity :elements="ifcElements" @select="selectEntity" />
     </div>
   </div>
 </template>
@@ -443,9 +477,13 @@ const addNodeByType = (type: string, dstPosition: Position) => {
 .add-menu {
   position: absolute;
   overflow: auto;
-  height: 50vh;
-  top: 50px;
-  left: 20px;
-  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* height: 50vh; */
+  /* top: 50px; */
+  /* left: 20px; */
+  /* z-index: 1; */
 }
 </style>

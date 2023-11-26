@@ -27,6 +27,10 @@ onMounted(() => {
 
 // ノードの移動
 const onMouseDown = (event: MouseEvent) => {
+  if (event.button === 2) {
+    // 右クリックは処理しない
+    return;
+  }
   event.stopPropagation();
 
   // ノードを選択
@@ -74,6 +78,10 @@ const onMouseUp = () => {
 
 // エッジドラッグ時のノード追加処理
 const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
+  if (event.button === 2) {
+    // 右クリックは処理しない
+    return;
+  }
   event.stopPropagation();
 
   // 座標表示用

@@ -35,8 +35,10 @@ def upload_file():
         file_path = UPLOAD_FOLDER / filename
         file.save(file_path)
 
+        app.logger.info("ファイル読み込み開始")
         ifcproject = ifc.get_ifcproject(file_path)
         entityies = ifc.get_entities(file_path)
+        app.logger.info("ファイル読み込み完了")
         return (
             jsonify(
                 {
