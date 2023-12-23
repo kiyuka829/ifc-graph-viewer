@@ -30,3 +30,6 @@ docs/
 __pycache__/
 .ipynb_checkpoints/
 *.ipynb
+env/
+build/
+*.spec

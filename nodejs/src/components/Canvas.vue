@@ -8,6 +8,8 @@ import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
 
+const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
+
 // ノードとエッジのデータ
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
@@ -94,7 +96,7 @@ const uploadFile = (event: Event) => {
 
     // ファイルをサーバーにアップロード
     axios
-      .post("http://localhost:5000/upload", formData, {
+      .post(endpoint + "/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -120,7 +122,7 @@ function convertToNode(data: any): Node {
     id: data.id,
     type: data.type,
     attributes: [],
-    position: { x: 0, y: 0 },
+    position: { x: 40, y: 60 },
     selected: false,
   };
 
@@ -197,7 +199,7 @@ const addNode_ = (
 ) => {
   const config = {
     method: "post",
-    url: "http://localhost:5000/get_node",
+    url: endpoint + "/get_node",
     data: {
       path: filepath.value,
       id: dstId,
@@ -322,7 +324,7 @@ const selectEntity = (id: number) => {
 const addNodeById = (id: number, dstPosition: Position) => {
   const config = {
     method: "post",
-    url: "http://localhost:5000/get_node",
+    url: endpoint + "/get_node",
     data: {
       path: filepath.value,
       id: id,
@@ -371,7 +373,17 @@ const closeSearch = () => {
 </script>
 
 <template>
-  <input type="file" @change="uploadFile" class="fileInput" />
+  <input
+    type="file"
+    @change="uploadFile"
+    class="fileInput"
+    v-if="filepath === ''"
+  />
+  <!--
+  <h4 v-else class="fileInput" style="margin-top: 0">
+    {{ filepath.split("/")[1].replace(/\..*?$/, "") }}
+  </h4>
+ -->
 
   <div class="container">
     <div
