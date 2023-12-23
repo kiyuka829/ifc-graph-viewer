@@ -9,4 +9,4 @@ if __name__ == "__main__":
         maximized=True,
         confirm_close=True,
     )
-    webview.start()
+    webview.start(debug=False)

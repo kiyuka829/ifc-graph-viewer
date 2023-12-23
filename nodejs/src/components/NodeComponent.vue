@@ -225,7 +225,6 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
   border: 1px solid #ccc;
   border-radius: 5px;
   width: 200px;
-  font-family: Arial, sans-serif;
   background-color: #fafafacc;
   user-select: none;
 }
