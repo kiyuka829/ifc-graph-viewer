@@ -33,3 +33,5 @@ __pycache__/
 env/
 build/
 *.spec
+
+release/
