@@ -24,7 +24,9 @@ const startMousePosition = ref<Position>({ x: 0, y: 0 });
 const isDotDragging = ref(false);
 const lastMousePosition = ref({ x: 0, y: 0 });
 
+// ノード追加時のイベントリスナー
 const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
+const currentMouseMoveHandler = ref<((event: MouseEvent) => void) | null>(null);
 
 onMounted(() => {
   // updateEdgePositions();
@@ -131,17 +133,16 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   emit("update:drawingEdgePosition", edge);
 
   // dot 専用のイベントリスナーを設定
+  currentMouseMoveHandler.value = (event: MouseEvent) =>
+    onDotMouseMove(event, attribute);
   currentMouseUpHandler.value = () => onDotMouseUp(attribute);
-  document.addEventListener("mousemove", onDotMouseMove);
+  document.addEventListener("mousemove", currentMouseMoveHandler.value);
   document.addEventListener("mouseup", currentMouseUpHandler.value);
 };
 
-const onDotMouseMove = (event: MouseEvent) => {
-  if (!isDotDragging.value) return;
-  lastMousePosition.value = { x: event.clientX, y: event.clientY };
-
-  // 描画中のエッジの位置を更新
-  const position = {
+// ドラッグ中のエッジの終点位置を計算
+function calculateMovedPosition(): Position {
+  return {
     x:
       startEdgePosition.value.x +
       (lastMousePosition.value.x - startMousePosition.value.x) / props.scale,
@@ -149,13 +150,28 @@ const onDotMouseMove = (event: MouseEvent) => {
       startEdgePosition.value.y +
       (lastMousePosition.value.y - startMousePosition.value.y) / props.scale,
   };
-  const edge = {
-    from: {
-      x: startEdgePosition.value.x,
-      y: startEdgePosition.value.y,
-    },
-    to: position,
+}
+
+const onDotMouseMove = (event: MouseEvent, attribute: Attribute) => {
+  if (!isDotDragging.value) return;
+  lastMousePosition.value = { x: event.clientX, y: event.clientY };
+
+  // 描画中のエッジの位置を更新
+  let posStart = {
+    x: startEdgePosition.value.x,
+    y: startEdgePosition.value.y,
   };
+  let posEnd = calculateMovedPosition();
+
+  if (attribute.inverse) {
+    // 逆属性の場合、from と to を入れ替える
+    [posStart, posEnd] = [posEnd, posStart];
+  }
+  const edge = {
+    from: posStart,
+    to: posEnd,
+  };
+
   emit("update:drawingEdgePosition", edge);
 };
 
@@ -164,20 +180,14 @@ const onDotMouseUp = (attribute: Attribute) => {
   isDotDragging.value = false;
 
   // イベントリスナーを削除
-  if (currentMouseUpHandler.value) {
-    document.removeEventListener("mousemove", onDotMouseMove);
+  if (currentMouseUpHandler.value && currentMouseMoveHandler.value) {
+    document.removeEventListener("mousemove", currentMouseMoveHandler.value);
     document.removeEventListener("mouseup", currentMouseUpHandler.value);
+    currentMouseMoveHandler.value = null; // ハンドラの参照をクリア
     currentMouseUpHandler.value = null; // ハンドラの参照をクリア
   }
 
-  const position = {
-    x:
-      startEdgePosition.value.x +
-      (lastMousePosition.value.x - startMousePosition.value.x) / props.scale,
-    y:
-      startEdgePosition.value.y +
-      (lastMousePosition.value.y - startMousePosition.value.y) / props.scale,
-  };
+  const position = calculateMovedPosition();
 
   emit("add:node", {
     position: position,
