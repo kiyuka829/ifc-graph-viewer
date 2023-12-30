@@ -201,7 +201,8 @@ const addNode_ = (
   dstId: number,
   srcName: string,
   inverse: boolean,
-  dstPosition: Position
+  dstPosition: Position,
+  idx: number
 ) => {
   const config = {
     method: "post",
@@ -235,8 +236,8 @@ const addNode_ = (
 
       // ノードの位置をエッジ接続点を合わせるように更新
       const position = {
-        x: dstPosition.x - (targetAttr?.edgePosition?.x ?? 0),
-        y: dstPosition.y - (targetAttr?.edgePosition?.y ?? 22.5),
+        x: dstPosition.x - (targetAttr?.edgePosition?.x ?? 0) + idx * 10,
+        y: dstPosition.y - (targetAttr?.edgePosition?.y ?? 22.5) + idx * 10,
       };
       node.position = position;
 
@@ -287,13 +288,14 @@ const addNode = (
   // console.log(data);
   const id = data.attribute.content;
   const ids = Array.isArray(id) ? id : [id];
-  ids.forEach((id) => {
+  ids.forEach((id, idx) => {
     addNode_(
       nodeId,
       id.value as number,
       data.attribute.name,
       data.attribute.inverse,
-      data.position
+      data.position,
+      idx
     );
   });
 };
