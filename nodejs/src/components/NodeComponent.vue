@@ -8,7 +8,12 @@ const props = defineProps<{
   scale: number;
 }>();
 const node = props.node;
-const emit = defineEmits(["update:position", "add:node", "select:node"]);
+const emit = defineEmits([
+  "update:position",
+  "add:node",
+  "select:node",
+  "update:drawingEdgePosition",
+]);
 
 // ドラッグ制御用
 const isDragging = ref(false);
@@ -112,6 +117,19 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   startMousePosition.value = { x: event.clientX, y: event.clientY };
   lastMousePosition.value = { ...startMousePosition.value };
 
+  // 描画中のエッジの位置を初期化
+  const edge = {
+    from: {
+      x: startEdgePosition.value.x,
+      y: startEdgePosition.value.y,
+    },
+    to: {
+      x: startEdgePosition.value.x,
+      y: startEdgePosition.value.y,
+    },
+  };
+  emit("update:drawingEdgePosition", edge);
+
   // dot 専用のイベントリスナーを設定
   currentMouseUpHandler.value = () => onDotMouseUp(attribute);
   document.addEventListener("mousemove", onDotMouseMove);
@@ -121,6 +139,24 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
 const onDotMouseMove = (event: MouseEvent) => {
   if (!isDotDragging.value) return;
   lastMousePosition.value = { x: event.clientX, y: event.clientY };
+
+  // 描画中のエッジの位置を更新
+  const position = {
+    x:
+      startEdgePosition.value.x +
+      (lastMousePosition.value.x - startMousePosition.value.x) / props.scale,
+    y:
+      startEdgePosition.value.y +
+      (lastMousePosition.value.y - startMousePosition.value.y) / props.scale,
+  };
+  const edge = {
+    from: {
+      x: startEdgePosition.value.x,
+      y: startEdgePosition.value.y,
+    },
+    to: position,
+  };
+  emit("update:drawingEdgePosition", edge);
 };
 
 const onDotMouseUp = (attribute: Attribute) => {

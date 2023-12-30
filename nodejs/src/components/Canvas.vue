@@ -14,10 +14,16 @@ const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
 
+// エッジの描画中の状態
+const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
+
+// 選択されたノード（属性表示用）
 const selectedNode = ref<Node | null>(null);
 
+// IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: number[] }>({});
 
+// 右クリックメニュー表示フラグ
 const showSearch = ref<boolean>(false);
 
 // ドラッグ中の位置を追跡するための状態
@@ -261,6 +267,10 @@ const addNode_ = (
     })
     .catch((error) => {
       console.log(error);
+    })
+    .finally(() => {
+      // 描画中のエッジを削除
+      updateDrawingEdge(null);
     });
 };
 
@@ -280,6 +290,11 @@ const addNode = (
       data.position
     );
   });
+};
+
+// 描画中のエッジを更新する
+const updateDrawingEdge = (edge: { from: Position; to: Position } | null) => {
+  drawingEdge.value = edge;
 };
 
 // ホイールイベントのハンドラ
@@ -396,6 +411,7 @@ const closeSearch = () => {
       @contextmenu.prevent="handleRightClick"
       ref="zoomContainer"
     >
+      <!-- エッジ -->
       <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
         <g
           :style="{
@@ -409,9 +425,18 @@ const closeSearch = () => {
             :from="edge.from"
             :to="edge.to"
           />
+
+          <!-- 追加途中のエッジ -->
+          <EdgeComponent
+            v-if="drawingEdge !== null"
+            :from="drawingEdge.from"
+            :to="drawingEdge.to"
+            :dashed="true"
+          />
         </g>
       </svg>
 
+      <!-- ノード -->
       <div
         class="node-container"
         :style="{
@@ -426,15 +451,19 @@ const closeSearch = () => {
           @update:position="updateNodePosition(node.id, $event)"
           @add:node="addNode(node.id, $event)"
           @select:node="selectNode(node)"
+          @update:drawingEdgePosition="updateDrawingEdge($event)"
         />
       </div>
     </div>
+
+    <!-- 属性表示欄 -->
     <div class="sidebar">
       <div v-if="selectedNode">
         <PropertyArea :node="selectedNode" />
       </div>
     </div>
 
+    <!-- ノード追加メニュー -->
     <div class="add-menu" v-if="showSearch" @click="closeSearch">
       <SearchEntity :elements="ifcElements" @select="selectEntity" />
     </div>
