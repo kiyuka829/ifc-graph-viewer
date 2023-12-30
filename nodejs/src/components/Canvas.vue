@@ -219,7 +219,6 @@ const addNode_ = (
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === dstId)) {
-        node.position = dstPosition;
         nodes.value.push(node);
       }
 
@@ -233,6 +232,13 @@ const addNode_ = (
           return attr.content.type === "id" && attr.content.value === srcId;
         }
       });
+
+      // ノードの位置をエッジ接続点を合わせるように更新
+      const position = {
+        x: dstPosition.x - (targetAttr?.edgePosition?.x ?? 0),
+        y: dstPosition.y - (targetAttr?.edgePosition?.y ?? 22.5),
+      };
+      node.position = position;
 
       // エッジ作成
       const from: { nodeId: number; attrName: string | undefined } = {
