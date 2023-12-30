@@ -18,7 +18,10 @@ const edges = ref<Edge[]>([]);
 const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 
 // 選択されたノード（属性表示用）
-const selectedNode = ref<Node | null>(null);
+const viewedAttrNode = ref<Node | null>(null);
+
+// 選択されたノード
+const selectedNodeIds = ref<number[]>([]);
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: number[] }>({});
@@ -56,14 +59,17 @@ function handleKeyDown(event: KeyboardEvent) {
     // 選択されたノードとそれに紐づくエッジを削除
     edges.value = edges.value.filter(
       (edge) =>
-        !nodes.value.find((node) => node.id === edge.from.nodeId)?.selected &&
-        !nodes.value.find((node) => node.id === edge.to.nodeId)?.selected
+        !selectedNodeIds.value.includes(edge.from.nodeId) &&
+        !selectedNodeIds.value.includes(edge.to.nodeId)
     );
-    nodes.value = nodes.value.filter((node) => !node.selected);
+    nodes.value = nodes.value.filter(
+      (node) => !selectedNodeIds.value.includes(node.id)
+    );
+    selectedNodeIds.value = [];
   }
 }
 
-// ドラッグ操作のハンドラ
+// ドラッグ操作のハンドラ（全体の移動処理）
 function startDrag(event: MouseEvent) {
   if (event.button === 2) {
     // 右クリックは処理しない
@@ -129,7 +135,6 @@ function convertToNode(data: any): Node {
     type: data.type,
     attributes: [],
     position: { x: 40, y: 60 },
-    selected: false,
   };
 
   // attributes
@@ -192,7 +197,8 @@ const edgePosition = computed(() => {
 
 // ノードの選択処理
 const selectNode = (node: Node) => {
-  selectedNode.value = node;
+  viewedAttrNode.value = node;
+  selectedNodeIds.value.push(node.id);
 };
 
 // ノードを追加するハンドラ
@@ -331,12 +337,10 @@ const handleWheel = (event: WheelEvent) => {
 
 // ノード以外の領域をクリックした場合に選択を解除する
 const clearSelect = (event: MouseEvent) => {
-  selectedNode.value = null;
+  viewedAttrNode.value = null;
   const targetElement = event.target as Element;
   if (!targetElement.closest(".node")) {
-    nodes.value.forEach((node) => {
-      node.selected = false;
-    });
+    selectedNodeIds.value = [];
   }
 };
 
@@ -455,6 +459,7 @@ const closeSearch = () => {
           v-for="(node, _) in nodes"
           :key="node.id"
           :node="node"
+          :selected="selectedNodeIds.includes(node.id)"
           :scale="scale"
           @update:position="updateNodePosition(node.id, $event)"
           @add:node="addNode(node.id, $event)"
@@ -466,8 +471,8 @@ const closeSearch = () => {
 
     <!-- 属性表示欄 -->
     <div class="sidebar">
-      <div v-if="selectedNode">
-        <PropertyArea :node="selectedNode" />
+      <div v-if="viewedAttrNode">
+        <PropertyArea :node="viewedAttrNode" />
       </div>
     </div>
 

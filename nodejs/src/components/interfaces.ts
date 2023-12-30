@@ -3,7 +3,6 @@ export interface Node {
   type: string;
   attributes: Attribute[];
   position: Position;
-  selected: boolean;
   // folded: boolean; // 折りたたみ状態
 }
 
@@ -25,12 +24,10 @@ export interface Edge {
   from: {
     nodeId: number;
     attrName: string | undefined;
-    // position: Position;
   };
   to: {
     nodeId: number;
     attrName: string | undefined;
-    // position: Position;
   };
 }
 

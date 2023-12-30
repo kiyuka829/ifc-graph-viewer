@@ -5,6 +5,7 @@ import { hasValue } from "./utils";
 
 const props = defineProps<{
   node: Node;
+  selected: boolean;
   scale: number;
 }>();
 const node = props.node;
@@ -41,7 +42,6 @@ const onMouseDown = (event: MouseEvent) => {
   event.stopPropagation();
 
   // ノードを選択
-  node.selected = true;
   emit("select:node");
 
   // Start dragging and record the starting position
@@ -222,7 +222,7 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
 <template>
   <div
     class="node"
-    :class="{ selected: node.selected }"
+    :class="{ selected: selected }"
     :style="{
       position: 'absolute',
       top: node.position.y + 'px',
@@ -278,6 +278,7 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
 
 .node-header {
   background-color: #f0f0f0;
+  border-radius: 5px 5px 0px 0px;
   border-bottom: 1px solid #ccc;
   padding: 10px;
   display: flex;
