@@ -217,6 +217,7 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
       </template>
     </div>
   </div>
+  <!--  -->
 </template>
 
 <style scoped>
@@ -282,6 +283,11 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
   background-color: orange;
   border-radius: 50%;
   display: inline-block;
+  cursor: pointer;
+}
+.dot:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5); /* 影を追加 */
+  background-color: #ffa500; /* 背景色を少し明るく */
 }
 .inverse-attribute .dot {
   left: -5px;
