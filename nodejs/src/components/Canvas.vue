@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
+import AlignCenterIcon from "../assets/icons/align-center.svg";
+import AlignMiddleIcon from "../assets/icons/align-middle.svg";
+import AlignLeftIcon from "../assets/icons/align-left.svg";
+import AlignRightIcon from "../assets/icons/align-right.svg";
+import AlignTopIcon from "../assets/icons/align-top.svg";
+import AlignBottomIcon from "../assets/icons/align-bottom.svg";
+import AlignHorizontalIcon from "../assets/icons/align-horizontal.svg";
+import AlignVerticalIcon from "../assets/icons/align-vertical.svg";
+
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
 import { Node, Edge, Position, Attribute } from "./interfaces";
@@ -27,7 +36,7 @@ const rectSelectedNodeIds = ref<number[]>([]);
 // 範囲選択前に選択されていたノード
 const previousSelectedNodeIds = ref<number[]>([]);
 
-// ドラッグ中のノードの初期位置
+// ドラッグ中のノードの初期位置（ノード移動処理用）
 const dragStartNodePositions = ref<{ [id: number]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
@@ -129,6 +138,7 @@ function drag(event: MouseEvent) {
         const length = node.attributes.filter((attr) =>
           hasValue(attr.content)
         ).length;
+        // ヘッダーの高さ44px、bodyのpadding20px、属性の高さ29px
         const bottom = nodePosition.y + 44 + 20 + 29 * length;
 
         // 選択開始前に選択済みのノードは処理しない
@@ -335,6 +345,7 @@ const addNode_ = (
       });
 
       // ノードの位置をエッジ接続点を合わせるように更新
+      // （ノードが複数あるときは重ならないように位置をずらす）
       const position = {
         x: dstPosition.x - (targetAttr?.edgePosition?.x ?? 0) + idx * 10,
         y: dstPosition.y - (targetAttr?.edgePosition?.y ?? 22.5) + idx * 10,
@@ -397,6 +408,98 @@ const addNode = (
       data.position,
       idx
     );
+  });
+};
+
+// ノードを整列する
+const alignLeft = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
+  selectedNodes.forEach((node) => {
+    node.position.x = minX;
+  });
+};
+const alignCenter = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
+  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
+  selectedNodes.forEach((node) => {
+    node.position.x = minX + (maxX - minX) / 2;
+  });
+};
+const alignRight = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
+  selectedNodes.forEach((node) => {
+    node.position.x = maxX;
+  });
+};
+const alignTop = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
+  selectedNodes.forEach((node) => {
+    node.position.y = minY;
+  });
+};
+const alignMiddle = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
+  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
+  selectedNodes.forEach((node) => {
+    node.position.y = minY + (maxY - minY) / 2;
+  });
+};
+const alignBottom = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
+  selectedNodes.forEach((node) => {
+    node.position.y = maxY;
+  });
+};
+const alignHorizontally = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value
+    .filter((node) => selectedNodeIds.value.includes(node.id))
+    .sort((a, b) => a.position.x - b.position.x);
+
+  // 水平方向に等間隔に整列する
+  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
+  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
+  const interval = (maxX - minX) / (selectedNodes.length - 1);
+  selectedNodes.forEach((node, idx) => {
+    node.position.x = minX + interval * idx;
+  });
+};
+const alignVertically = (event: MouseEvent) => {
+  event.stopPropagation();
+  const selectedNodes = nodes.value
+    .filter((node) => selectedNodeIds.value.includes(node.id))
+    .sort((a, b) => a.position.y - b.position.y);
+
+  // 垂直方向に等間隔に整列する
+  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
+  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
+  const interval = (maxY - minY) / (selectedNodes.length - 1);
+  selectedNodes.forEach((node, idx) => {
+    node.position.y = minY + interval * idx;
   });
 };
 
@@ -573,6 +676,74 @@ const closeSearch = () => {
           height: `${Math.abs(dragEndPosition.y - dragStartPosition.y)}px`,
         }"
       ></div>
+
+      <div class="align-icons">
+        <span title="左揃え">
+          <AlignLeftIcon
+            title="Align Left"
+            class="align-icon"
+            height="1rem"
+            @click="alignLeft"
+            @mousedown.stop
+          />
+        </span>
+        <span title="左右中央揃え">
+          <AlignCenterIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignCenter"
+            @mousedown.stop
+          />
+        </span>
+        <span title="右揃え">
+          <AlignRightIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignRight"
+            @mousedown.stop
+          />
+        </span>
+        <span title="上揃え">
+          <AlignTopIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignTop"
+            @mousedown.stop
+          />
+        </span>
+        <span title="上下中央揃え">
+          <AlignMiddleIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignMiddle"
+            @mousedown.stop
+          />
+        </span>
+        <span title="下揃え">
+          <AlignBottomIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignBottom"
+            @mousedown.stop
+          />
+        </span>
+        <span title="水平方向に整列">
+          <AlignHorizontalIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignHorizontally"
+            @mousedown.stop
+          />
+        </span>
+        <span title="垂直方向に整列">
+          <AlignVerticalIcon
+            class="align-icon"
+            height="1rem"
+            @click="alignVertically"
+            @mousedown.stop
+          />
+        </span>
+      </div>
     </div>
 
     <!-- 属性表示欄 -->
@@ -625,7 +796,6 @@ const closeSearch = () => {
   width: 100%;
   height: 100%;
 }
-
 .edge-container {
   position: absolute;
   top: 0;
@@ -638,7 +808,6 @@ const closeSearch = () => {
   border: 2px dashed #4a90e2; /* 青い点線の境界線 */
   background-color: rgba(74, 144, 226, 0.3); /* 半透明の青色背景 */
 }
-
 .add-menu {
   position: absolute;
   overflow: auto;
@@ -646,9 +815,22 @@ const closeSearch = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  /* height: 50vh; */
-  /* top: 50px; */
-  /* left: 20px; */
-  /* z-index: 1; */
+}
+.align-icons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.align-icon {
+  padding: 3px;
+  cursor: pointer;
+}
+
+.align-icon:hover {
+  background-color: rgba(129, 129, 129, 0.3);
 }
 </style>
