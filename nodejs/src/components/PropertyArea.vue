@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
-import { Node, AttrContent } from "./interfaces";
+import { IfcNode, AttrContent } from "./interfaces";
 
 const props = defineProps<{
-  node: Node;
+  node: IfcNode;
 }>();
 props;
 
