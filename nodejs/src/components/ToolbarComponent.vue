@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { IfcNode } from "./interfaces";
 import AlignCenterIcon from "../assets/icons/align-center.svg";
 import AlignMiddleIcon from "../assets/icons/align-middle.svg";
 import AlignLeftIcon from "../assets/icons/align-left.svg";
@@ -9,103 +8,12 @@ import AlignBottomIcon from "../assets/icons/align-bottom.svg";
 import AlignHorizontalIcon from "../assets/icons/align-horizontal.svg";
 import AlignVerticalIcon from "../assets/icons/align-vertical.svg";
 
-const props = defineProps<{
-  nodes: IfcNode[];
-  selectedNodeIds: number[];
-}>();
-const nodes = props.nodes;
-const selectedNodeIds = props.selectedNodeIds;
+const emit = defineEmits(["align:node"]);
 
 // ノードを整列する
-const alignLeft = (event: MouseEvent) => {
+const alignNodes = (event: MouseEvent, align: string) => {
   event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = minX;
-  });
-};
-const alignCenter = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = minX + (maxX - minX) / 2;
-  });
-};
-const alignRight = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = maxX;
-  });
-};
-const alignTop = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = minY;
-  });
-};
-const alignMiddle = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = minY + (maxY - minY) / 2;
-  });
-};
-const alignBottom = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.filter((node) =>
-    selectedNodeIds.includes(node.id)
-  );
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = maxY;
-  });
-};
-const alignHorizontally = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes
-    .filter((node) => selectedNodeIds.includes(node.id))
-    .sort((a, b) => a.position.x - b.position.x);
-
-  // 水平方向に等間隔に整列する
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  const interval = (maxX - minX) / (selectedNodes.length - 1);
-  selectedNodes.forEach((node, idx) => {
-    node.position.x = minX + interval * idx;
-  });
-};
-const alignVertically = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes
-    .filter((node) => selectedNodeIds.includes(node.id))
-    .sort((a, b) => a.position.y - b.position.y);
-
-  // 垂直方向に等間隔に整列する
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  const interval = (maxY - minY) / (selectedNodes.length - 1);
-  selectedNodes.forEach((node, idx) => {
-    node.position.y = minY + interval * idx;
-  });
+  emit("align:node", align);
 };
 </script>
 
@@ -116,7 +24,7 @@ const alignVertically = (event: MouseEvent) => {
         title="Align Left"
         class="align-icon"
         height="1rem"
-        @click="alignLeft"
+        @click="alignNodes($event, 'left')"
         @mousedown.stop
       />
     </span>
@@ -124,7 +32,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignCenterIcon
         class="align-icon"
         height="1rem"
-        @click="alignCenter"
+        @click="alignNodes($event, 'center')"
         @mousedown.stop
       />
     </span>
@@ -132,7 +40,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignRightIcon
         class="align-icon"
         height="1rem"
-        @click="alignRight"
+        @click="alignNodes($event, 'right')"
         @mousedown.stop
       />
     </span>
@@ -140,7 +48,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignTopIcon
         class="align-icon"
         height="1rem"
-        @click="alignTop"
+        @click="alignNodes($event, 'top')"
         @mousedown.stop
       />
     </span>
@@ -148,7 +56,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignMiddleIcon
         class="align-icon"
         height="1rem"
-        @click="alignMiddle"
+        @click="alignNodes($event, 'middle')"
         @mousedown.stop
       />
     </span>
@@ -156,7 +64,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignBottomIcon
         class="align-icon"
         height="1rem"
-        @click="alignBottom"
+        @click="alignNodes($event, 'bottom')"
         @mousedown.stop
       />
     </span>
@@ -164,7 +72,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignHorizontalIcon
         class="align-icon"
         height="1rem"
-        @click="alignHorizontally"
+        @click="alignNodes($event, 'horizontal')"
         @mousedown.stop
       />
     </span>
@@ -172,7 +80,7 @@ const alignVertically = (event: MouseEvent) => {
       <AlignVerticalIcon
         class="align-icon"
         height="1rem"
-        @click="alignVertically"
+        @click="alignNodes($event, 'vertical')"
         @mousedown.stop
       />
     </span>

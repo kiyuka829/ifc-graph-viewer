@@ -240,6 +240,59 @@ const updateNodePosition = (moveDistance: { x: number; y: number }) => {
   });
 };
 
+// ノードの整列処理
+const alignNodePosition = (
+  align:
+    | "left"
+    | "center"
+    | "right"
+    | "top"
+    | "middle"
+    | "bottom"
+    | "horizontal"
+    | "vertical"
+) => {
+  if (selectedNodeIds.value.length <= 1) return;
+  const selectedNodes = nodes.value.filter((node) =>
+    selectedNodeIds.value.includes(node.id)
+  );
+  const xs = selectedNodes.map((node) => node.position.x);
+  const ys = selectedNodes.map((node) => node.position.y);
+  const [minX, maxX] = [Math.min(...xs), Math.max(...xs)];
+  const [minY, maxY] = [Math.min(...ys), Math.max(...ys)];
+  if (align === "left") {
+    setAlignNodePosition(selectedNodes, { x: minX });
+  } else if (align === "center") {
+    setAlignNodePosition(selectedNodes, { x: minX + (maxX - minX) / 2 });
+  } else if (align === "right") {
+    setAlignNodePosition(selectedNodes, { x: maxX });
+  } else if (align === "top") {
+    setAlignNodePosition(selectedNodes, { y: minY });
+  } else if (align === "middle") {
+    setAlignNodePosition(selectedNodes, { y: minY + (maxY - minY) / 2 });
+  } else if (align === "bottom") {
+    setAlignNodePosition(selectedNodes, { y: maxY });
+  } else if (align === "horizontal") {
+    const interval = (maxX - minX) / (selectedNodes.length - 1);
+    selectedNodes.sort((a, b) => a.position.x - b.position.x);
+    setAlignNodePosition(selectedNodes, { x: minX }, interval);
+  } else if (align === "vertical") {
+    const interval = (maxY - minY) / (selectedNodes.length - 1);
+    selectedNodes.sort((a, b) => a.position.y - b.position.y);
+    setAlignNodePosition(selectedNodes, { y: minY }, interval);
+  }
+};
+const setAlignNodePosition = (
+  selectedNodes: IfcNode[],
+  { x = null, y = null }: { x?: number | null; y?: number | null },
+  interval = 0
+) => {
+  selectedNodes.forEach((node, idx) => {
+    if (x !== null) node.position.x = x + interval * idx;
+    if (y !== null) node.position.y = y + interval * idx;
+  });
+};
+
 // エッジの位置を計算する
 const edgePosition = computed(() => {
   /* パフォーマンス悪いかも */
@@ -579,7 +632,7 @@ const closeSearch = () => {
       ></div>
 
       <!-- ツールバー -->
-      <ToolbarComponent :nodes="nodes" :selectedNodeIds="selectedNodeIds" />
+      <ToolbarComponent @align:node="alignNodePosition($event)" />
     </div>
 
     <!-- 属性表示欄 -->
