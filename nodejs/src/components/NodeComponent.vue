@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { AttrContent, Attribute, Node, Position } from "./interfaces";
+import { AttrContent, Attribute, IfcNode, Position } from "./interfaces";
 import { hasValue } from "./utils";
 
 const props = defineProps<{
-  node: Node;
+  node: IfcNode;
   selected: boolean;
   scale: number;
 }>();

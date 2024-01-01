@@ -1,33 +1,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
-import AlignCenterIcon from "../assets/icons/align-center.svg";
-import AlignMiddleIcon from "../assets/icons/align-middle.svg";
-import AlignLeftIcon from "../assets/icons/align-left.svg";
-import AlignRightIcon from "../assets/icons/align-right.svg";
-import AlignTopIcon from "../assets/icons/align-top.svg";
-import AlignBottomIcon from "../assets/icons/align-bottom.svg";
-import AlignHorizontalIcon from "../assets/icons/align-horizontal.svg";
-import AlignVerticalIcon from "../assets/icons/align-vertical.svg";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { Node, Edge, Position, Attribute } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
+import ToolbarComponent from "./ToolbarComponent.vue";
 
 const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
 
 // ノードとエッジのデータ
-const nodes = ref<Node[]>([]);
+const nodes = ref<IfcNode[]>([]);
 const edges = ref<Edge[]>([]);
 
 // エッジの描画中の状態
 const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 
 // 属性表示用のノード
-const viewedAttrNode = ref<Node | null>(null);
+const viewedAttrNode = ref<IfcNode | null>(null);
 
 // 選択されたノード
 const selectedNodeIds = ref<number[]>([]);
@@ -210,8 +203,8 @@ const uploadFile = (event: Event) => {
 };
 
 // レスポンスデータをNodeに変換
-function convertToNode(data: any): Node {
-  const node: Node = {
+function convertToNode(data: any): IfcNode {
+  const node: IfcNode = {
     id: data.id,
     type: data.type,
     attributes: [],
@@ -278,7 +271,7 @@ const edgePosition = computed(() => {
 });
 
 // ノードの選択処理
-const selectNode = (node: Node, toggle = false) => {
+const selectNode = (node: IfcNode, toggle = false) => {
   if (toggle) {
     // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
@@ -408,98 +401,6 @@ const addNode = (
       data.position,
       idx
     );
-  });
-};
-
-// ノードを整列する
-const alignLeft = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = minX;
-  });
-};
-const alignCenter = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = minX + (maxX - minX) / 2;
-  });
-};
-const alignRight = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  selectedNodes.forEach((node) => {
-    node.position.x = maxX;
-  });
-};
-const alignTop = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = minY;
-  });
-};
-const alignMiddle = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = minY + (maxY - minY) / 2;
-  });
-};
-const alignBottom = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
-  );
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  selectedNodes.forEach((node) => {
-    node.position.y = maxY;
-  });
-};
-const alignHorizontally = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value
-    .filter((node) => selectedNodeIds.value.includes(node.id))
-    .sort((a, b) => a.position.x - b.position.x);
-
-  // 水平方向に等間隔に整列する
-  const minX = Math.min(...selectedNodes.map((node) => node.position.x));
-  const maxX = Math.max(...selectedNodes.map((node) => node.position.x));
-  const interval = (maxX - minX) / (selectedNodes.length - 1);
-  selectedNodes.forEach((node, idx) => {
-    node.position.x = minX + interval * idx;
-  });
-};
-const alignVertically = (event: MouseEvent) => {
-  event.stopPropagation();
-  const selectedNodes = nodes.value
-    .filter((node) => selectedNodeIds.value.includes(node.id))
-    .sort((a, b) => a.position.y - b.position.y);
-
-  // 垂直方向に等間隔に整列する
-  const minY = Math.min(...selectedNodes.map((node) => node.position.y));
-  const maxY = Math.max(...selectedNodes.map((node) => node.position.y));
-  const interval = (maxY - minY) / (selectedNodes.length - 1);
-  selectedNodes.forEach((node, idx) => {
-    node.position.y = minY + interval * idx;
   });
 };
 
@@ -677,73 +578,8 @@ const closeSearch = () => {
         }"
       ></div>
 
-      <div class="align-icons">
-        <span title="左揃え">
-          <AlignLeftIcon
-            title="Align Left"
-            class="align-icon"
-            height="1rem"
-            @click="alignLeft"
-            @mousedown.stop
-          />
-        </span>
-        <span title="左右中央揃え">
-          <AlignCenterIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignCenter"
-            @mousedown.stop
-          />
-        </span>
-        <span title="右揃え">
-          <AlignRightIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignRight"
-            @mousedown.stop
-          />
-        </span>
-        <span title="上揃え">
-          <AlignTopIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignTop"
-            @mousedown.stop
-          />
-        </span>
-        <span title="上下中央揃え">
-          <AlignMiddleIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignMiddle"
-            @mousedown.stop
-          />
-        </span>
-        <span title="下揃え">
-          <AlignBottomIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignBottom"
-            @mousedown.stop
-          />
-        </span>
-        <span title="水平方向に整列">
-          <AlignHorizontalIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignHorizontally"
-            @mousedown.stop
-          />
-        </span>
-        <span title="垂直方向に整列">
-          <AlignVerticalIcon
-            class="align-icon"
-            height="1rem"
-            @click="alignVertically"
-            @mousedown.stop
-          />
-        </span>
-      </div>
+      <!-- ツールバー -->
+      <ToolbarComponent :nodes="nodes" :selectedNodeIds="selectedNodeIds" />
     </div>
 
     <!-- 属性表示欄 -->

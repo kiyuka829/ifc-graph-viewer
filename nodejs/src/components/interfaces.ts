@@ -1,4 +1,4 @@
-export interface Node {
+export interface IfcNode {
   id: number;
   type: string;
   attributes: Attribute[];
