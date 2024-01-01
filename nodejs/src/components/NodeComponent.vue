@@ -40,7 +40,8 @@ const onMouseDown = (event: MouseEvent) => {
     return;
   }
   if (event.shiftKey) {
-    // Shiftキー押下時は処理しない
+    // Shiftキー押下時は選択トグル処理で、移動はしない
+    emit("select:node", true);
     return;
   }
   event.stopPropagation();

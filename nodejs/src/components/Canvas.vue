@@ -84,7 +84,7 @@ function startDrag(event: MouseEvent) {
     return;
   }
 
-  // Shiftで選択範囲、それ以外は全体移動
+  // Shiftで範囲選択、それ以外は全体移動
   if (event.shiftKey) {
     rectSelecting.value = true;
     previousSelectedNodeIds.value = [...selectedNodeIds.value];
@@ -264,9 +264,21 @@ const edgePosition = computed(() => {
 });
 
 // ノードの選択処理
-const selectNode = (node: Node) => {
-  viewedAttrNode.value = node;
-  selectedNodeIds.value.push(node.id);
+const selectNode = (node: Node, toggle = false) => {
+  if (toggle) {
+    console.log("toggle");
+    if (selectedNodeIds.value.includes(node.id)) {
+      selectedNodeIds.value = selectedNodeIds.value.filter(
+        (id) => id !== node.id
+      );
+    } else {
+      selectedNodeIds.value.push(node.id);
+    }
+  } else {
+    viewedAttrNode.value = node;
+    selectedNodeIds.value = [node.id];
+    // selectedNodeIds.value.push(node.id);
+  }
 };
 
 // ノードを追加するハンドラ
@@ -531,7 +543,7 @@ const closeSearch = () => {
           :scale="scale"
           @update:position="updateNodePosition(node.id, $event)"
           @add:node="addNode(node.id, $event)"
-          @select:node="selectNode(node)"
+          @select:node="selectNode(node, $event)"
           @update:drawingEdgePosition="updateDrawingEdge($event)"
         />
       </div>
