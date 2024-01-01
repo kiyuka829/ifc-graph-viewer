@@ -17,11 +17,15 @@ const edges = ref<Edge[]>([]);
 // エッジの描画中の状態
 const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 
-// 選択されたノード（属性表示用）
+// 属性表示用のノード
 const viewedAttrNode = ref<Node | null>(null);
 
 // 選択されたノード
 const selectedNodeIds = ref<number[]>([]);
+// 範囲選択中に選択されたノード
+const rectSelectedNodeIds = ref<number[]>([]);
+// 範囲選択前に選択されていたノード
+const previousSelectedNodeIds = ref<number[]>([]);
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: number[] }>({});
@@ -31,7 +35,11 @@ const showSearch = ref<boolean>(false);
 
 // ドラッグ中の位置を追跡するための状態
 const dragging = ref(false);
-let start = { x: 0, y: 0 };
+const dragStartRelativePosition = ref<Position>({ x: 0, y: 0 });
+const dragEndRelativePosition = ref<Position>({ x: 0, y: 0 });
+const dragStartPosition = ref<Position>({ x: 0, y: 0 });
+const dragEndPosition = ref<Position>({ x: 0, y: 0 });
+const rectSelecting = ref(false);
 
 // 右クリック位置
 const rightClickPosition = ref({ x: 0, y: 0 });
@@ -69,30 +77,89 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-// ドラッグ操作のハンドラ（全体の移動処理）
+// ドラッグ操作のハンドラ（全体の移動処理、範囲選択）
 function startDrag(event: MouseEvent) {
   if (event.button === 2) {
     // 右クリックは処理しない
     return;
   }
-  clearSelect(event);
+
+  // Shiftで選択範囲、それ以外は全体移動
+  if (event.shiftKey) {
+    rectSelecting.value = true;
+    previousSelectedNodeIds.value = [...selectedNodeIds.value];
+  } else {
+    clearSelect(event);
+  }
 
   dragging.value = true;
-  start = { x: event.clientX, y: event.clientY };
+  dragStartRelativePosition.value = getRelativePosition(event);
+  dragEndRelativePosition.value = { ...dragStartRelativePosition.value };
+  dragStartPosition.value = { x: event.clientX, y: event.clientY };
+  dragEndPosition.value = { x: event.clientX, y: event.clientY };
   // テキスト選択やスクロールを防ぐ
   document.body.style.userSelect = "none";
 }
 
 function drag(event: MouseEvent) {
   if (dragging.value) {
-    position.value.x += event.clientX - start.x;
-    position.value.y += event.clientY - start.y;
-    start = { x: event.clientX, y: event.clientY };
+    if (rectSelecting.value) {
+      // 選択範囲を描画
+      dragEndPosition.value = { x: event.clientX, y: event.clientY };
+      dragEndRelativePosition.value = getRelativePosition(event);
+      const [x1, x2] = [
+        dragStartRelativePosition.value.x,
+        dragEndRelativePosition.value.x,
+      ].sort((a, b) => a - b);
+      const [y1, y2] = [
+        dragStartRelativePosition.value.y,
+        dragEndRelativePosition.value.y,
+      ].sort((a, b) => a - b);
+
+      // 選択範囲内のノードを選択
+      nodes.value.forEach((node) => {
+        const nodePosition = node.position;
+        const left = nodePosition.x;
+        const right = nodePosition.x + 200;
+        const top = nodePosition.y;
+        const length = node.attributes.filter((attr) =>
+          hasValue(attr.content)
+        ).length;
+        const bottom = nodePosition.y + 44 + 20 + 29 * length;
+
+        // 選択開始前に選択済みのノードは処理しない
+        if (!previousSelectedNodeIds.value.includes(node.id)) {
+          if (!(x2 < left || right < x1) && !(y2 < top || bottom < y1)) {
+            // 範囲内にあるノードを選択
+            if (!rectSelectedNodeIds.value.includes(node.id)) {
+              rectSelectedNodeIds.value.push(node.id);
+              selectedNodeIds.value.push(node.id);
+            }
+          } else {
+            // 範囲外にあるノードを選択解除
+            if (rectSelectedNodeIds.value.includes(node.id)) {
+              rectSelectedNodeIds.value = rectSelectedNodeIds.value.filter(
+                (id) => id !== node.id
+              );
+              selectedNodeIds.value = selectedNodeIds.value.filter(
+                (id) => id !== node.id
+              );
+            }
+          }
+        }
+      });
+    } else {
+      // 全体を移動
+      position.value.x += event.clientX - dragStartPosition.value.x;
+      position.value.y += event.clientY - dragStartPosition.value.y;
+      dragStartPosition.value = { x: event.clientX, y: event.clientY };
+    }
   }
 }
 
 function endDrag() {
   dragging.value = false;
+  rectSelecting.value = false;
   document.body.style.userSelect = "auto";
 }
 
@@ -467,6 +534,18 @@ const closeSearch = () => {
           @update:drawingEdgePosition="updateDrawingEdge($event)"
         />
       </div>
+
+      <!-- 選択ボックス -->
+      <div
+        v-show="rectSelecting"
+        class="selection-rectangle"
+        :style="{
+          left: `${Math.min(dragStartPosition.x, dragEndPosition.x)}px`,
+          top: `${Math.min(dragStartPosition.y, dragEndPosition.y)}px`,
+          width: `${Math.abs(dragEndPosition.x - dragStartPosition.x)}px`,
+          height: `${Math.abs(dragEndPosition.y - dragStartPosition.y)}px`,
+        }"
+      ></div>
     </div>
 
     <!-- 属性表示欄 -->
@@ -526,6 +605,11 @@ const closeSearch = () => {
   left: 0;
   width: 100%;
   height: 100%;
+}
+.selection-rectangle {
+  position: absolute;
+  border: 2px dashed #4a90e2; /* 青い点線の境界線 */
+  background-color: rgba(74, 144, 226, 0.3); /* 半透明の青色背景 */
 }
 
 .add-menu {
