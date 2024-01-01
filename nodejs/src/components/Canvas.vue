@@ -88,6 +88,7 @@ function startDrag(event: MouseEvent) {
   if (event.shiftKey) {
     rectSelecting.value = true;
     previousSelectedNodeIds.value = [...selectedNodeIds.value];
+    rectSelectedNodeIds.value = [];
   } else {
     clearSelect(event);
   }

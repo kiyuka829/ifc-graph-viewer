@@ -39,6 +39,10 @@ const onMouseDown = (event: MouseEvent) => {
     // 右クリックは処理しない
     return;
   }
+  if (event.shiftKey) {
+    // Shiftキー押下時は処理しない
+    return;
+  }
   event.stopPropagation();
 
   // ノードを選択
