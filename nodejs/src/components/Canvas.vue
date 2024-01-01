@@ -27,6 +27,9 @@ const rectSelectedNodeIds = ref<number[]>([]);
 // 範囲選択前に選択されていたノード
 const previousSelectedNodeIds = ref<number[]>([]);
 
+// ドラッグ中のノードの初期位置
+const dragStartNodePositions = ref<{ [id: number]: Position }>({});
+
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: number[] }>({});
 
@@ -223,14 +226,15 @@ function convertToNode(data: any): Node {
 }
 
 // ノードの位置を更新するハンドラ
-const updateNodePosition = (
-  nodeId: number,
-  newPosition: { x: number; y: number }
-) => {
-  const node = nodes.value.find((c) => c.id === nodeId);
-  if (node) {
-    node.position = newPosition;
-  }
+const updateNodePosition = (moveDistance: { x: number; y: number }) => {
+  nodes.value.forEach((node) => {
+    // 選択されたノードのみ移動
+    if (selectedNodeIds.value.includes(node.id)) {
+      const startPosition = dragStartNodePositions.value[node.id];
+      node.position.x = startPosition.x + moveDistance.x;
+      node.position.y = startPosition.y + moveDistance.y;
+    }
+  });
 };
 
 // エッジの位置を計算する
@@ -266,7 +270,7 @@ const edgePosition = computed(() => {
 // ノードの選択処理
 const selectNode = (node: Node, toggle = false) => {
   if (toggle) {
-    console.log("toggle");
+    // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
       selectedNodeIds.value = selectedNodeIds.value.filter(
         (id) => id !== node.id
@@ -275,9 +279,19 @@ const selectNode = (node: Node, toggle = false) => {
       selectedNodeIds.value.push(node.id);
     }
   } else {
-    viewedAttrNode.value = node;
-    selectedNodeIds.value = [node.id];
-    // selectedNodeIds.value.push(node.id);
+    // 未選択であれば選択
+    if (!selectedNodeIds.value.includes(node.id)) {
+      viewedAttrNode.value = node;
+      selectedNodeIds.value = [node.id];
+    }
+
+    // 選択されたノードの初期位置を記録
+    dragStartNodePositions.value = nodes.value.reduce((obj, node) => {
+      if (selectedNodeIds.value.includes(node.id)) {
+        obj[node.id] = { ...node.position };
+      }
+      return obj;
+    }, {} as { [id: number]: Position });
   }
 };
 
@@ -541,7 +555,7 @@ const closeSearch = () => {
           :node="node"
           :selected="selectedNodeIds.includes(node.id)"
           :scale="scale"
-          @update:position="updateNodePosition(node.id, $event)"
+          @update:position="updateNodePosition($event)"
           @add:node="addNode(node.id, $event)"
           @select:node="selectNode(node, $event)"
           @update:drawingEdgePosition="updateDrawingEdge($event)"

@@ -18,7 +18,6 @@ const emit = defineEmits([
 
 // ドラッグ制御用
 const isDragging = ref(false);
-const startNodePosition = ref<Position>({ x: 0, y: 0 });
 const startEdgePosition = ref<Position>({ x: 0, y: 0 });
 const startMousePosition = ref<Position>({ x: 0, y: 0 });
 
@@ -51,10 +50,6 @@ const onMouseDown = (event: MouseEvent) => {
 
   // Start dragging and record the starting position
   isDragging.value = true;
-  startNodePosition.value = {
-    x: node.position.x,
-    y: node.position.y,
-  };
   startMousePosition.value = {
     x: event.clientX,
     y: event.clientY,
@@ -70,13 +65,9 @@ const onMouseMove = (event: MouseEvent) => {
   if (!isDragging.value) return;
 
   // Update the position of the node
-  const newX =
-    startNodePosition.value.x +
-    (event.clientX - startMousePosition.value.x) / props.scale;
-  const newY =
-    startNodePosition.value.y +
-    (event.clientY - startMousePosition.value.y) / props.scale;
-  emit("update:position", { x: newX, y: newY });
+  const dx = (event.clientX - startMousePosition.value.x) / props.scale;
+  const dy = (event.clientY - startMousePosition.value.y) / props.scale;
+  emit("update:position", { x: dx, y: dy });
 };
 
 const onMouseUp = () => {
