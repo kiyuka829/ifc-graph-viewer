@@ -10,8 +10,7 @@ export interface Attribute {
   name: string;
   content: AttrContent | AttrContent[]; // 接続先のIDまたはテキストデータ
   inverse: boolean;
-  visible: boolean; // 接続先の表示状態
-  edgePosition?: Position; // エッジの接続位置
+  edgePosition: Position; // エッジの接続位置
 }
 
 export interface AttrContent {
@@ -19,6 +18,7 @@ export interface AttrContent {
   value: string | number;
 }
 
+// attrName = undefined はノードの左上に接続されているとき
 export interface Edge {
   id: string;
   from: {

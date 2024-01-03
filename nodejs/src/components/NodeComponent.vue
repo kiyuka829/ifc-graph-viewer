@@ -108,10 +108,8 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute) => {
   // dot のドラッグを開始
   isDotDragging.value = true;
 
-  startEdgePosition.value.x =
-    (attribute.edgePosition?.x ?? event.clientX) + node.position.x;
-  startEdgePosition.value.y =
-    (attribute.edgePosition?.y ?? event.clientY) + node.position.y;
+  startEdgePosition.value.x = attribute.edgePosition.x + node.position.x;
+  startEdgePosition.value.y = attribute.edgePosition.y + node.position.y;
   startMousePosition.value = { x: event.clientX, y: event.clientY };
   lastMousePosition.value = { ...startMousePosition.value };
 

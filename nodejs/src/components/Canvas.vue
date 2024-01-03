@@ -219,7 +219,6 @@ function convertToNode(data: any): IfcNode {
       content: attr.content,
       edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
       inverse: attr.inverse,
-      visible: true,
     };
     hasValue(attr.content) && count++;
     node.attributes.push(attribute);
@@ -303,16 +302,16 @@ const edgePosition = computed(() => {
       (c) => c.name === from.attrName
     );
     const from_edge = {
-      x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition?.x ?? 0),
-      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition?.y ?? 22.5),
+      x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition.x ?? 0),
+      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition.y ?? 22.5),
     };
 
     const to = edge.to;
     const to_node = nodes.value.find((c) => c.id === to.nodeId);
     const to_attr = to_node?.attributes.find((c) => c.name === to.attrName);
     const to_edge = {
-      x: (to_node?.position.x ?? 0) + (to_attr?.edgePosition?.x ?? 0),
-      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition?.y ?? 22.5),
+      x: (to_node?.position.x ?? 0) + (to_attr?.edgePosition.x ?? 0),
+      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition.y ?? 22.5),
     };
 
     return {
@@ -393,8 +392,8 @@ const addNode_ = (
       // ノードの位置をエッジ接続点を合わせるように更新
       // （ノードが複数あるときは重ならないように位置をずらす）
       const position = {
-        x: dstPosition.x - (targetAttr?.edgePosition?.x ?? 0) + idx * 10,
-        y: dstPosition.y - (targetAttr?.edgePosition?.y ?? 22.5) + idx * 10,
+        x: dstPosition.x - (targetAttr?.edgePosition.x ?? 0) + idx * 10,
+        y: dstPosition.y - (targetAttr?.edgePosition.y ?? 22.5) + idx * 10,
       };
       node.position = position;
 
