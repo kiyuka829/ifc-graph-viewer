@@ -10,6 +10,8 @@ import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
 import ToolbarComponent from "./ToolbarComponent.vue";
 
+import ModelViewer from './ModelViewer.vue';
+
 const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
 
 // ノードとエッジのデータ
@@ -646,18 +648,31 @@ const closeSearch = () => {
       <SearchEntity :elements="ifcElements" @select="selectEntity" />
     </div>
   </div>
+
+  <div class="model-viewer">
+    <ModelViewer />
+  </div>
 </template>
 
 <style scoped>
 .container {
   display: flex;
   height: 100vh;
+  background-color: #1f1f1f;
+}
+.model-viewer {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  top: 0px;
+  left: 0px;
+  z-index: 3;
 }
 .fileInput {
   position: absolute;
   top: 20px;
   left: 20px;
-  z-index: 1;
+  z-index: 10;
 }
 .canvas {
   width: 75vw;
