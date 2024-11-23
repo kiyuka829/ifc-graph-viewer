@@ -51,6 +51,7 @@ const rightClickPosition = ref({ x: 0, y: 0 });
 
 // アップロードしたファイルパス
 const filepath = ref<string>("");
+const fileInput = ref<HTMLInputElement | null>(null);
 
 // 描画領域の拡大縮小、移動
 const scale = ref(1);
@@ -171,34 +172,47 @@ function endDrag() {
 }
 
 // ファイルのアップロード
-const uploadFile = (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  if (input.files?.length) {
-    const selectedFile = input.files[0];
+const uploadFile = (file: File) => {
+  // FormData オブジェクトを作成してファイルを追加
+  const formData = new FormData();
+  formData.append("file", file);
 
-    // FormData オブジェクトを作成してファイルを追加
-    const formData = new FormData();
-    formData.append("file", selectedFile);
+  // ファイルをサーバーにアップロード
+  axios
+    .post(endpoint + "/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    .then((response) => {
+      // レスポンスを処理
+      ifcElements.value = response.data.entities;
+      const node = convertToNode(response.data.model);
+      nodes.value.push(node);
+      filepath.value = response.data.path;
+      console.log(node);
+    })
+    .catch((error) => {
+      // エラー処理
+      console.error("ファイルのアップロードに失敗しました:", error);
+    });
+};
+// };
+const triggerFileInput = () => {
+  fileInput.value?.click();
+};
 
-    // ファイルをサーバーにアップロード
-    axios
-      .post(endpoint + "/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      .then((response) => {
-        // レスポンスを処理
-        ifcElements.value = response.data.entities;
-        const node = convertToNode(response.data.model);
-        nodes.value.push(node);
-        filepath.value = response.data.path;
-        console.log(node);
-      })
-      .catch((error) => {
-        // エラー処理
-        console.error("ファイルのアップロードに失敗しました:", error);
-      });
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    uploadFile(target.files[0]); // 選択されたファイルを処理
+  }
+};
+const handleDrop = (event: DragEvent) => {
+  event.preventDefault();
+  const files = event.dataTransfer?.files;
+  if (files && files.length > 0) {
+    uploadFile(files[0]); // 選択されたファイルを処理
   }
 };
 
@@ -550,12 +564,22 @@ const closeSearch = () => {
 </script>
 
 <template>
-  <input
-    type="file"
-    @change="uploadFile"
-    class="fileInput"
+  <div
+    class="file-drop-area"
+    @dragenter.prevent
+    @dragover.prevent
+    @drop="handleDrop"
+    @click="triggerFileInput"
     v-if="filepath === ''"
-  />
+  >
+    Drag & Drop or Click
+    <input
+      type="file"
+      ref="fileInput"
+      @change="handleFileSelect"
+      class="hidden-input"
+    />
+  </div>
   <!--
   <h4 v-else class="fileInput" style="margin-top: 0">
     {{ filepath.split("/")[1].replace(/\..*?$/, "") }}
@@ -653,29 +677,63 @@ const closeSearch = () => {
   display: flex;
   height: 100vh;
 }
+
+.file-drop-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100vh;
+  background-color: #f0f0f0;
+  border: 5px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.file-drop-area:hover {
+  background-color: #f9f9f9;
+}
+
 .fileInput {
   position: absolute;
   top: 20px;
   left: 20px;
   z-index: 1;
 }
+
+.hidden-input {
+  display: none;
+}
+
 .canvas {
   width: 75vw;
   height: 100vh;
   overflow: auto;
   position: relative;
 }
+
 .sidebar {
   position: absolute;
   top: 0;
   right: 0;
-  width: 25vw; /* 1/4 of the screen width */
-  height: 100vh; /* Full height of the container */
-  z-index: 2; /* Overlay on top of the canvas */
-  word-wrap: break-word; /* 長い単語でも折り返しを行う */
-  overflow: auto; /* 必要に応じてスクロールバーを表示 */
+  /* 1/4 of the screen width */
+  width: 25vw;
+  /* Full height of the container */
+  height: 100vh;
+  /* Overlay on top of the canvas */
+  z-index: 2;
+  /* 長い単語でも折り返しを行う */
+  word-wrap: break-word;
+  /* 必要に応じてスクロールバーを表示 */
+  overflow: auto;
   background-color: #f0f0f0;
 }
+
 .node-container {
   transform-origin: 0 0;
   position: absolute;
@@ -684,6 +742,7 @@ const closeSearch = () => {
   width: 100%;
   height: 100%;
 }
+
 .edge-container {
   position: absolute;
   top: 0;
@@ -691,11 +750,13 @@ const closeSearch = () => {
   width: 100%;
   height: 100%;
 }
+
 .selection-rectangle {
   position: absolute;
   border: 2px dashed #4a90e2; /* 青い点線の境界線 */
   background-color: rgba(74, 144, 226, 0.3); /* 半透明の青色背景 */
 }
+
 .add-menu {
   position: absolute;
   overflow: auto;
@@ -704,6 +765,7 @@ const closeSearch = () => {
   width: 100%;
   height: 100%;
 }
+
 .align-icons {
   position: absolute;
   top: 10px;
