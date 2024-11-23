@@ -580,11 +580,9 @@ const closeSearch = () => {
       class="hidden-input"
     />
   </div>
-  <!--
   <h4 v-else class="fileInput" style="margin-top: 0">
-    {{ filepath.split("/")[1].replace(/\..*?$/, "") }}
+    {{ filepath.split("/")[1] }}
   </h4>
- -->
 
   <div class="container">
     <div
