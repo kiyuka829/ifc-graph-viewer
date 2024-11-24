@@ -52,6 +52,7 @@ const rightClickPosition = ref({ x: 0, y: 0 });
 // アップロードしたファイルパス
 const filepath = ref<string>("");
 const fileInput = ref<HTMLInputElement | null>(null);
+const viewFilename = ref<string>("");
 
 // 描画領域の拡大縮小、移動
 const scale = ref(1);
@@ -176,6 +177,7 @@ const uploadFile = (file: File) => {
   // FormData オブジェクトを作成してファイルを追加
   const formData = new FormData();
   formData.append("file", file);
+  viewFilename.value = file.name;
 
   // ファイルをサーバーにアップロード
   axios
@@ -594,7 +596,7 @@ const closeSearch = () => {
     />
   </div>
   <h4 v-else class="fileInput" style="margin-top: 0">
-    {{ filepath.split("/")[1] }}
+    {{ viewFilename }}
   </h4>
 
   <div class="container">
