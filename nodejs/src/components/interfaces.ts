@@ -1,6 +1,7 @@
 export interface IfcNode {
   id: number;
   type: string;
+  reference: Attribute | null;
   attributes: Attribute[];
   position: Position;
   // folded: boolean; // 折りたたみ状態

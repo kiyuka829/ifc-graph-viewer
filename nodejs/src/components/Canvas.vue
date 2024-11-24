@@ -4,7 +4,7 @@ import axios from "axios";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute, AttrContent } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -221,6 +221,7 @@ function convertToNode(data: any): IfcNode {
   const node: IfcNode = {
     id: data.id,
     type: data.type,
+    reference: null,
     attributes: [],
     position: { x: 40, y: 60 },
   };
@@ -237,6 +238,18 @@ function convertToNode(data: any): IfcNode {
     hasValue(attr.content) && count++;
     node.attributes.push(attribute);
   }
+
+  if (data.references.length === 0) {
+    return node;
+  }
+  const contents = data.references.map((ref: any) => ref.content);
+  const reference = {
+    name: "Reference",
+    content: contents,
+    edgePosition: { x: 0, y: 25 },
+    inverse: true,
+  };
+  node.reference = reference;
 
   return node;
 }

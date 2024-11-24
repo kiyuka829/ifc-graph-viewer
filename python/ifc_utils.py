@@ -1,5 +1,6 @@
-import ifcopenshell
 from collections import defaultdict
+
+import ifcopenshell
 
 load_models = {}
 
@@ -16,19 +17,19 @@ def load_model(path):
 def get_ifcproject(path):
     model = load_model(path)
     item = model.by_type("IfcProject")[0]
-    return get_node_info(item)
+    return get_node_info(model, item)
 
 
 def get_by_id(path, id):
     model = load_model(path)
     item = model.by_id(id)
-    return get_node_info(item)
+    return get_node_info(model, item)
 
 
 def get_by_type(path, type):
     model = load_model(path)
     item = model.by_type(type)[0]
-    return get_node_info(item)
+    return get_node_info(model, item)
     items = model.by_type(type)
     return [get_node_info(item) for item in items]
 
@@ -73,7 +74,7 @@ def attribute_info(key, val):
         return dict(name=key, content=dict(type="value", value=val))
 
 
-def get_node_info(item):
+def get_node_info(model, item):
     """
     Get information about a node.
 
@@ -100,16 +101,23 @@ def get_node_info(item):
             attr["inverse"] = False
             attributes.append(attr)
 
-    inv_keys = (
-        set(dir(item))
-        - set(dir(ifcopenshell.entity_instance))
-        - set(item.get_info().keys())
-    )
+    inv_keys = set(dir(item)) - set(dir(ifcopenshell.entity_instance)) - set(item.get_info().keys())
+    inverses = []
     for key in inv_keys:
         val = getattr(item, key)
+        inverses += val
         attr = attribute_info(key, val)
         attr["inverse"] = True
         attributes.append(attr)
+
+    ref_instances = set(model.get_inverse(item)) - set(inverses)
+    references = []
+    for idx, reference in enumerate(ref_instances):
+        key = f"reference{idx}"
+        ref = attribute_info(key, reference)
+        ref["inverse"] = True
+        references.append(ref)
+    node_info["references"] = references
 
     return node_info
 
