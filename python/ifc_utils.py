@@ -30,8 +30,6 @@ def get_by_type(path, type):
     model = load_model(path)
     item = model.by_type(type)[0]
     return get_node_info(model, item)
-    items = model.by_type(type)
-    return [get_node_info(item) for item in items]
 
 
 def get_entities(path):
@@ -123,4 +121,4 @@ def get_node_info(model, item):
 
 
 if __name__ == "__main__":
-    print(get_ifcproject())
+    pass
