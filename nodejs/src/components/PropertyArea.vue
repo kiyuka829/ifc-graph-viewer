@@ -50,6 +50,22 @@ const stringifyContent = (content: AttrContent | AttrContent[]) => {
         </tr>
       </tbody>
     </table>
+
+    <template v-if="node.reference">
+      <h4>References</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ stringifyContent(node.reference.content) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
   </div>
 </template>
 
