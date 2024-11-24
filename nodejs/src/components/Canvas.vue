@@ -53,6 +53,7 @@ const rightClickPosition = ref({ x: 0, y: 0 });
 const filepath = ref<string>("");
 const fileInput = ref<HTMLInputElement | null>(null);
 const viewFilename = ref<string>("");
+const isLoading = ref(false);
 
 // 描画領域の拡大縮小、移動
 const scale = ref(1);
@@ -178,6 +179,7 @@ const uploadFile = (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
   viewFilename.value = file.name;
+  isLoading.value = true;
 
   // ファイルをサーバーにアップロード
   axios
@@ -197,6 +199,9 @@ const uploadFile = (file: File) => {
     .catch((error) => {
       // エラー処理
       console.error("ファイルのアップロードに失敗しました:", error);
+    })
+    .finally(() => {
+      isLoading.value = false;
     });
 };
 // };
@@ -599,6 +604,9 @@ const closeSearch = () => {
     {{ viewFilename }}
   </h4>
 
+  <!-- 処理中の表示 -->
+  <div v-if="isLoading" class="loading-overlay">Now Loading...</div>
+
   <div class="container">
     <div
       class="canvas"
@@ -721,6 +729,21 @@ const closeSearch = () => {
 
 .hidden-input {
   display: none;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5em;
+  z-index: 1000; /* 他の要素より前面に表示 */
 }
 
 .canvas {
