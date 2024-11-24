@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const props = defineProps<{
   elements: { [key: string]: number[] };
@@ -7,11 +7,19 @@ const props = defineProps<{
 const emits = defineEmits(["select"]);
 
 const searchQuery = ref("");
+const searchInput = ref<HTMLInputElement | null>(null);
 const ids = ref<number[]>([]);
 
 const subMenuTop = ref<number>(0);
 const hoverItem = ref<string>("");
 const mainList = ref<HTMLElement | null>(null);
+
+// コンポーネントが表示されたらフォーカスを設定
+onMounted(() => {
+  if (searchInput.value) {
+    searchInput.value.focus();
+  }
+});
 
 const filteredList = computed(() => {
   return Object.keys(props.elements).filter((element) =>
@@ -54,6 +62,7 @@ const handleClick = (event: MouseEvent) => {
       <!-- 検索欄 -->
       <div class="search-box">
         <input
+          ref="searchInput"
           type="text"
           class="search-box-text"
           v-model="searchQuery"
