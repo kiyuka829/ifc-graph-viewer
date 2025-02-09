@@ -74,6 +74,14 @@ Pythonを動かした状態で「localhost:5000」にブラウザでアクセス
 [Releases](https://github.com/kiyuka829/ifc-graph-viewer/releases) にアップロードしている zip を解凍して、
 `ifc-graph-viewer.exe` を実行する。
 
+## exe化
+
+[方法2：ビルド](#方法2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
+
+```sh
+nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
+```
+
 ## 使い方簡易説明
 
 - 「ファイルの選択」からIFCファイルを選択する
