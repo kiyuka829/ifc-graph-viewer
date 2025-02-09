@@ -12,8 +12,8 @@ IFCファイルのグラフ可視化アプリ
 - Google Chrome: 120.0.6099.72
 - node:  16.15.0
 - npm:  9.7.1
-- Python:  3.9.10
-- IfcOpenShell: 0.7.0
+- Python:  3.12.9
+- IfcOpenShell: 0.8.0
 
 ## インストール
 
@@ -27,9 +27,6 @@ python -m venv env
 env\Scripts\activate.bat
 pip install -r requirements.txt
 ```
-
-`IfcOpenShell`は[公式](https://blenderbim.org/docs-python/ifcopenshell-python/installation.html)から、
-Pre-built packagesをダウンロードして`env/Lib/site-packages`に格納する。
 
 ### Node.js
 
@@ -72,6 +69,11 @@ python server.py
 
 Pythonを動かした状態で「localhost:5000」にブラウザでアクセスする。
 
+### 方法3：Releasesのexeを使う
+
+[Releases](https://github.com/kiyuka829/ifc-graph-viewer/releases) にアップロードしている zip を解凍して、
+`ifc-graph-viewer.exe` を実行する。
+
 ## 使い方簡易説明
 
 - 「ファイルの選択」からIFCファイルを選択する
@@ -80,6 +82,6 @@ Pythonを動かした状態で「localhost:5000」にブラウザでアクセス
 - Shift+ドラッグでノードを複数選択できる
 - ノードの黄色の丸をドラッグすることで、接続先のノードを展開される
 - ノードを選択した状態でDeleteキーを押すとノードが削除される
-- 右クリックを押すとエンティティの検索ウィンドウが表示される
-  - 検索ウィンドウのエンティティIDを選択すると右クリックした場所にノードが表示される
+- 右クリックを押すと検索ウィンドウが表示される
+  - 検索ウィンドウのIDを選択すると右クリックした場所にノードが表示される
 - マウスホイールで表示の拡大縮小ができる
