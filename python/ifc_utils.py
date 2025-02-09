@@ -89,7 +89,6 @@ def get_node_info(model, item):
             - 'attributes': A list of attributes of the node.
     """
     attributes = []
-    # inverse_attributes = []
     node_info = {}
     node_info["attributes"] = attributes
     for key, val in item.get_info().items():
@@ -102,7 +101,7 @@ def get_node_info(model, item):
             attr["inverse"] = False
             attributes.append(attr)
 
-    inv_keys = set(dir(item)) - set(dir(ifcopenshell.entity_instance)) - set(item.get_info().keys())
+    inv_keys = item.wrapped_data.get_inverse_attribute_names()
     inverses = []
     for key in inv_keys:
         val = getattr(item, key)
