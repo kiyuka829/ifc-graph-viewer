@@ -51,18 +51,21 @@ def get_lines(path):
 
 
 def attribute_info(key, val):
-    if isinstance(val, ifcopenshell.entity_instance):
+    def _instance2content(val):
         if val.id() == 0:
             # IFCXX($,$,IFCINTEGER(2),$) みたく直接IFCの場合
-            content = dict(type="value", value=val.wrappedValue)
-            return dict(name=key, content=content)
+            return dict(type="value", value=val.wrappedValue)
         else:
-            return dict(name=key, content=dict(type="id", value=val.id()))
+            return dict(type="id", value=val.id())
+
+    if isinstance(val, ifcopenshell.entity_instance):
+        return dict(name=key, content=_instance2content(val))
     elif isinstance(val, tuple):
         values = []
         for v in val:
             if isinstance(v, ifcopenshell.entity_instance):
-                values.append(dict(type="id", value=v.id()))
+                content = _instance2content(v)
+                values.append(content)
             else:
                 # (0, 0, 0) みたいな座標の場合
                 values.append(dict(type="value", value=v))
