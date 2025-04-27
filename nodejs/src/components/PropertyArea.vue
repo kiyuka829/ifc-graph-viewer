@@ -42,12 +42,36 @@ const stringifyContents = (contents: AttrContent[]) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="attribute in node.attributes" :key="attribute.name">
+        <tr
+          v-for="attribute in node.attributes.filter((attr) => !attr.inverse)"
+          :key="attribute.name"
+        >
           <td>{{ attribute.name }}</td>
           <td>{{ stringifyContents(attribute.contents) }}</td>
         </tr>
       </tbody>
     </table>
+
+    <template v-if="node.attributes.some((attr) => attr.inverse)">
+      <h4>Inverse Attributes</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="attribute in node.attributes.filter((attr) => attr.inverse)"
+            :key="attribute.name"
+          >
+            <td>{{ attribute.name }}</td>
+            <td>{{ stringifyContents(attribute.contents) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
 
     <template v-if="node.reference">
       <h4>References</h4>
