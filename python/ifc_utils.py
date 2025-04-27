@@ -22,7 +22,7 @@ class Node(BaseModel):
     id: int
     type: str
     attributes: List[Attribute]
-    references: List[Attribute]
+    references: Attribute
 
 
 def load_model(path):
@@ -143,7 +143,7 @@ def get_node_info(model, item):
         "inverse": True,
     }
 
-    return node_info
+    return Node(**node_info).model_dump()
 
 
 if __name__ == "__main__":
