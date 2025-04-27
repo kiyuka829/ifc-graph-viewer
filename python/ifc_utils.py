@@ -46,12 +46,6 @@ def get_by_id(path, id):
     return get_node_info(model, item)
 
 
-def get_by_type(path, type):
-    model = load_model(path)
-    item = model.by_type(type)[0]
-    return get_node_info(model, item)
-
-
 def get_entities(path):
     model = load_model(path)
     entities = defaultdict(list)
@@ -60,14 +54,6 @@ def get_entities(path):
     for key, val in entities.items():
         val.sort()
     return entities
-
-
-def get_lines(path):
-    model = load_model(path)
-    entities = []
-    for item in model:
-        entities.append((item.id(), item.is_a()))
-    return sorted(entities)
 
 
 def attribute_info(key, val):
