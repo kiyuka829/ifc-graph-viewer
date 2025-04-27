@@ -1,8 +1,28 @@
 from collections import defaultdict
+from pydantic import BaseModel
+from typing import Literal, Any, List, Union
 
 import ifcopenshell
 
 load_models = {}
+
+
+class Content(BaseModel):
+    type: Literal["value", "id"]
+    value: Any
+
+
+class Attribute(BaseModel):
+    name: str
+    contents: List[Content]
+    inverse: bool
+
+
+class Node(BaseModel):
+    id: int
+    type: str
+    attributes: List[Attribute]
+    references: Attribute
 
 
 def load_model(path):
@@ -59,7 +79,7 @@ def attribute_info(key, val):
             return dict(type="id", value=val.id())
 
     if isinstance(val, ifcopenshell.entity_instance):
-        return dict(name=key, content=_instance2content(val))
+        return dict(name=key, contents=[_instance2content(val)])
     elif isinstance(val, tuple):
         values = []
         for v in val:
@@ -70,9 +90,12 @@ def attribute_info(key, val):
                 # (0, 0, 0) みたいな座標の場合
                 values.append(dict(type="value", value=v))
 
-        return dict(name=key, content=values)
+        return dict(name=key, contents=values)
     else:
-        return dict(name=key, content=dict(type="value", value=val))
+        if val is None:
+            return dict(name=key, contents=[])
+        else:
+            return dict(name=key, contents=[dict(type="value", value=val)])
 
 
 def get_node_info(model, item):
@@ -111,15 +134,16 @@ def get_node_info(model, item):
         attributes.append(attr)
 
     ref_instances = set(model.get_inverse(item)) - set(inverses)
-    references = []
+    contents = []
     for idx, reference in enumerate(ref_instances):
-        key = f"reference{idx}"
-        ref = attribute_info(key, reference)
-        ref["inverse"] = True
-        references.append(ref)
-    node_info["references"] = references
+        contents.append({"type": "id", "value": reference.id()})
+    node_info["references"] = {
+        "name": "references",
+        "contents": contents,
+        "inverse": True,
+    }
 
-    return node_info
+    return Node(**node_info).model_dump()
 
 
 if __name__ == "__main__":

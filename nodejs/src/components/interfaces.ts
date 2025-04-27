@@ -9,7 +9,7 @@ export interface IfcNode {
 
 export interface Attribute {
   name: string;
-  content: AttrContent | AttrContent[]; // 接続先のIDまたはテキストデータ
+  contents: AttrContent[]; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   edgePosition: Position; // エッジの接続位置
 }

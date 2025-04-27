@@ -6,39 +6,29 @@ const props = defineProps<{
 }>();
 props;
 
-const stringifyContent = (content: AttrContent | AttrContent[]) => {
-  if (Array.isArray(content)) {
-    if (content.length === 0) {
-      return "";
-    } else {
-      if (content[0].type === "id") {
-        return content.map((c) => `#${c.value}`).join(", ");
-      } else {
-        return content
-          .map((c) => {
-            if (Array.isArray(c.value)) {
-              return `(${c.value.join(", ")})`;
-            } else {
-              return `${c.value}`;
-            }
-          })
-          .join(", ");
-      }
-    }
+const stringifyContents = (contents: AttrContent[]) => {
+  if (contents.length === 0) {
+    return "";
   } else {
-    if (content.value === null) {
-      return "";
-    } else if (content.type === "id") {
-      return `#${content.value}`;
+    if (contents[0].type === "id") {
+      return contents.map((c) => `#${c.value}`).join(", ");
     } else {
-      return `${content.value}`;
+      return contents
+        .map((c) => {
+          if (Array.isArray(c.value)) {
+            return `(${c.value.join(", ")})`;
+          } else {
+            return `${c.value}`;
+          }
+        })
+        .join(", ");
     }
   }
 };
 </script>
 
 <template>
-  <div>
+  <div class="property-area">
     <h3>Node Details</h3>
     <p><strong>ID:</strong> {{ node.id }}</p>
     <p><strong>Type:</strong> {{ node.type }}</p>
@@ -52,12 +42,36 @@ const stringifyContent = (content: AttrContent | AttrContent[]) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="attribute in node.attributes" :key="attribute.name">
+        <tr
+          v-for="attribute in node.attributes.filter((attr) => !attr.inverse)"
+          :key="attribute.name"
+        >
           <td>{{ attribute.name }}</td>
-          <td>{{ stringifyContent(attribute.content) }}</td>
+          <td>{{ stringifyContents(attribute.contents) }}</td>
         </tr>
       </tbody>
     </table>
+
+    <template v-if="node.attributes.some((attr) => attr.inverse)">
+      <h4>Inverse Attributes</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="attribute in node.attributes.filter((attr) => attr.inverse)"
+            :key="attribute.name"
+          >
+            <td>{{ attribute.name }}</td>
+            <td>{{ stringifyContents(attribute.contents) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
 
     <template v-if="node.reference">
       <h4>References</h4>
@@ -69,7 +83,7 @@ const stringifyContent = (content: AttrContent | AttrContent[]) => {
         </thead>
         <tbody>
           <tr>
-            <td>{{ stringifyContent(node.reference.content) }}</td>
+            <td>{{ stringifyContents(node.reference.contents) }}</td>
           </tr>
         </tbody>
       </table>
@@ -77,7 +91,12 @@ const stringifyContent = (content: AttrContent | AttrContent[]) => {
   </div>
 </template>
 
-<style>
+<style scoped>
+.property-area {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

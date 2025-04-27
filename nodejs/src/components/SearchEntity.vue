@@ -34,7 +34,7 @@ function openSubMenu(item: string, idx: number) {
   const scrollTop = mainList.value.scrollTop;
 
   ids.value = props.elements[item];
-  subMenuTop.value = idx * 24 + 26 - scrollTop;
+  subMenuTop.value = idx * 23 + 26 - scrollTop;
   hoverItem.value = item;
 }
 
@@ -143,7 +143,8 @@ const handleClick = (event: MouseEvent) => {
 
 .menu-item {
   width: 146px;
-  /* display: flex; */
+  height: 19px;
+  line-height: 19px;
   align-items: center;
   justify-content: space-between;
 }
