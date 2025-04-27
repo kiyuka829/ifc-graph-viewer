@@ -28,7 +28,7 @@ const stringifyContents = (contents: AttrContent[]) => {
 </script>
 
 <template>
-  <div>
+  <div class="property-area">
     <h3>Node Details</h3>
     <p><strong>ID:</strong> {{ node.id }}</p>
     <p><strong>Type:</strong> {{ node.type }}</p>
@@ -91,7 +91,12 @@ const stringifyContents = (contents: AttrContent[]) => {
   </div>
 </template>
 
-<style>
+<style scoped>
+.property-area {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
