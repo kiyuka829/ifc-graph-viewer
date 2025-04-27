@@ -10,10 +10,10 @@ IFCファイルのグラフ可視化アプリ
 
 - Windows10
 - Google Chrome: 120.0.6099.72
-- node:  16.15.0
+- node:  v22.15.0
 - npm:  9.7.1
 - Python:  3.12.9
-- IfcOpenShell: 0.8.0
+- IfcOpenShell: 0.8.2
 
 ## インストール
 
@@ -42,7 +42,7 @@ npm install
 Pythonでバックエンド起動する。
 
 ```sh
-python server.py
+uvicorn fastapi_server:app --reload
 ```
 
 Node.jsでフロントエンド起動する。
@@ -64,7 +64,7 @@ npm run build
 作成された「nodejs/dist」を「python/dist」に移動し、Pythonでバックエンド起動する。
 
 ```sh
-python server.py
+uvicorn fastapi_server:app --reload
 ```
 
 Pythonを動かした状態で「localhost:5000」にブラウザでアクセスする。
