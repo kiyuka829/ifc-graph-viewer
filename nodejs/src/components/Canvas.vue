@@ -132,7 +132,7 @@ function drag(event: MouseEvent) {
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
         const length = node.attributes.filter((attr) =>
-          hasValue(attr.content)
+          hasValue(attr.contents)
         ).length;
         // ヘッダーの高さ44px、bodyのpadding20px、属性の高さ29px
         const bottom = nodePosition.y + 44 + 20 + 29 * length;
@@ -238,21 +238,20 @@ function convertToNode(data: any): IfcNode {
   for (const attr of data.attributes) {
     const attribute = {
       name: attr.name,
-      content: attr.content,
+      contents: attr.contents,
       edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
       inverse: attr.inverse,
     };
-    hasValue(attr.content) && count++;
+    hasValue(attr.contents) && count++;
     node.attributes.push(attribute);
   }
 
-  if (data.references.length === 0) {
+  if (data.references.contents.length === 0) {
     return node;
   }
-  const contents = data.references.map((ref: any) => ref.content);
   const reference = {
     name: "Reference",
-    content: contents,
+    contents: data.references.contents,
     edgePosition: { x: 0, y: 25 },
     inverse: true,
   };
@@ -416,12 +415,8 @@ const addNode_ = (
 
       // nodeIdと一致するattributeのnameを取得
       const targetAttr = node.attributes.find((attr) => {
-        if (Array.isArray(attr.content)) {
-          if (attr.content.find((c) => c.type === "id" && c.value === srcId)) {
-            return true;
-          }
-        } else {
-          return attr.content.type === "id" && attr.content.value === srcId;
+        if (attr.contents.find((c) => c.type === "id" && c.value === srcId)) {
+          return true;
         }
       });
 
@@ -479,7 +474,7 @@ const addNode = (
   data: { position: Position; attribute: Attribute }
 ) => {
   // console.log(data);
-  const id = data.attribute.content;
+  const id = data.attribute.contents;
   const ids = Array.isArray(id) ? id : [id];
   ids.forEach((id, idx) => {
     addNode_(

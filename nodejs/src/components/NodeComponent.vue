@@ -190,27 +190,9 @@ const onDotMouseUp = (attribute: Attribute) => {
   });
 };
 
-function stringifyValue(content: AttrContent | AttrContent[]) {
-  if (Array.isArray(content)) {
-    // 配列の場合、カンマ区切りの文字列に変換します
-    return `${content.map((v) => `#${v.value}`).join(", ")}`;
-  } else if (content.type === "id") {
-    // 数値はID
-    return `#${content.value}`;
-  } else {
-    // 配列でない場合、そのまま文字列に変換します
-    return content.value.toString();
-  }
-}
-stringifyValue;
-
 // id判定
-const isId = (content: AttrContent | AttrContent[]): boolean => {
-  if (Array.isArray(content)) {
-    return content[0].type === "id";
-  } else {
-    return content.type === "id";
-  }
+const isId = (contents: AttrContent[]): boolean => {
+  return contents[0].type === "id";
 };
 </script>
 
@@ -239,22 +221,15 @@ const isId = (content: AttrContent | AttrContent[]): boolean => {
       <template v-for="(attribute, _) in node.attributes" :key="attribute.name">
         <div
           class="attribute"
-          v-if="hasValue(attribute.content)"
+          v-if="hasValue(attribute.contents)"
           :class="{ 'inverse-attribute': attribute.inverse }"
         >
           <span class="truncate-text" :title="attribute.name">{{
             attribute.name
           }}</span>
-          <!--
-          <span
-            class="truncate-text"
-            :title="stringifyValue(attribute.content)"
-            >{{ stringifyValue(attribute.content) }}</span
-          >
-           -->
           <span
             class="dot"
-            v-if="isId(attribute.content)"
+            v-if="isId(attribute.contents)"
             @mousedown.prevent="(event) => onDotMouseDown(event, attribute)"
           ></span>
         </div>
