@@ -50,6 +50,9 @@ def get_search_data(path):
     model = load_model(path)
     search_data = defaultdict(dict)
     for item in model:
+        if item.is_a("IfcRepresentationItem"):
+            continue
+
         display_names = [f"#{item.id()}"]
         if (guid := getattr(item, "GlobalId", None)) is not None:
             display_names.append(guid)

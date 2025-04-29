@@ -24,9 +24,11 @@ onMounted(() => {
 });
 
 const filteredList = computed(() => {
-  return Object.keys(props.elements).filter((element) =>
-    element.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  return Object.keys(props.elements)
+    .filter((element) =>
+      element.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
+    .sort();
 });
 
 function openSubMenu(item: string, idx: number) {
