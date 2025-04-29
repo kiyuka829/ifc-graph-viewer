@@ -65,6 +65,7 @@ async def upload_file(file: UploadFile = File(...)):
     # IFCファイルの処理
     try:
         root_node = ifc.get_ifc_project(file_path)
+        search_data = ifc.get_search_data(file_path)
     except Exception as e:
         import traceback
 
@@ -74,6 +75,7 @@ async def upload_file(file: UploadFile = File(...)):
     return {
         "message": "ファイルがアップロードされました。",
         "root": root_node,
+        "searchData": search_data,
         "path": file_path.as_posix(),
     }
 

@@ -206,11 +206,12 @@ const uploadFile = (file: File) => {
     })
     .then((response) => {
       // レスポンスを処理
+      ifcElements.value = response.data.searchData;
       const node = convertToNode(response.data.root);
       nodes.value.push(node);
       filepath.value = response.data.path;
       console.log(node);
-      getSearchData();
+      // getSearchData();
     })
     .catch((error) => {
       // エラー処理
