@@ -48,15 +48,16 @@ def get_by_id(path, id):
 
 def get_search_data(path):
     model = load_model(path)
-    search_data = defaultdict(dict)
+    search_data = defaultdict(lambda: {"items": []})
     for item in model:
         display_names = [f"#{item.id()}"]
-        if (guid := getattr(item, "GlobalId", None)) is not None:
+        info = item.get_info()
+        if (guid := info.get("GlobalId")) is not None:
             display_names.append(guid)
-        if (name := getattr(item, "Name", None)) is not None:
+        if (name := info.get("Name")) is not None:
             display_names.append(name)
 
-        search_data.setdefault(item.is_a(), {"items": []})["items"].append(
+        search_data[item.is_a()]["items"].append(
             {
                 "id": item.id(),
                 "displayName": " | ".join(display_names),
