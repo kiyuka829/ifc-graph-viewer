@@ -100,15 +100,17 @@ const handleClick = (event: MouseEvent) => {
       }"
       v-if="searchItems.length > 0"
     >
-      <template v-if="searchItems.length < 20">
-        <div
-          v-for="searchItem in searchItems"
-          :key="searchItem.id"
-          :title="searchItem.displayName"
-          @click="selectItem(searchItem.id)"
-          class="sub-item truncate-text"
-        >
-          {{ searchItem.displayName }}
+      <template v-if="searchItems.length < 40">
+        <div class="sub-list-container">
+          <div
+            v-for="searchItem in searchItems"
+            :key="searchItem.id"
+            :title="searchItem.displayName"
+            @click="selectItem(searchItem.id)"
+            class="sub-item truncate-text"
+          >
+            {{ searchItem.displayName }}
+          </div>
         </div>
       </template>
       <template v-else>
@@ -162,10 +164,13 @@ const handleClick = (event: MouseEvent) => {
 }
 .sub-list {
   border: 1px solid #ccc;
-  min-width: 500px;
+  background-color: #f0f0f0;
+}
+.sub-list-container {
+  min-width: 150px;
   max-width: 500px;
   max-height: 500px;
-  background-color: #f0f0f0;
+  overflow: auto;
 }
 
 .menu-item {
@@ -179,11 +184,7 @@ const handleClick = (event: MouseEvent) => {
 .main-list .menu-item,
 .sub-list .sub-item {
   padding: 2px;
-  /* margin: 5px; */
-  /* border: 1px solid #ccc; */
-  /* border-radius: 5px; */
   cursor: pointer;
-  /* border: 1px solid #dcdcdc; */
 }
 .main-list .menu-item:hover,
 .sub-list .sub-item:hover {

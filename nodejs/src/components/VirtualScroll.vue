@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-
-interface VirtualItem {
-  data: any;
-  index: number;
-}
+import { SearchItem } from "./interfaces";
 
 const props = defineProps({
-  items: { type: Array, required: true },
+  items: { type: Array as () => SearchItem[], required: true },
   itemHeight: { type: Number, default: 50 },
   containerHeight: { type: Number, default: 500 },
   buffer: { type: Number, default: 5 },
@@ -26,7 +22,7 @@ const startIndex = computed(() =>
 
 const endIndex = computed(() => startIndex.value + visibleCount.value);
 
-const visibleItems = computed<VirtualItem[]>(() =>
+const visibleItems = computed(() =>
   props.items.slice(startIndex.value, endIndex.value).map((item, i) => ({
     data: item,
     index: startIndex.value + i,
@@ -50,7 +46,19 @@ onMounted(() => {
 
 <template>
   <div ref="container" class="scroll-container" @scroll="handleScroll">
-    <div :style="{ height: `${totalHeight}px`, position: 'relative' }">
+    <div
+      :style="{
+        height: `${totalHeight}px`,
+        minWidth: '150px',
+        maxWidth: '500px',
+        position: 'relative',
+      }"
+    >
+      <!-- 幅調整用のダミー -->
+      <div style="visibility: hidden">
+        {{ items[0]?.displayName.replace(/ /g, "a") }}
+      </div>
+
       <div
         v-for="item in visibleItems"
         :style="{
