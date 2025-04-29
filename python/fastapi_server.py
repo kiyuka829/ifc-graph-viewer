@@ -67,9 +67,6 @@ async def upload_file(file: UploadFile = File(...)):
         root_node = ifc.get_ifc_project(file_path)
         search_data = ifc.get_search_data(file_path)
     except Exception as e:
-        import traceback
-
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
 
     return {
