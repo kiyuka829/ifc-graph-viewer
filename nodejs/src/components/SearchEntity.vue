@@ -60,53 +60,58 @@ const handleClick = (event: MouseEvent) => {
     }"
     @click="handleClick"
   >
-    <div class="menu">
-      <!-- 検索欄 -->
-      <div class="search-box">
-        <input
-          ref="searchInput"
-          type="text"
-          class="search-box-text"
-          v-model="searchQuery"
-          placeholder="Search"
-        />
-      </div>
+    <template v-if="Object.keys(props.elements).length === 0">
+      <div class="search-loading-text">Preparing search...</div>
+    </template>
+    <template v-else>
+      <div class="menu">
+        <!-- 検索欄 -->
+        <div class="search-box">
+          <input
+            ref="searchInput"
+            type="text"
+            class="search-box-text"
+            v-model="searchQuery"
+            placeholder="Search"
+          />
+        </div>
 
-      <div class="main-list" ref="mainList">
-        <div
-          v-for="(item, idx) in filteredList"
-          :key="item"
-          @mouseover="openSubMenu(item, idx)"
-          class="menu-item truncate-text"
-          :style="{
-            backgroundColor: item === hoverItem ? '#a7b3e9' : undefined,
-          }"
-          :title="item"
-        >
-          {{ item }}
+        <div class="main-list" ref="mainList">
+          <div
+            v-for="(item, idx) in filteredList"
+            :key="item"
+            @mouseover="openSubMenu(item, idx)"
+            class="menu-item truncate-text"
+            :style="{
+              backgroundColor: item === hoverItem ? '#a7b3e9' : undefined,
+            }"
+            :title="item"
+          >
+            {{ item }}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div
-      class="sub-list"
-      :style="{
-        position: 'absolute',
-        top: subMenuTop + 'px',
-        left: 148 + 'px',
-      }"
-      v-if="searchItems.length > 0"
-    >
       <div
-        v-for="searchItem in searchItems"
-        :key="searchItem.id"
-        :title="searchItem.displayName"
-        @click="selectItem(searchItem.id)"
-        class="sub-item truncate-text"
+        class="sub-list"
+        :style="{
+          position: 'absolute',
+          top: subMenuTop + 'px',
+          left: 148 + 'px',
+        }"
+        v-if="searchItems.length > 0"
       >
-        {{ searchItem.displayName }}
+        <div
+          v-for="searchItem in searchItems"
+          :key="searchItem.id"
+          :title="searchItem.displayName"
+          @click="selectItem(searchItem.id)"
+          class="sub-item truncate-text"
+        >
+          {{ searchItem.displayName }}
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -171,5 +176,13 @@ const handleClick = (event: MouseEvent) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.search-loading-text {
+  width: 140px;
+  text-align: center;
+  color: gray;
+  font-style: italic;
+  padding: 8px 0;
 }
 </style>
