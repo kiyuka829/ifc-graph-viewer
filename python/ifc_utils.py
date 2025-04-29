@@ -1,8 +1,8 @@
 from collections import defaultdict
-from pydantic import BaseModel
-from typing import Literal, Any, List, Union
+from typing import Any, List, Literal
 
 import ifcopenshell
+from pydantic import BaseModel
 
 load_models = {}
 
@@ -34,7 +34,7 @@ def load_model(path):
         return model
 
 
-def get_ifcproject(path):
+def get_ifc_project(path):
     model = load_model(path)
     item = model.by_type("IfcProject")[0]
     return get_node_info(model, item)
@@ -46,14 +46,28 @@ def get_by_id(path, id):
     return get_node_info(model, item)
 
 
-def get_entities(path):
+def get_search_data(path):
     model = load_model(path)
-    entities = defaultdict(list)
+    search_data = defaultdict(lambda: {"items": []})
     for item in model:
-        entities[item.is_a()].append(item.id())
-    for key, val in entities.items():
-        val.sort()
-    return entities
+        display_names = [f"#{item.id()}"]
+        info = item.get_info()
+        if (guid := info.get("GlobalId")) is not None:
+            display_names.append(guid)
+        if (name := info.get("Name")) is not None:
+            display_names.append(name)
+
+        search_data[item.is_a()]["items"].append(
+            {
+                "id": item.id(),
+                "displayName": " | ".join(display_names),
+            }
+        )
+
+    for key, val in search_data.items():
+        val["items"].sort(key=lambda x: x["id"])
+
+    return search_data
 
 
 def attribute_info(key, val):

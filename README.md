@@ -1,6 +1,6 @@
 # IFC graph viewer
 
-IFCファイルのグラフ可視化アプリ
+IFC ファイルのグラフ可視化アプリ
 
 ![app](images/viewer.jpg)
 
@@ -10,14 +10,14 @@ IFCファイルのグラフ可視化アプリ
 
 - Windows10
 - Google Chrome: 120.0.6099.72
-- node:  v22.15.0
-- npm:  9.7.1
-- Python:  3.12.9
+- node: v22.15.0
+- npm: 9.7.1
+- Python: 3.12.9
 - IfcOpenShell: 0.8.2
 
 ## インストール
 
-バックエンドをPythonのFlask、フロントエンドをVite+Vue+TSで構築しているので、PythonとNode.jsの両方の環境を作る必要がある。
+バックエンドを Python の Flask、フロントエンドを Vite+Vue+TS で構築しているので、Python と Node.js の両方の環境を作る必要がある。
 
 ### Python
 
@@ -37,15 +37,15 @@ npm install
 
 ## 実行方法
 
-### 方法1
+### 方法 1
 
-Pythonでバックエンド起動する。
+Python でバックエンド起動する。
 
 ```sh
 uvicorn fastapi_server:app --reload
 ```
 
-Node.jsでフロントエンド起動する。
+Node.js でフロントエンド起動する。
 
 ```sh
 npm run dev
@@ -53,7 +53,7 @@ npm run dev
 
 両方を起動した状態で「localhost:5173」にブラウザでアクセスする
 
-### 方法2：ビルド
+### 方法 2：ビルド
 
 フロントエンドをビルドする。
 
@@ -61,22 +61,22 @@ npm run dev
 npm run build
 ```
 
-作成された「nodejs/dist」を「python/dist」に移動し、Pythonでバックエンド起動する。
+作成された「nodejs/dist」を「python/dist」に移動し、Python でバックエンド起動する。
 
 ```sh
 uvicorn fastapi_server:app --reload
 ```
 
-Pythonを動かした状態で「localhost:5000」にブラウザでアクセスする。
+Python を動かした状態で「localhost:8000」にブラウザでアクセスする。
 
-### 方法3：Releasesのexeを使う
+### 方法 3：Releases の exe を使う
 
 [Releases](https://github.com/kiyuka829/ifc-graph-viewer/releases) にアップロードしている zip を解凍して、
 `ifc-graph-viewer.exe` を実行する。
 
-## exe化
+## exe 化
 
-[方法2：ビルド](#方法2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
+[方法 2：ビルド](#方法2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
 
 ```sh
 nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
@@ -84,12 +84,12 @@ nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-
 
 ## 使い方簡易説明
 
-- 「ファイルの選択」からIFCファイルを選択する
+- 「ファイルの選択」から IFC ファイルを選択する
   - 対応しているファイル形式は `.ifc` のみ
 - ノードを選択すると画面右にノードの情報が表示される
 - Shift+ドラッグでノードを複数選択できる
 - ノードの黄色の丸をドラッグすることで、接続先のノードを展開される
-- ノードを選択した状態でDeleteキーを押すとノードが削除される
+- ノードを選択した状態で Delete キーを押すとノードが削除される
 - 右クリックを押すと検索ウィンドウが表示される
-  - 検索ウィンドウのIDを選択すると右クリックした場所にノードが表示される
+  - 検索ウィンドウの ID を選択すると右クリックした場所にノードが表示される
 - マウスホイールで表示の拡大縮小ができる

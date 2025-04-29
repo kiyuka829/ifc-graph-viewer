@@ -4,7 +4,7 @@ import axios from "axios";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute, SearchData } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -33,7 +33,7 @@ const previousSelectedNodeIds = ref<number[]>([]);
 const dragStartNodePositions = ref<{ [id: number]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
-const ifcElements = ref<{ [key: string]: number[] }>({});
+const ifcElements = ref<{ [key: string]: SearchData }>({});
 
 // 右クリックメニュー表示フラグ
 const showSearch = ref<boolean>(false);
@@ -190,8 +190,8 @@ const uploadFile = (file: File) => {
     })
     .then((response) => {
       // レスポンスを処理
-      ifcElements.value = response.data.entities;
-      const node = convertToNode(response.data.model);
+      ifcElements.value = response.data.searchData;
+      const node = convertToNode(response.data.root);
       nodes.value.push(node);
       filepath.value = response.data.path;
       console.log(node);
@@ -204,7 +204,7 @@ const uploadFile = (file: File) => {
       isLoading.value = false;
     });
 };
-// };
+
 const triggerFileInput = () => {
   fileInput.value?.click();
 };
@@ -690,9 +690,14 @@ const closeSearch = () => {
     </div>
 
     <!-- ノード追加メニュー -->
-    <div class="add-menu" v-if="showSearch" @click="closeSearch">
-      <SearchEntity :elements="ifcElements" @select="selectEntity" />
-    </div>
+    <template v-if="Object.keys(ifcElements).length === 0">
+      <div class="search-loading-text">Loading search data...</div>
+    </template>
+    <template v-else>
+      <div class="add-menu" v-if="showSearch" @click="closeSearch">
+        <SearchEntity :elements="ifcElements" @select="selectEntity" />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -829,5 +834,17 @@ const closeSearch = () => {
 
 .align-icon:hover {
   background-color: rgba(129, 129, 129, 0.3);
+}
+
+.search-loading-text {
+  position: absolute;
+  z-index: -1;
+  top: 60px;
+  left: 20px;
+  width: 200px;
+  text-align: left;
+  color: gray;
+  font-style: italic;
+  padding: 8px 0;
 }
 </style>

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { SearchData, SearchItem } from "./interfaces";
+import VirtualScroll from "./VirtualScroll.vue";
 
 const props = defineProps<{
-  elements: { [key: string]: number[] };
+  elements: { [key: string]: SearchData };
 }>();
+
 const emits = defineEmits(["select"]);
 
 const searchQuery = ref("");
 const searchInput = ref<HTMLInputElement | null>(null);
-const ids = ref<number[]>([]);
+const searchItems = ref<SearchItem[]>([]);
 
 const subMenuTop = ref<number>(0);
 const hoverItem = ref<string>("");
@@ -22,9 +25,11 @@ onMounted(() => {
 });
 
 const filteredList = computed(() => {
-  return Object.keys(props.elements).filter((element) =>
-    element.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  return Object.keys(props.elements)
+    .filter((element) =>
+      element.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
+    .sort();
 });
 
 function openSubMenu(item: string, idx: number) {
@@ -33,7 +38,7 @@ function openSubMenu(item: string, idx: number) {
   }
   const scrollTop = mainList.value.scrollTop;
 
-  ids.value = props.elements[item];
+  searchItems.value = props.elements[item].items;
   subMenuTop.value = idx * 23 + 26 - scrollTop;
   hoverItem.value = item;
 }
@@ -93,16 +98,40 @@ const handleClick = (event: MouseEvent) => {
         top: subMenuTop + 'px',
         left: 148 + 'px',
       }"
-      v-if="ids.length > 0"
+      v-if="searchItems.length > 0"
     >
-      <div
-        v-for="id in ids"
-        :key="id"
-        @click="selectItem(id)"
-        class="sub-item truncate-text"
-      >
-        #{{ id }}
-      </div>
+      <template v-if="searchItems.length < 40">
+        <div class="sub-list-container">
+          <div
+            v-for="searchItem in searchItems"
+            :key="searchItem.id"
+            :title="searchItem.displayName"
+            @click="selectItem(searchItem.id)"
+            class="sub-item truncate-text"
+          >
+            {{ searchItem.displayName }}
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <VirtualScroll
+          :items="searchItems"
+          :itemHeight="20"
+          :containerHeight="500"
+          :buffer="5"
+        >
+          <template #default="{ item }">
+            <div
+              class="sub-item truncate-text"
+              :key="item.id"
+              :title="item.displayName"
+              @click="selectItem(item.id)"
+            >
+              {{ item.displayName }}
+            </div>
+          </template>
+        </VirtualScroll>
+      </template>
     </div>
   </div>
 </template>
@@ -135,9 +164,12 @@ const handleClick = (event: MouseEvent) => {
 }
 .sub-list {
   border: 1px solid #ccc;
-  width: 150px;
-  max-height: 500px;
   background-color: #f0f0f0;
+}
+.sub-list-container {
+  min-width: 150px;
+  max-width: 500px;
+  max-height: 500px;
   overflow: auto;
 }
 
@@ -152,11 +184,7 @@ const handleClick = (event: MouseEvent) => {
 .main-list .menu-item,
 .sub-list .sub-item {
   padding: 2px;
-  /* margin: 5px; */
-  /* border: 1px solid #ccc; */
-  /* border-radius: 5px; */
   cursor: pointer;
-  /* border: 1px solid #dcdcdc; */
 }
 .main-list .menu-item:hover,
 .sub-list .sub-item:hover {
