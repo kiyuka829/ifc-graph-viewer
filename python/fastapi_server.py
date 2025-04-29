@@ -73,7 +73,7 @@ async def upload_file(file: UploadFile = File(...)):
 
     return {
         "message": "ファイルがアップロードされました。",
-        "model": root_node,
+        "root": root_node,
         "path": file_path.as_posix(),
     }
 
