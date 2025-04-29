@@ -707,7 +707,7 @@ const closeSearch = () => {
 
     <!-- ノード追加メニュー -->
     <template v-if="Object.keys(ifcElements).length === 0">
-      <div class="search-loading-text">Preparing search...</div>
+      <div class="search-loading-text">Loading search data...</div>
     </template>
     <template v-else>
       <div class="add-menu" v-if="showSearch" @click="closeSearch">
@@ -857,8 +857,8 @@ const closeSearch = () => {
   z-index: -1;
   top: 60px;
   left: 20px;
-  width: 140px;
-  text-align: center;
+  width: 200px;
+  text-align: left;
   color: gray;
   font-style: italic;
   padding: 8px 0;

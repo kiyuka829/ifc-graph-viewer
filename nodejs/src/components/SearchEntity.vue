@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { SearchData, SearchItem } from "./interfaces";
+import VirtualScroll from "./VirtualScroll.vue";
 
 const props = defineProps<{
   elements: { [key: string]: SearchData };
@@ -99,15 +100,23 @@ const handleClick = (event: MouseEvent) => {
       }"
       v-if="searchItems.length > 0"
     >
-      <div
-        v-for="searchItem in searchItems"
-        :key="searchItem.id"
-        :title="searchItem.displayName"
-        @click="selectItem(searchItem.id)"
-        class="sub-item truncate-text"
+      <VirtualScroll
+        :items="searchItems"
+        :itemHeight="20"
+        :containerHeight="500"
+        :buffer="5"
       >
-        {{ searchItem.displayName }}
-      </div>
+        <template #default="{ item }">
+          <div
+            class="sub-item truncate-text"
+            :key="item.id"
+            :title="item.displayName"
+            @click="selectItem(item.id)"
+          >
+            {{ item.displayName }}
+          </div>
+        </template>
+      </VirtualScroll>
     </div>
   </div>
 </template>
@@ -140,11 +149,10 @@ const handleClick = (event: MouseEvent) => {
 }
 .sub-list {
   border: 1px solid #ccc;
-  min-width: 150px;
+  min-width: 500px;
   max-width: 500px;
   max-height: 500px;
   background-color: #f0f0f0;
-  overflow: auto;
 }
 
 .menu-item {
