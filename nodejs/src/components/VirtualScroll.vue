@@ -71,8 +71,5 @@ onMounted(() => {
 .scroll-container {
   overflow-y: auto;
   border: 1px solid #ccc;
-
-  /* min-width: 150px; */
-  max-width: 500px;
 }
 </style>

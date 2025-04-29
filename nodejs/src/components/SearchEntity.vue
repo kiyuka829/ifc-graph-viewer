@@ -100,23 +100,36 @@ const handleClick = (event: MouseEvent) => {
       }"
       v-if="searchItems.length > 0"
     >
-      <VirtualScroll
-        :items="searchItems"
-        :itemHeight="20"
-        :containerHeight="500"
-        :buffer="5"
-      >
-        <template #default="{ item }">
-          <div
-            class="sub-item truncate-text"
-            :key="item.id"
-            :title="item.displayName"
-            @click="selectItem(item.id)"
-          >
-            {{ item.displayName }}
-          </div>
-        </template>
-      </VirtualScroll>
+      <template v-if="searchItems.length < 20">
+        <div
+          v-for="searchItem in searchItems"
+          :key="searchItem.id"
+          :title="searchItem.displayName"
+          @click="selectItem(searchItem.id)"
+          class="sub-item truncate-text"
+        >
+          {{ searchItem.displayName }}
+        </div>
+      </template>
+      <template v-else>
+        <VirtualScroll
+          :items="searchItems"
+          :itemHeight="20"
+          :containerHeight="500"
+          :buffer="5"
+        >
+          <template #default="{ item }">
+            <div
+              class="sub-item truncate-text"
+              :key="item.id"
+              :title="item.displayName"
+              @click="selectItem(item.id)"
+            >
+              {{ item.displayName }}
+            </div>
+          </template>
+        </VirtualScroll>
+      </template>
     </div>
   </div>
 </template>
