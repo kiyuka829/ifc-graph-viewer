@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { SearchData, SearchItem } from "./interfaces";
 
 const props = defineProps<{
-  elements: { [key: string]: number[] };
+  elements: { [key: string]: SearchData };
 }>();
+
 const emits = defineEmits(["select"]);
 
 const searchQuery = ref("");
 const searchInput = ref<HTMLInputElement | null>(null);
-const ids = ref<number[]>([]);
+const searchItems = ref<SearchItem[]>([]);
 
 const subMenuTop = ref<number>(0);
 const hoverItem = ref<string>("");
@@ -33,7 +35,7 @@ function openSubMenu(item: string, idx: number) {
   }
   const scrollTop = mainList.value.scrollTop;
 
-  ids.value = props.elements[item];
+  searchItems.value = props.elements[item].items;
   subMenuTop.value = idx * 23 + 26 - scrollTop;
   hoverItem.value = item;
 }
@@ -93,15 +95,16 @@ const handleClick = (event: MouseEvent) => {
         top: subMenuTop + 'px',
         left: 148 + 'px',
       }"
-      v-if="ids.length > 0"
+      v-if="searchItems.length > 0"
     >
       <div
-        v-for="id in ids"
-        :key="id"
-        @click="selectItem(id)"
+        v-for="searchItem in searchItems"
+        :key="searchItem.id"
+        :title="searchItem.displayName"
+        @click="selectItem(searchItem.id)"
         class="sub-item truncate-text"
       >
-        #{{ id }}
+        {{ searchItem.displayName }}
       </div>
     </div>
   </div>
@@ -135,7 +138,8 @@ const handleClick = (event: MouseEvent) => {
 }
 .sub-list {
   border: 1px solid #ccc;
-  width: 150px;
+  min-width: 150px;
+  max-width: 500px;
   max-height: 500px;
   background-color: #f0f0f0;
   overflow: auto;

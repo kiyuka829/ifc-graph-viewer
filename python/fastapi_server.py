@@ -1,12 +1,12 @@
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from pydantic import BaseModel
 
 import ifc_utils as ifc
+import uvicorn
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 # アプリケーションの初期化
 app = FastAPI()
@@ -32,11 +32,6 @@ app.mount("/dist", StaticFiles(directory="dist", html=True))
 UPLOAD_FOLDER = Path("uploads")
 ALLOWED_EXTENSIONS = {".ifc"}
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-
-
-class NodeRequest(BaseModel):
-    path: str
-    id: int
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -69,17 +64,39 @@ async def upload_file(file: UploadFile = File(...)):
 
     # IFCファイルの処理
     try:
-        ifcproject = ifc.get_ifcproject(file_path)
-        entities = ifc.get_entities(file_path)
+        root_node = ifc.get_ifc_project(file_path)
     except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
 
     return {
         "message": "ファイルがアップロードされました。",
-        "model": ifcproject,
-        "entities": entities,
+        "model": root_node,
         "path": file_path.as_posix(),
     }
+
+
+class SearchDataRequest(BaseModel):
+    path: str
+
+
+@app.post("/search_data")
+async def get_search_data(request: SearchDataRequest):
+    try:
+        search_data = ifc.get_search_data(request.path)
+        return {
+            "message": "検索データ取得に成功しました。",
+            "searchData": search_data,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
+
+
+class NodeRequest(BaseModel):
+    path: str
+    id: int
 
 
 @app.post("/get_node")

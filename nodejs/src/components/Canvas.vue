@@ -4,7 +4,7 @@ import axios from "axios";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute, SearchData } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -33,7 +33,7 @@ const previousSelectedNodeIds = ref<number[]>([]);
 const dragStartNodePositions = ref<{ [id: number]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
-const ifcElements = ref<{ [key: string]: number[] }>({});
+const ifcElements = ref<{ [key: string]: SearchData }>({});
 
 // 右クリックメニュー表示フラグ
 const showSearch = ref<boolean>(false);
@@ -173,6 +173,22 @@ function endDrag() {
   document.body.style.userSelect = "auto";
 }
 
+function getSearchData() {
+  const config = {
+    method: "post",
+    url: endpoint + "/search_data",
+    data: {
+      path: filepath.value,
+    },
+  };
+  axios(config)
+    .then((response) => {
+      ifcElements.value = response.data.searchData;
+    })
+    .catch((error) => {
+      console.error("IFC要素の取得に失敗しました:", error);
+    });
+}
 // ファイルのアップロード
 const uploadFile = (file: File) => {
   // FormData オブジェクトを作成してファイルを追加
@@ -190,11 +206,12 @@ const uploadFile = (file: File) => {
     })
     .then((response) => {
       // レスポンスを処理
-      ifcElements.value = response.data.entities;
+      // ifcElements.value = response.data.entities;
       const node = convertToNode(response.data.model);
       nodes.value.push(node);
       filepath.value = response.data.path;
       console.log(node);
+      getSearchData();
     })
     .catch((error) => {
       // エラー処理
@@ -204,7 +221,7 @@ const uploadFile = (file: File) => {
       isLoading.value = false;
     });
 };
-// };
+
 const triggerFileInput = () => {
   fileInput.value?.click();
 };
