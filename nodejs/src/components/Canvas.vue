@@ -173,22 +173,6 @@ function endDrag() {
   document.body.style.userSelect = "auto";
 }
 
-function getSearchData() {
-  const config = {
-    method: "post",
-    url: endpoint + "/search_data",
-    data: {
-      path: filepath.value,
-    },
-  };
-  axios(config)
-    .then((response) => {
-      ifcElements.value = response.data.searchData;
-    })
-    .catch((error) => {
-      console.error("IFC要素の取得に失敗しました:", error);
-    });
-}
 // ファイルのアップロード
 const uploadFile = (file: File) => {
   // FormData オブジェクトを作成してファイルを追加
@@ -211,7 +195,6 @@ const uploadFile = (file: File) => {
       nodes.value.push(node);
       filepath.value = response.data.path;
       console.log(node);
-      // getSearchData();
     })
     .catch((error) => {
       // エラー処理
