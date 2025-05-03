@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 from collections import defaultdict
 
 from models import Node
@@ -108,6 +109,10 @@ def load_model(path):
     else:
         with open(path, "r") as f:
             ifcx_file = json.load(f)
+        version = ifcx_file.get("header", {}).get("version")
+        if re.match("^ifcx[-_]alpha$", version) is None:
+            raise composed_data
+
         load_files[path] = ifcx_file
         concat_data = []
         for ifcx_data in load_files.values():
