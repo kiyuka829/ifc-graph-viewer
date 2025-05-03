@@ -23,14 +23,14 @@ const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 const viewedAttrNode = ref<IfcNode | null>(null);
 
 // 選択されたノード
-const selectedNodeIds = ref<number[]>([]);
+const selectedNodeIds = ref<string[]>([]);
 // 範囲選択中に選択されたノード
-const rectSelectedNodeIds = ref<number[]>([]);
+const rectSelectedNodeIds = ref<string[]>([]);
 // 範囲選択前に選択されていたノード
-const previousSelectedNodeIds = ref<number[]>([]);
+const previousSelectedNodeIds = ref<string[]>([]);
 
 // ドラッグ中のノードの初期位置（ノード移動処理用）
-const dragStartNodePositions = ref<{ [id: number]: Position }>({});
+const dragStartNodePositions = ref<{ [id: string]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: SearchData }>({});
@@ -448,14 +448,14 @@ const selectNode = (node: IfcNode, toggle = false) => {
         obj[node.id] = { ...node.position };
       }
       return obj;
-    }, {} as { [id: number]: Position });
+    }, {} as { [id: string]: Position });
   }
 };
 
 // ノードを追加するハンドラ
 const addNode_ = (
-  srcId: number,
-  dstId: number,
+  srcId: string,
+  dstId: string,
   srcName: string,
   inverse: boolean,
   dstPosition: Position,
@@ -498,12 +498,12 @@ const addNode_ = (
       node.position = position;
 
       // エッジ作成
-      const from: { nodeId: number; attrName: string | undefined } = {
-        nodeId: 0,
+      const from: { nodeId: string; attrName: string | undefined } = {
+        nodeId: "",
         attrName: "",
       };
-      const to: { nodeId: number; attrName: string | undefined } = {
-        nodeId: 0,
+      const to: { nodeId: string; attrName: string | undefined } = {
+        nodeId: "",
         attrName: "",
       };
       if (inverse) {
@@ -539,7 +539,7 @@ const addNode_ = (
 };
 
 const addNode = (
-  nodeId: number,
+  nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
   // console.log(data);
@@ -548,7 +548,7 @@ const addNode = (
   ids.forEach((id, idx) => {
     addNode_(
       nodeId,
-      id.value as number,
+      id.value as string,
       data.attribute.name,
       data.attribute.inverse,
       data.position,
@@ -595,11 +595,11 @@ const clearSelect = (event: MouseEvent) => {
   }
 };
 
-const selectEntity = (id: number) => {
+const selectEntity = (id: string) => {
   // 選択された項目の処理
   addNodeById(id, { ...rightClickPosition.value });
 };
-const addNodeById = (id: number, dstPosition: Position) => {
+const addNodeById = (id: string, dstPosition: Position) => {
   const config = {
     method: "post",
     url: endpoint + "/get_node",

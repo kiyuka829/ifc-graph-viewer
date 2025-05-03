@@ -11,7 +11,9 @@ const stringifyContents = (contents: AttrContent[]) => {
     return "";
   } else {
     if (contents[0].type === "id") {
-      return contents.map((c) => `#${c.value}`).join(", ");
+      return contents
+        .map((c) => (typeof c.value === "number" ? `#${c.value}` : c.value))
+        .join(", ");
     } else {
       return contents
         .map((c) => {

@@ -23,7 +23,7 @@ def get_ifc_project(path):
 
 def get_by_id(path, id):
     model = load_model(path)
-    item = model.by_id(id)
+    item = model.by_id(int(id))
     return get_node_info(model, item)
 
 
