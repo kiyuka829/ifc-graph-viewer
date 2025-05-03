@@ -652,18 +652,27 @@ const closeSearch = () => {
 
 // ドラッグオーバーイベントのハンドラ
 const handleDragEnter = (event: DragEvent) => {
-  event.preventDefault();
-  isDraggingOver.value = true;
+  if (event.dataTransfer?.types?.includes("Files")) {
+    event.stopPropagation();
+    event.preventDefault();
+    isDraggingOver.value = true;
+  }
 };
 
 const handleDragLeave = (event: DragEvent) => {
-  event.preventDefault();
-  isDraggingOver.value = false;
+  if (event.dataTransfer?.types?.includes("Files")) {
+    event.stopPropagation();
+    event.preventDefault();
+    isDraggingOver.value = false;
+  }
 };
 
 const handleDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  isDraggingOver.value = true;
+  if (event.dataTransfer?.types?.includes("Files")) {
+    event.stopPropagation();
+    event.preventDefault();
+    isDraggingOver.value = true;
+  }
 };
 </script>
 
