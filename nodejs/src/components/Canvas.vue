@@ -67,7 +67,7 @@ const isDraggingOver = ref(false);
 const sidebarWidth = ref(window.innerWidth * 0.25); // 初期値: 25vw
 const isResizingSidebar = ref(false);
 const minSidebarWidth = 200;
-const maxSidebarWidth = 800;
+const maxSidebarRatio = 0.75;
 
 // .canvas の幅もサイドバーの幅に合わせて可変にする
 const canvasWidth = computed(() => {
@@ -86,7 +86,7 @@ function onSidebarHandleMouseMove(e: MouseEvent) {
   const newWidth = window.innerWidth - e.clientX;
   sidebarWidth.value = Math.min(
     Math.max(newWidth, minSidebarWidth),
-    maxSidebarWidth
+    window.innerWidth * maxSidebarRatio
   );
 }
 
