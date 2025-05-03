@@ -1,6 +1,9 @@
+import traceback
 from pathlib import Path
+from typing import Union
 
-import ifc_utils as ifc
+import ifc_accessor as ifc
+import ifcx_alpha_accessor as ifcx
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +33,7 @@ app.mount("/dist", StaticFiles(directory="dist", html=True))
 
 # ファイルアップロードの設定
 UPLOAD_FOLDER = Path("uploads")
-ALLOWED_EXTENSIONS = {".ifc"}
+ALLOWED_EXTENSIONS = {".ifc", ".ifcx"}
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
@@ -64,9 +67,14 @@ async def upload_file(file: UploadFile = File(...)):
 
     # IFCファイルの処理
     try:
-        root_node = ifc.get_ifc_project(file_path)
-        search_data = ifc.get_search_data(file_path)
+        if file_path.suffix == ".ifc":
+            root_node = ifc.get_ifc_project(file_path)
+            search_data = ifc.get_search_data(file_path)
+        elif file_path.suffix == ".ifcx":
+            root_node = ifcx.get_root_node(file_path)
+            search_data = ifcx.get_search_data(file_path)
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
 
     return {
@@ -84,29 +92,39 @@ class SearchDataRequest(BaseModel):
 @app.post("/search_data")
 async def get_search_data(request: SearchDataRequest):
     try:
-        search_data = ifc.get_search_data(request.path)
+        if request.path.endswith(".ifc"):
+            search_data = ifc.get_search_data(request.path)
+        elif request.path.endswith(".ifcx"):
+            search_data = ifcx.get_search_data(request.path)
+
         return {
             "message": "検索データ取得に成功しました。",
             "searchData": search_data,
         }
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
 
 
 class NodeRequest(BaseModel):
     path: str
-    id: int
+    id: Union[int, str]
 
 
 @app.post("/get_node")
 async def get_node(request: NodeRequest):
     try:
-        node = ifc.get_by_id(request.path, request.id)
+        if request.path.endswith(".ifc"):
+            node = ifc.get_by_id(request.path, request.id)
+        elif request.path.endswith(".ifcx"):
+            node = ifcx.get_by_id(request.path, request.id)
+
         return {
             "message": "ノード追加に成功しました。",
             "node": node,
         }
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
 
 

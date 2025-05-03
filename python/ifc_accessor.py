@@ -1,28 +1,9 @@
 from collections import defaultdict
-from typing import Any, List, Literal
 
 import ifcopenshell
-from pydantic import BaseModel
+from models import Node
 
 load_models = {}
-
-
-class Content(BaseModel):
-    type: Literal["value", "id"]
-    value: Any
-
-
-class Attribute(BaseModel):
-    name: str
-    contents: List[Content]
-    inverse: bool
-
-
-class Node(BaseModel):
-    id: int
-    type: str
-    attributes: List[Attribute]
-    references: Attribute
 
 
 def load_model(path):
@@ -147,4 +128,5 @@ def get_node_info(model, item):
 
 
 if __name__ == "__main__":
+    pass
     pass
