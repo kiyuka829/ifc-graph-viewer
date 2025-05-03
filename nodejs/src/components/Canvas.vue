@@ -75,6 +75,8 @@ const canvasWidth = computed(() => {
 });
 
 function onSidebarHandleMouseDown(e: MouseEvent) {
+  e.stopPropagation();
+  e.preventDefault();
   isResizingSidebar.value = true;
   document.body.style.cursor = "ew-resize";
 }
