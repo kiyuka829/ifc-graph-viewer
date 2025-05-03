@@ -111,7 +111,7 @@ def load_model(path):
             ifcx_file = json.load(f)
         version = ifcx_file.get("header", {}).get("version")
         if re.match("^ifcx[-_]alpha$", version) is None:
-            raise composed_data
+            raise ValueError(f"Invalid version: expected 'ifcx-alpha' or 'ifcx_alpha', but got '{version}'")
 
         load_files[path] = ifcx_file
         concat_data = []
