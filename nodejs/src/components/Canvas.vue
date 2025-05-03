@@ -63,13 +63,49 @@ const zoomContainer = ref<HTMLElement | null>(null);
 // ドラッグオーバー時のハイライト表示用
 const isDraggingOver = ref(false);
 
+// サイドバーの幅（px）
+const sidebarWidth = ref(window.innerWidth * 0.25); // 初期値: 25vw
+const isResizingSidebar = ref(false);
+const minSidebarWidth = 200;
+const maxSidebarWidth = 600;
+
+// .canvas の幅もサイドバーの幅に合わせて可変にする
+const canvasWidth = computed(() => {
+  return `calc(100vw - ${sidebarWidth.value}px)`;
+});
+
+function onSidebarHandleMouseDown(e: MouseEvent) {
+  isResizingSidebar.value = true;
+  document.body.style.cursor = "ew-resize";
+}
+
+function onSidebarHandleMouseMove(e: MouseEvent) {
+  if (!isResizingSidebar.value) return;
+  const newWidth = window.innerWidth - e.clientX;
+  sidebarWidth.value = Math.min(
+    Math.max(newWidth, minSidebarWidth),
+    maxSidebarWidth
+  );
+}
+
+function onSidebarHandleMouseUp() {
+  if (isResizingSidebar.value) {
+    isResizingSidebar.value = false;
+    document.body.style.cursor = "auto";
+  }
+}
+
 // ライフサイクルフック
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("mousemove", onSidebarHandleMouseMove);
+  window.addEventListener("mouseup", onSidebarHandleMouseUp);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("mousemove", onSidebarHandleMouseMove);
+  window.removeEventListener("mouseup", onSidebarHandleMouseUp);
 });
 
 // キーボードイベントのハンドラ
@@ -665,6 +701,7 @@ const handleDragOver = (event: DragEvent) => {
   >
     <div
       class="canvas"
+      :style="{ width: canvasWidth }"
       @mousedown="startDrag"
       @mousemove="drag"
       @mouseup="endDrag"
@@ -735,7 +772,11 @@ const handleDragOver = (event: DragEvent) => {
     </div>
 
     <!-- 属性表示欄 -->
-    <div class="sidebar">
+    <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
+      <div
+        class="sidebar-resize-handle"
+        @mousedown="onSidebarHandleMouseDown"
+      ></div>
       <div v-if="viewedAttrNode">
         <PropertyArea :node="viewedAttrNode" />
       </div>
@@ -815,7 +856,7 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 .canvas {
-  width: 75vw;
+  /* width: 75vw; 削除 */
   height: 100vh;
   overflow: auto;
   position: relative;
@@ -825,17 +866,28 @@ const handleDragOver = (event: DragEvent) => {
   position: absolute;
   top: 0;
   right: 0;
-  /* 1/4 of the screen width */
-  width: 25vw;
-  /* Full height of the container */
   height: 100vh;
-  /* Overlay on top of the canvas */
   z-index: 2;
-  /* 長い単語でも折り返しを行う */
   word-wrap: break-word;
-  /* 必要に応じてスクロールバーを表示 */
   overflow: auto;
   background-color: #f0f0f0;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  cursor: ew-resize;
+  background: #ccc;
+  z-index: 10;
+  opacity: 0.5;
+}
+
+.sidebar-resize-handle:hover {
+  background: #888;
+  opacity: 0.8;
 }
 
 .node-container {
