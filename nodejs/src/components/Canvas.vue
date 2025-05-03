@@ -221,6 +221,8 @@ function clearCanvas() {
 
   isLoading.value = false;
   showSearch.value = false;
+  viewedAttrNode.value = null;
+  ifcElements.value = {};
 
   selectedNodeIds.value = [];
   rectSelectedNodeIds.value = [];
