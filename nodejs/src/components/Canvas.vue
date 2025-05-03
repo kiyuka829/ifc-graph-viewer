@@ -60,6 +60,9 @@ const scale = ref(1);
 const position = ref({ x: 0, y: 0 });
 const zoomContainer = ref<HTMLElement | null>(null);
 
+// ドラッグオーバー時のハイライト表示用
+const isDraggingOver = ref(false);
+
 // ライフサイクルフック
 onMounted(() => {
   window.addEventListener("keydown", handleKeyDown);
@@ -173,8 +176,34 @@ function endDrag() {
   document.body.style.userSelect = "auto";
 }
 
+function clearCanvas() {
+  nodes.value = [];
+  edges.value = [];
+  filepath.value = "";
+  viewFilename.value = "";
+  fileInput.value = null;
+
+  isLoading.value = false;
+  showSearch.value = false;
+
+  selectedNodeIds.value = [];
+  rectSelectedNodeIds.value = [];
+  previousSelectedNodeIds.value = [];
+  dragStartNodePositions.value = {};
+  drawingEdge.value = null;
+  isDraggingOver.value = false;
+  rightClickPosition.value = { x: 0, y: 0 };
+  zoomContainer.value = null;
+  scale.value = 1;
+  position.value = { x: 0, y: 0 };
+  dragging.value = false;
+  rectSelecting.value = false;
+}
+
 // ファイルのアップロード
 const uploadFile = (file: File) => {
+  clearCanvas();
+
   // FormData オブジェクトを作成してファイルを追加
   const formData = new FormData();
   formData.append("file", file);
@@ -584,6 +613,22 @@ const handleRightClick = (event: MouseEvent) => {
 const closeSearch = () => {
   showSearch.value = false;
 };
+
+// ドラッグオーバーイベントのハンドラ
+const handleDragEnter = (event: DragEvent) => {
+  event.preventDefault();
+  isDraggingOver.value = true;
+};
+
+const handleDragLeave = (event: DragEvent) => {
+  event.preventDefault();
+  isDraggingOver.value = false;
+};
+
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault();
+  isDraggingOver.value = true;
+};
 </script>
 
 <template>
@@ -610,7 +655,14 @@ const closeSearch = () => {
   <!-- 処理中の表示 -->
   <div :class="['loading-overlay', { active: isLoading }]">Processing...</div>
 
-  <div class="container">
+  <div
+    class="container"
+    @dragenter="handleDragEnter"
+    @dragleave="handleDragLeave"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
+    :class="{ 'drag-over': isDraggingOver && filepath !== '' }"
+  >
     <div
       class="canvas"
       @mousedown="startDrag"
@@ -846,5 +898,18 @@ const closeSearch = () => {
   color: gray;
   font-style: italic;
   padding: 8px 0;
+}
+
+/* ドラッグオーバー時のハイライト表示 */
+.container.drag-over::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  pointer-events: none; /* マウスイベントを下層に通す */
 }
 </style>
