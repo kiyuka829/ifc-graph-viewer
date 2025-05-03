@@ -1,6 +1,6 @@
 import traceback
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 import ifc_accessor as ifc
 import ifcx_alpha_accessor as ifcx
@@ -47,32 +47,48 @@ def allowed_file(filename: str) -> bool:
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(files: List[UploadFile] = File(...)):
     # ファイルが空でないか、または正しいファイル名を持っているかを確認
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="ファイル名がありません。")
+    if len(files) == 0:
+        raise HTTPException(status_code=400, detail="ファイルがありません。")
 
-    if not allowed_file(file.filename):
+    files = [file for file in files if allowed_file(file.filename)]
+    if len(files) == 0:
         raise HTTPException(
             status_code=400, detail="許可されていないファイル形式です。"
         )
 
-    filename = Path(file.filename).name
-    file_path = UPLOAD_FOLDER / filename
+    # すべてのファイルを保存
+    file_path_list = []
+    for file in files:
+        filename = Path(file.filename).name
+        file_path = UPLOAD_FOLDER / filename
+        file_path_list.append(file_path)
 
-    # ファイルを保存
-    contents = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(contents)
+        # ファイルを保存
+        contents = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
 
     # IFCファイルの処理
     try:
-        if file_path.suffix == ".ifc":
+        if file_path_list[0].suffix == ".ifc":
+            # .ifcは一つのみ処理
+            file_path = file_path_list[0]
             root_node = ifc.get_ifc_project(file_path)
             search_data = ifc.get_search_data(file_path)
-        elif file_path.suffix == ".ifcx":
-            root_node = ifcx.get_root_node(file_path)
-            search_data = ifcx.get_search_data(file_path)
+            path_str = file_path.as_posix()
+        elif file_path_list[0].suffix == ".ifcx":
+            # .ifcxは複数処理
+            path_strs = []
+            for file_path in file_path_list:
+                if file_path.suffix == ".ifcx":
+                    path_strs.append(file_path.name)
+                    ifcx.load_model(file_path)
+
+            root_node = ifcx.get_root_node()
+            search_data = ifcx.get_search_data()
+            path_str = ", ".join(path_strs)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
@@ -81,7 +97,7 @@ async def upload_file(file: UploadFile = File(...)):
         "message": "ファイルがアップロードされました。",
         "root": root_node,
         "searchData": search_data,
-        "path": file_path.as_posix(),
+        "path": path_str,
     }
 
 

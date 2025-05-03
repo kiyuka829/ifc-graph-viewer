@@ -4,7 +4,8 @@ from collections import defaultdict
 
 from models import Node
 
-load_models = {}
+load_files = {}
+composed_data = {}
 
 
 def flatten_dict(d, parent_key="", sep="::"):
@@ -18,7 +19,7 @@ def flatten_dict(d, parent_key="", sep="::"):
     return items
 
 
-def compose_node(node, other):
+def merge_node(node, other):
     children = other.get("children", {})
     inherits = other.get("inherits", {})
     attributes = other.get("attributes", {})
@@ -37,9 +38,9 @@ def convert_node(data):
         inherits = d.get("inherits", {})
 
         if identifier in nodes:
-            nodes[identifier] = compose_node(nodes[identifier], d)
+            nodes[identifier] = merge_node(nodes[identifier], d)
         else:
-            nodes[identifier] = compose_node(d, {})
+            nodes[identifier] = merge_node(d, {})
 
         # 存在しないIDのデータを追加
         for name, child_id in children.items():
@@ -74,7 +75,7 @@ def convert_node(data):
                 if disabled_node_id in nodes:
                     disabled_node = nodes[disabled_node_id]
                     child_node = nodes[child_id]
-                    compose_node(child_node, disabled_node)
+                    merge_node(child_node, disabled_node)
                     disabled_nodes.append(disabled_node_id)
 
     # おかしなデータを削除
@@ -102,18 +103,20 @@ def get_references(nodes):
 
 
 def load_model(path):
-    if path in load_models:
-        return load_models[path]
+    if path in load_files:
+        return composed_data
     else:
         with open(path, "r") as f:
             ifcx_file = json.load(f)
-        nodes = convert_node(ifcx_file["data"])
-        model = {
-            "nodes": nodes,
-            "references": get_references(nodes),
-        }
-        load_models[path] = model
-        return model
+        load_files[path] = ifcx_file
+        concat_data = []
+        for ifcx_data in load_files.values():
+            concat_data += ifcx_data["data"]
+
+        nodes = convert_node(concat_data)
+        composed_data["nodes"] = nodes
+        composed_data["references"] = get_references(nodes)
+        return composed_data
 
 
 def get_root_nodes(nodes):
@@ -124,15 +127,14 @@ def get_root_nodes(nodes):
     return root_nodes
 
 
-def get_root_node(path):
-    models = load_model(path)
-    root_nodes = get_root_nodes(models["nodes"])
-    return get_node_info(models, root_nodes[0])
+def get_root_node():
+    root_nodes = get_root_nodes(composed_data["nodes"])
+    return get_node_info(root_nodes[0])
 
 
-def get_node_info(models, node):
-    nodes = models["nodes"]
-    references = models["references"]
+def get_node_info(node):
+    nodes = composed_data["nodes"]
+    references = composed_data["references"]
 
     attributes = []
     for name in ["children", "inherits"]:
@@ -168,22 +170,18 @@ def get_node_info(models, node):
         "references": refs,
     }
 
-    print(node_info)
-
     return Node(**node_info)
 
 
 def get_by_id(path, id):
-    model = load_model(path)
-    item = model["nodes"].get(id)
+    item = composed_data["nodes"].get(id)
     if item is None:
         return None
-    return get_node_info(model, item)
+    return get_node_info(item)
 
 
-def get_search_data(path):
-    model = load_model(path)
-    nodes = model["nodes"]
+def get_search_data():
+    nodes = composed_data["nodes"]
     search_data = defaultdict(lambda: {"items": []})
     for id_, node in nodes.items():
         search_data[node["name"]]["items"].append({"id": id_, "displayName": id_})

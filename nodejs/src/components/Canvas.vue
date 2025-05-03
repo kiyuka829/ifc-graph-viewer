@@ -241,13 +241,16 @@ function clearCanvas() {
 }
 
 // ファイルのアップロード
-const uploadFile = (file: File) => {
+const uploadFile = (files: FileList | File[]) => {
   clearCanvas();
 
   // FormData オブジェクトを作成してファイルを追加
   const formData = new FormData();
-  formData.append("file", file);
-  viewFilename.value = file.name;
+  const fileArray = Array.from(files);
+  fileArray.forEach((file) => {
+    formData.append("files", file);
+  });
+  viewFilename.value = fileArray.map((f) => f.name).join(", ");
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
@@ -263,6 +266,7 @@ const uploadFile = (file: File) => {
       const node = convertToNode(response.data.root);
       nodes.value.push(node);
       filepath.value = response.data.path;
+      viewFilename.value = response.data.path.split("/").pop() ?? "";
       console.log(node);
     })
     .catch((error) => {
@@ -281,14 +285,14 @@ const triggerFileInput = () => {
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    uploadFile(target.files[0]); // 選択されたファイルを処理
+    uploadFile(target.files); // 選択されたファイルを処理
   }
 };
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   const files = event.dataTransfer?.files;
   if (files && files.length > 0) {
-    uploadFile(files[0]); // 選択されたファイルを処理
+    uploadFile(files); // 選択されたファイルを処理
   }
 };
 
