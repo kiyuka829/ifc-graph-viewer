@@ -176,8 +176,34 @@ function endDrag() {
   document.body.style.userSelect = "auto";
 }
 
+function clearCanvas() {
+  nodes.value = [];
+  edges.value = [];
+  filepath.value = "";
+  viewFilename.value = "";
+  fileInput.value = null;
+
+  isLoading.value = false;
+  showSearch.value = false;
+
+  selectedNodeIds.value = [];
+  rectSelectedNodeIds.value = [];
+  previousSelectedNodeIds.value = [];
+  dragStartNodePositions.value = {};
+  drawingEdge.value = null;
+  isDraggingOver.value = false;
+  rightClickPosition.value = { x: 0, y: 0 };
+  zoomContainer.value = null;
+  scale.value = 1;
+  position.value = { x: 0, y: 0 };
+  dragging.value = false;
+  rectSelecting.value = false;
+}
+
 // ファイルのアップロード
 const uploadFile = (file: File) => {
+  clearCanvas();
+
   // FormData オブジェクトを作成してファイルを追加
   const formData = new FormData();
   formData.append("file", file);
