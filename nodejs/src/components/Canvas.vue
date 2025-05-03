@@ -67,7 +67,7 @@ const isDraggingOver = ref(false);
 const sidebarWidth = ref(window.innerWidth * 0.25); // 初期値: 25vw
 const isResizingSidebar = ref(false);
 const minSidebarWidth = 200;
-const maxSidebarWidth = 600;
+const maxSidebarWidth = 800;
 
 // .canvas の幅もサイドバーの幅に合わせて可変にする
 const canvasWidth = computed(() => {
@@ -700,6 +700,11 @@ const handleDragOver = (event: DragEvent) => {
     :class="{ 'drag-over': isDraggingOver && filepath !== '' }"
   >
     <div
+      class="sidebar-resize-handle"
+      :style="{ right: sidebarWidth + 'px', height: '100vh' }"
+      @mousedown="onSidebarHandleMouseDown"
+    ></div>
+    <div
       class="canvas"
       :style="{ width: canvasWidth }"
       @mousedown="startDrag"
@@ -773,10 +778,6 @@ const handleDragOver = (event: DragEvent) => {
 
     <!-- 属性表示欄 -->
     <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
-      <div
-        class="sidebar-resize-handle"
-        @mousedown="onSidebarHandleMouseDown"
-      ></div>
       <div v-if="viewedAttrNode">
         <PropertyArea :node="viewedAttrNode" />
       </div>
@@ -856,7 +857,6 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 .canvas {
-  /* width: 75vw; 削除 */
   height: 100vh;
   overflow: auto;
   position: relative;
@@ -874,14 +874,13 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 .sidebar-resize-handle {
-  position: absolute;
-  left: 0;
+  position: fixed;
   top: 0;
   width: 3px;
-  height: 100%;
+  height: 100vh;
   cursor: ew-resize;
   background: #ccc;
-  z-index: 10;
+  z-index: 1;
   opacity: 0.5;
 }
 
