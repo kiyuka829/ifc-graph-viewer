@@ -58,9 +58,12 @@ def convert_node(data):
     # ルートノード
     for identifier, node in nodes.items():
         if node.get("name") is None:
-            node["name"] = "root"
+            if "usd::usdshade::material" in node.get("attributes", {}):
+                node["name"] = "Material"
+            else:
+                node["name"] = "root"
 
-    # おかしなデータを削除
+    # おかしなデータの修正
     disabled_nodes = []
     for identifier, node in nodes.items():
         children = node.get("children", {})
@@ -74,6 +77,7 @@ def convert_node(data):
                     compose_node(child_node, disabled_node)
                     disabled_nodes.append(disabled_node_id)
 
+    # おかしなデータを削除
     for node_id in disabled_nodes:
         if node_id in nodes:
             del nodes[node_id]
