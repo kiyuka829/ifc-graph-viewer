@@ -1,4 +1,4 @@
-# IFC graph viewer
+# IFC Graph Viewer
 
 IFC ファイルのグラフ可視化アプリ
 
@@ -84,8 +84,9 @@ nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-
 
 ## 使い方簡易説明
 
-- 「ファイルの選択」から IFC ファイルを選択する
-  - 対応しているファイル形式は `.ifc` のみ
+- IFC ファイルを画面にドラッグ&ドロップする
+  - 対応しているファイル形式は `.ifc`, `.ifcx (ifcx_alpha)` のみ
+  - `.ifcx` は複数ファイルの同時ドロップ対応
 - ノードを選択すると画面右にノードの情報が表示される
 - Shift+ドラッグでノードを複数選択できる
 - ノードの黄色の丸をドラッグすることで、接続先のノードを展開される

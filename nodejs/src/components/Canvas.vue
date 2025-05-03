@@ -23,14 +23,14 @@ const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 const viewedAttrNode = ref<IfcNode | null>(null);
 
 // 選択されたノード
-const selectedNodeIds = ref<number[]>([]);
+const selectedNodeIds = ref<string[]>([]);
 // 範囲選択中に選択されたノード
-const rectSelectedNodeIds = ref<number[]>([]);
+const rectSelectedNodeIds = ref<string[]>([]);
 // 範囲選択前に選択されていたノード
-const previousSelectedNodeIds = ref<number[]>([]);
+const previousSelectedNodeIds = ref<string[]>([]);
 
 // ドラッグ中のノードの初期位置（ノード移動処理用）
-const dragStartNodePositions = ref<{ [id: number]: Position }>({});
+const dragStartNodePositions = ref<{ [id: string]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: SearchData }>({});
@@ -241,13 +241,16 @@ function clearCanvas() {
 }
 
 // ファイルのアップロード
-const uploadFile = (file: File) => {
+const uploadFile = (files: FileList | File[]) => {
   clearCanvas();
 
   // FormData オブジェクトを作成してファイルを追加
   const formData = new FormData();
-  formData.append("file", file);
-  viewFilename.value = file.name;
+  const fileArray = Array.from(files);
+  fileArray.forEach((file) => {
+    formData.append("files", file);
+  });
+  viewFilename.value = fileArray.map((f) => f.name).join(", ");
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
@@ -263,6 +266,7 @@ const uploadFile = (file: File) => {
       const node = convertToNode(response.data.root);
       nodes.value.push(node);
       filepath.value = response.data.path;
+      viewFilename.value = response.data.path.split("/").pop() ?? "";
       console.log(node);
     })
     .catch((error) => {
@@ -281,14 +285,14 @@ const triggerFileInput = () => {
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    uploadFile(target.files[0]); // 選択されたファイルを処理
+    uploadFile(target.files); // 選択されたファイルを処理
   }
 };
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   const files = event.dataTransfer?.files;
   if (files && files.length > 0) {
-    uploadFile(files[0]); // 選択されたファイルを処理
+    uploadFile(files); // 選択されたファイルを処理
   }
 };
 
@@ -448,14 +452,14 @@ const selectNode = (node: IfcNode, toggle = false) => {
         obj[node.id] = { ...node.position };
       }
       return obj;
-    }, {} as { [id: number]: Position });
+    }, {} as { [id: string]: Position });
   }
 };
 
 // ノードを追加するハンドラ
 const addNode_ = (
-  srcId: number,
-  dstId: number,
+  srcId: string,
+  dstId: string,
   srcName: string,
   inverse: boolean,
   dstPosition: Position,
@@ -498,12 +502,12 @@ const addNode_ = (
       node.position = position;
 
       // エッジ作成
-      const from: { nodeId: number; attrName: string | undefined } = {
-        nodeId: 0,
+      const from: { nodeId: string; attrName: string | undefined } = {
+        nodeId: "",
         attrName: "",
       };
-      const to: { nodeId: number; attrName: string | undefined } = {
-        nodeId: 0,
+      const to: { nodeId: string; attrName: string | undefined } = {
+        nodeId: "",
         attrName: "",
       };
       if (inverse) {
@@ -539,7 +543,7 @@ const addNode_ = (
 };
 
 const addNode = (
-  nodeId: number,
+  nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
   // console.log(data);
@@ -548,7 +552,7 @@ const addNode = (
   ids.forEach((id, idx) => {
     addNode_(
       nodeId,
-      id.value as number,
+      id.value as string,
       data.attribute.name,
       data.attribute.inverse,
       data.position,
@@ -595,11 +599,11 @@ const clearSelect = (event: MouseEvent) => {
   }
 };
 
-const selectEntity = (id: number) => {
+const selectEntity = (id: string) => {
   // 選択された項目の処理
   addNodeById(id, { ...rightClickPosition.value });
 };
-const addNodeById = (id: number, dstPosition: Position) => {
+const addNodeById = (id: string, dstPosition: Position) => {
   const config = {
     method: "post",
     url: endpoint + "/get_node",

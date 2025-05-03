@@ -208,7 +208,10 @@ const isId = (contents: AttrContent[]): boolean => {
     @mousedown="onMouseDown"
   >
     <div class="node-header">
-      <span class="id">#{{ node.id }}</span>
+      <!-- TODO: ID表記処理がごり押しなので注意 -->
+      <span class="id">{{
+        typeof node.id === "number" ? "#" + node.id : ""
+      }}</span>
       <span class="title truncate-text" :title="node.type">{{
         node.type
       }}</span>

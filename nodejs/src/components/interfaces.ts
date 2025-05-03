@@ -1,5 +1,5 @@
 export interface IfcNode {
-  id: number;
+  id: string;
   type: string;
   reference: Attribute | null;
   attributes: Attribute[];
@@ -23,11 +23,11 @@ export interface AttrContent {
 export interface Edge {
   id: string;
   from: {
-    nodeId: number;
+    nodeId: string;
     attrName: string | undefined;
   };
   to: {
-    nodeId: number;
+    nodeId: string;
     attrName: string | undefined;
   };
 }
@@ -42,6 +42,6 @@ export interface SearchData {
 }
 
 export interface SearchItem {
-  id: number;
+  id: string;
   displayName: string;
 }

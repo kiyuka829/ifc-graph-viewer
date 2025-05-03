@@ -43,7 +43,7 @@ function openSubMenu(item: string, idx: number) {
   hoverItem.value = item;
 }
 
-const selectItem = (item: number) => {
+const selectItem = (item: string) => {
   // console.log("selectItem", item);
   emits("select", item);
 };
