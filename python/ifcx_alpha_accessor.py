@@ -103,25 +103,34 @@ def get_references(nodes):
     return references
 
 
+def clear_load_files():
+    load_files.clear()
+    composed_data.clear()
+
+
 def load_model(path):
-    if path in load_files:
-        return composed_data
-    else:
+    if path not in load_files:
         with open(path, "r") as f:
             ifcx_file = json.load(f)
         version = ifcx_file.get("header", {}).get("version")
         if re.match("^ifcx[-_]alpha$", version) is None:
-            raise ValueError(f"Invalid version: expected 'ifcx-alpha' or 'ifcx_alpha', but got '{version}'")
+            raise ValueError(
+                "Invalid version: expected 'ifcx-alpha' or 'ifcx_alpha', "
+                f"but got '{version}'"
+            )
 
         load_files[path] = ifcx_file
-        concat_data = []
-        for ifcx_data in load_files.values():
-            concat_data += ifcx_data["data"]
 
-        nodes = convert_node(concat_data)
-        composed_data["nodes"] = nodes
-        composed_data["references"] = get_references(nodes)
-        return composed_data
+
+def compose():
+    concat_data = []
+    for ifcx_data in load_files.values():
+        concat_data += ifcx_data["data"]
+
+    nodes = convert_node(concat_data)
+    composed_data["nodes"] = nodes
+    composed_data["references"] = get_references(nodes)
+    return composed_data
 
 
 def get_root_nodes(nodes):

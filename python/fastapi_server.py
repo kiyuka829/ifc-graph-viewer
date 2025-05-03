@@ -79,12 +79,15 @@ async def upload_file(files: List[UploadFile] = File(...)):
             search_data = ifc.get_search_data(file_path)
             path_str = file_path.as_posix()
         elif file_path_list[0].suffix == ".ifcx":
+            ifcx.clear_load_files()
+
             # .ifcxは複数処理
             path_strs = []
             for file_path in file_path_list:
                 if file_path.suffix == ".ifcx":
                     path_strs.append(file_path.name)
                     ifcx.load_model(file_path)
+            ifcx.compose()
 
             root_node = ifcx.get_root_node()
             search_data = ifcx.get_search_data()
