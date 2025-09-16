@@ -6,29 +6,29 @@ const props = defineProps<{
 }>();
 props;
 
-const stringifyContents = (contents: AttrContent[]) => {
-  if (contents.length === 0) {
-    return "";
-  } else if (contents[0].type === "id") {
-    // TODO: ID表記処理がごり押しなので注意
-    return contents
-      .map((c) => (typeof c.value === "number" ? `#${c.value}` : c.value))
-      .join(", ");
-  } else {
-    return contents
-      .map((c) => {
-        if (Array.isArray(c.value)) {
-          return `(${c.value
-            .map((v) =>
-              typeof v === "object" && v !== null ? JSON.stringify(v) : v
-            )
-            .join(", ")})`;
-        } else {
-          return `${c.value}`;
-        }
-      })
-      .join(", ");
+const stringifyValue = (value: any): string => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stringifyValue).join(", ")}]`;
   }
+  if (typeof value === "object" && value !== null) {
+    return JSON.stringify(value);
+  }
+  return `${value}`;
+};
+const stringifyId = (value: any): string => {
+  // TODO: ifc, ifcx のID判定表記処理がごり押しなので注意
+  if (Array.isArray(value)) {
+    return value.map((v) => (typeof v === "number" ? `#${v}` : v)).join(", ");
+  }
+  return typeof value === "number" ? `#${value}` : `${value}`;
+};
+const stringifyContents = (content: AttrContent): string => {
+  if (!content || content.value == null) return "";
+
+  if (content.type === "id") {
+    return stringifyId(content.value);
+  }
+  return stringifyValue(content.value);
 };
 </script>
 
@@ -52,7 +52,7 @@ const stringifyContents = (contents: AttrContent[]) => {
           :key="attribute.name"
         >
           <td>{{ attribute.name }}</td>
-          <td>{{ stringifyContents(attribute.contents) }}</td>
+          <td>{{ stringifyContents(attribute.content) }}</td>
         </tr>
       </tbody>
     </table>
@@ -72,7 +72,7 @@ const stringifyContents = (contents: AttrContent[]) => {
             :key="attribute.name"
           >
             <td>{{ attribute.name }}</td>
-            <td>{{ stringifyContents(attribute.contents) }}</td>
+            <td>{{ stringifyContents(attribute.content) }}</td>
           </tr>
         </tbody>
       </table>
@@ -88,7 +88,7 @@ const stringifyContents = (contents: AttrContent[]) => {
         </thead>
         <tbody>
           <tr>
-            <td>{{ stringifyContents(node.reference.contents) }}</td>
+            <td>{{ stringifyContents(node.reference.content) }}</td>
           </tr>
         </tbody>
       </table>

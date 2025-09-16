@@ -191,8 +191,8 @@ const onDotMouseUp = (attribute: Attribute) => {
 };
 
 // id判定
-const isId = (contents: AttrContent[]): boolean => {
-  return contents[0].type === "id";
+const isId = (content: AttrContent): boolean => {
+  return content.type === "id";
 };
 </script>
 
@@ -224,7 +224,7 @@ const isId = (contents: AttrContent[]): boolean => {
       <template v-for="(attribute, _) in node.attributes" :key="attribute.name">
         <div
           class="attribute"
-          v-if="hasValue(attribute.contents)"
+          v-if="hasValue(attribute.content)"
           :class="{ 'inverse-attribute': attribute.inverse }"
         >
           <span class="truncate-text" :title="attribute.name">{{
@@ -232,7 +232,7 @@ const isId = (contents: AttrContent[]): boolean => {
           }}</span>
           <span
             class="dot"
-            v-if="isId(attribute.contents)"
+            v-if="isId(attribute.content)"
             @mousedown.prevent="(event) => onDotMouseDown(event, attribute)"
           ></span>
         </div>

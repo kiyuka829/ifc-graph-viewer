@@ -173,7 +173,7 @@ function drag(event: MouseEvent) {
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
         const length = node.attributes.filter((attr) =>
-          hasValue(attr.contents)
+          hasValue(attr.content)
         ).length;
         // ヘッダーの高さ44px、bodyのpadding20px、属性の高さ29px
         const bottom = nodePosition.y + 44 + 20 + 29 * length;
@@ -311,20 +311,20 @@ function convertToNode(data: any): IfcNode {
   for (const attr of data.attributes) {
     const attribute = {
       name: attr.name,
-      contents: attr.contents,
+      content: attr.content,
       edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
       inverse: attr.inverse,
     };
-    hasValue(attr.contents) && count++;
+    hasValue(attr.content) && count++;
     node.attributes.push(attribute);
   }
 
-  if (data.references.contents.length === 0) {
+  if (data.references.content.value.length === 0) {
     return node;
   }
   const reference = {
     name: "Reference",
-    contents: data.references.contents,
+    content: data.references.content,
     edgePosition: { x: 0, y: 25 },
     inverse: true,
   };
@@ -478,7 +478,6 @@ const addNode_ = (
   axios(config)
     .then((response) => {
       // レスポンスを処理
-      // console.log(response.data);
       const node = convertToNode(response.data.node);
 
       // 表示済みならノードを追加しない
@@ -488,8 +487,11 @@ const addNode_ = (
 
       // nodeIdと一致するattributeのnameを取得
       const targetAttr = node.attributes.find((attr) => {
-        if (attr.contents.find((c) => c.type === "id" && c.value === srcId)) {
-          return true;
+        if (attr.content.type !== "id") return false;
+        if (Array.isArray(attr.content.value)) {
+          return attr.content.value.includes(srcId);
+        } else {
+          return attr.content.value === srcId;
         }
       });
 
@@ -546,13 +548,12 @@ const addNode = (
   nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
-  // console.log(data);
-  const id = data.attribute.contents;
+  const id = data.attribute.content.value;
   const ids = Array.isArray(id) ? id : [id];
   ids.forEach((id, idx) => {
     addNode_(
       nodeId,
-      id.value as string,
+      id as string,
       data.attribute.name,
       data.attribute.inverse,
       data.position,
@@ -659,25 +660,21 @@ const closeSearch = () => {
 };
 
 // ドラッグオーバーイベントのハンドラ
-const handleDragEnter = (event: DragEvent) => {
+const handleDragEvent = (event: DragEvent, isOver: boolean) => {
   if (event.dataTransfer?.types?.includes("Files")) {
     event.stopPropagation();
     event.preventDefault();
-    isDraggingOver.value = true;
+    isDraggingOver.value = isOver;
   }
 };
 
-const handleDragLeave = (event: DragEvent) => {
-  if (event.dataTransfer?.types?.includes("Files")) {
-    event.stopPropagation();
-    event.preventDefault();
-    isDraggingOver.value = false;
-  }
-};
+const handleDragEnter = (event: DragEvent) => handleDragEvent(event, true);
+
+const handleDragLeave = (event: DragEvent) => handleDragEvent(event, false);
 
 const handleDragOver = (event: DragEvent) => {
+  // For dragover, browsers usually need preventDefault to allow drop
   if (event.dataTransfer?.types?.includes("Files")) {
-    event.stopPropagation();
     event.preventDefault();
     isDraggingOver.value = true;
   }
