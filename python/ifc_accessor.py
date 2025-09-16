@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import ifcopenshell
-from models import Node
+from models import Attribute, Content, Node
 
 load_models = {}
 
@@ -51,32 +51,28 @@ def get_search_data(path):
     return search_data
 
 
-def attribute_info(key, val):
+def attribute_info(key: str, val, inverse: bool) -> Attribute:
     def _instance2content(val):
         if val.id() == 0:
             # IFCXX($,$,IFCINTEGER(2),$) みたく直接IFCの場合
-            return dict(type="value", value=val.wrappedValue)
+            return Content(type="value", value=val.wrappedValue)
         else:
-            return dict(type="id", value=val.id())
+            return Content(type="id", value=val.id())
 
     if isinstance(val, ifcopenshell.entity_instance):
-        return dict(name=key, contents=[_instance2content(val)])
+        return Attribute(name=key, content=_instance2content(val), inverse=inverse)
     elif isinstance(val, tuple):
-        values = []
-        for v in val:
-            if isinstance(v, ifcopenshell.entity_instance):
-                content = _instance2content(v)
-                values.append(content)
-            else:
-                # (0, 0, 0) みたいな座標の場合
-                values.append(dict(type="value", value=v))
-
-        return dict(name=key, contents=values)
-    else:
-        if val is None:
-            return dict(name=key, contents=[])
+        if all(isinstance(v, ifcopenshell.entity_instance) for v in val):
+            values = [_instance2content(v).value for v in val]
+            content = Content(type="id", value=values)
+            return Attribute(name=key, content=content, inverse=inverse)
         else:
-            return dict(name=key, contents=[dict(type="value", value=val)])
+            # (0, 0, 0) みたいな座標の場合
+            content = Content(type="value", value=val)
+            return Attribute(name=key, content=content, inverse=inverse)
+    else:
+        content = Content(type="value", value=val)
+        return Attribute(name=key, content=content, inverse=inverse)
 
 
 def get_node_info(model, item):
@@ -101,8 +97,7 @@ def get_node_info(model, item):
         elif key == "type":
             node_info["type"] = val
         else:
-            attr = attribute_info(key, val)
-            attr["inverse"] = False
+            attr = attribute_info(key, val, inverse=False)
             attributes.append(attr)
 
     inv_keys = item.wrapped_data.get_inverse_attribute_names()
@@ -110,23 +105,15 @@ def get_node_info(model, item):
     for key in inv_keys:
         val = getattr(item, key)
         inverses += val
-        attr = attribute_info(key, val)
-        attr["inverse"] = True
+        attr = attribute_info(key, val, inverse=True)
         attributes.append(attr)
 
     ref_instances = set(model.get_inverse(item)) - set(inverses)
-    contents = []
-    for idx, reference in enumerate(ref_instances):
-        contents.append({"type": "id", "value": reference.id()})
-    node_info["references"] = {
-        "name": "references",
-        "contents": contents,
-        "inverse": True,
-    }
+    reference_ids = [reference.id() for reference in ref_instances]
+    node_info["references"] = Attribute(
+        name="references",
+        content=Content(type="id", value=reference_ids),
+        inverse=True,
+    )
 
     return Node(**node_info).model_dump()
-
-
-if __name__ == "__main__":
-    pass
-    pass

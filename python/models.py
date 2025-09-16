@@ -10,8 +10,7 @@ class Content(BaseModel):
 
 class Attribute(BaseModel):
     name: str
-    # TODO: content: Content に変更する
-    contents: List[Content]
+    content: Content
     inverse: bool
 
 

@@ -9,14 +9,14 @@ export interface IfcNode {
 
 export interface Attribute {
   name: string;
-  contents: AttrContent[]; // 接続先のIDまたはテキストデータ
+  content: AttrContent; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   edgePosition: Position; // エッジの接続位置
 }
 
 export interface AttrContent {
   type: string;
-  value: string | number;
+  value: string | number | (string | number)[];
 }
 
 // attrName = undefined はノードの左上に接続されているとき

@@ -3,7 +3,7 @@ import json
 import re
 from collections import defaultdict
 
-from models import Node
+from models import Attribute, Content, Node
 
 load_files = {}
 composed_data = {}
@@ -124,45 +124,41 @@ def get_node_info(node):
 
     attributes = []
     for name in ["children", "inherits"]:
-        contents = []
-        for _, value in node.get(name, {}).items():
-            contents.append({"type": "id", "value": value})
-
-        if len(contents) == 0:
+        values = list(node.get(name, {}).values())
+        if len(values) == 0:
             continue
 
-        attributes.append({"name": name, "contents": contents, "inverse": False})
+        content = Content(type="id", value=values)
+        attribute = Attribute(name=name, content=content, inverse=False)
+        attributes.append(attribute)
 
     inverse_ids = set()
     for name, value in flatten_dict(node["attributes"]).items():
         if node["path"] != value and isinstance(value, str) and value in nodes:
-            contents = [{"type": "id", "value": value}]
+            content = Content(type="id", value=value)
         else:
-            contents = [{"type": "value", "value": value}]
+            content = Content(type="value", value=value)
 
         is_inverse = value in ref_ids
         if is_inverse:
             inverse_ids.add(value)
-        attributes.append({"name": name, "contents": contents, "inverse": is_inverse})
+        attributes.append({"name": name, "content": content, "inverse": is_inverse})
 
-    contents = []
-    for ref_id in ref_ids:
-        if ref_id not in inverse_ids:
-            contents.append({"type": "id", "value": ref_id})
-    refs = {
-        "name": "references",
-        "contents": contents,
-        "inverse": True,
-    }
+    references_ids = [ref_id for ref_id in ref_ids if ref_id not in inverse_ids]
+    content = Content(type="id", value=references_ids)
+    refs = Attribute(
+        name="references",
+        content=content,
+        inverse=True,
+    )
 
-    node_info = {
-        "id": node["path"],
-        "type": node["name"],
-        "attributes": attributes,
-        "references": refs,
-    }
-
-    return Node(**node_info)
+    node_info = Node(
+        id=node["path"],
+        type=node["name"],
+        attributes=attributes,
+        references=refs,
+    )
+    return node_info
 
 
 def get_by_id(_, id):
