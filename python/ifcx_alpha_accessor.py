@@ -31,23 +31,16 @@ def merge_node(node, other):
 
 
 def convert_node(data):
+    # 同一IDのマージ
     nodes = {}
     for d in data:
         d = copy.deepcopy(d)
-        identifier = d.get("identifier")
-        children = d.get("children", {})
-        inherits = d.get("inherits", {})
+        identifier = d.get("path")
 
         if identifier in nodes:
             nodes[identifier] = merge_node(nodes[identifier], d)
         else:
             nodes[identifier] = merge_node(d, {})
-
-        # 存在しないIDのデータを追加
-        for name, child_id in children.items():
-            nodes.setdefault(child_id, {"identifier": child_id})
-        for name, inherit_id in inherits.items():
-            nodes.setdefault(inherit_id, {"identifier": inherit_id})
 
     # name 付与
     for identifier, node in nodes.items():
@@ -57,32 +50,10 @@ def convert_node(data):
             for name, child_id in refs.items():
                 nodes.get(child_id, {})["name"] = name
 
-    # ルートノード
+    # ルートに name 付与
     for identifier, node in nodes.items():
         if node.get("name") is None:
-            if "usd::usdshade::material" in node.get("attributes", {}):
-                node["name"] = "Material"
-            else:
-                node["name"] = "root"
-
-    # おかしなデータの修正
-    disabled_nodes = []
-    for identifier, node in nodes.items():
-        children = node.get("children", {})
-        inherits = node.get("inherits", {})
-        for refs in children, inherits:
-            for name, child_id in refs.items():
-                disabled_node_id = f"{identifier}/{name}"
-                if disabled_node_id in nodes:
-                    disabled_node = nodes[disabled_node_id]
-                    child_node = nodes[child_id]
-                    merge_node(child_node, disabled_node)
-                    disabled_nodes.append(disabled_node_id)
-
-    # おかしなデータを削除
-    for node_id in disabled_nodes:
-        if node_id in nodes:
-            del nodes[node_id]
+            node["name"] = "root"
 
     return nodes
 
@@ -112,7 +83,7 @@ def load_model(path):
     if path not in load_files:
         with open(path, "r") as f:
             ifcx_file = json.load(f)
-        version = ifcx_file.get("header", {}).get("version")
+        version = ifcx_file.get("header", {}).get("ifcxVersion")
         if re.match("^ifcx[-_]alpha$", version) is None:
             raise ValueError(
                 "Invalid version: expected 'ifcx-alpha' or 'ifcx_alpha', "
@@ -149,6 +120,7 @@ def get_root_node():
 def get_node_info(node):
     nodes = composed_data["nodes"]
     references = composed_data["references"]
+    ref_ids = references.get(node["path"], [])
 
     attributes = []
     for name in ["children", "inherits"]:
@@ -161,16 +133,22 @@ def get_node_info(node):
 
         attributes.append({"name": name, "contents": contents, "inverse": False})
 
+    inverse_ids = set()
     for name, value in flatten_dict(node["attributes"]).items():
-        if isinstance(value, str) and value in nodes:
+        if node["path"] != value and isinstance(value, str) and value in nodes:
             contents = [{"type": "id", "value": value}]
         else:
             contents = [{"type": "value", "value": value}]
-        attributes.append({"name": name, "contents": contents, "inverse": False})
+
+        is_inverse = value in ref_ids
+        if is_inverse:
+            inverse_ids.add(value)
+        attributes.append({"name": name, "contents": contents, "inverse": is_inverse})
 
     contents = []
-    for idx, ref_id in enumerate(references.get(node["identifier"], [])):
-        contents.append({"type": "id", "value": ref_id})
+    for ref_id in ref_ids:
+        if ref_id not in inverse_ids:
+            contents.append({"type": "id", "value": ref_id})
     refs = {
         "name": "references",
         "contents": contents,
@@ -178,7 +156,7 @@ def get_node_info(node):
     }
 
     node_info = {
-        "id": node["identifier"],
+        "id": node["path"],
         "type": node["name"],
         "attributes": attributes,
         "references": refs,
@@ -187,7 +165,7 @@ def get_node_info(node):
     return Node(**node_info)
 
 
-def get_by_id(path, id):
+def get_by_id(_, id):
     item = composed_data["nodes"].get(id)
     if item is None:
         return None

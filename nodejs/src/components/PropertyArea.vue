@@ -9,23 +9,25 @@ props;
 const stringifyContents = (contents: AttrContent[]) => {
   if (contents.length === 0) {
     return "";
+  } else if (contents[0].type === "id") {
+    // TODO: ID表記処理がごり押しなので注意
+    return contents
+      .map((c) => (typeof c.value === "number" ? `#${c.value}` : c.value))
+      .join(", ");
   } else {
-    if (contents[0].type === "id") {
-      // TODO: ID表記処理がごり押しなので注意
-      return contents
-        .map((c) => (typeof c.value === "number" ? `#${c.value}` : c.value))
-        .join(", ");
-    } else {
-      return contents
-        .map((c) => {
-          if (Array.isArray(c.value)) {
-            return `(${c.value.join(", ")})`;
-          } else {
-            return `${c.value}`;
-          }
-        })
-        .join(", ");
-    }
+    return contents
+      .map((c) => {
+        if (Array.isArray(c.value)) {
+          return `(${c.value
+            .map((v) =>
+              typeof v === "object" && v !== null ? JSON.stringify(v) : v
+            )
+            .join(", ")})`;
+        } else {
+          return `${c.value}`;
+        }
+      })
+      .join(", ");
   }
 };
 </script>
