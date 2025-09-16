@@ -33,7 +33,7 @@ app.mount("/dist", StaticFiles(directory="dist", html=True))
 
 # ファイルアップロードの設定
 UPLOAD_FOLDER = Path("uploads")
-ALLOWED_EXTENSIONS = {".ifc", ".ifcx"}
+ALLOWED_EXTENSIONS = {".ifc", ".ifcx"}  # NOSONAR
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
@@ -67,8 +67,7 @@ async def upload_file(files: List[UploadFile] = File(...)):
 
         # ファイルを保存
         contents = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(contents)
+        Path(file_path).write_bytes(contents)
 
     # IFCファイルの処理
     try:
@@ -114,7 +113,7 @@ async def get_search_data(request: SearchDataRequest):
         if request.path.endswith(".ifc"):
             search_data = ifc.get_search_data(request.path)
         elif request.path.endswith(".ifcx"):
-            search_data = ifcx.get_search_data(request.path)
+            search_data = ifcx.get_search_data()
 
         return {
             "message": "検索データ取得に成功しました。",

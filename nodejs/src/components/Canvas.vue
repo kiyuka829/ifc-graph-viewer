@@ -478,7 +478,6 @@ const addNode_ = (
   axios(config)
     .then((response) => {
       // レスポンスを処理
-      // console.log(response.data);
       const node = convertToNode(response.data.node);
 
       // 表示済みならノードを追加しない
@@ -549,7 +548,6 @@ const addNode = (
   nodeId: string,
   data: { position: Position; attribute: Attribute }
 ) => {
-  // console.log(data);
   const id = data.attribute.content.value;
   const ids = Array.isArray(id) ? id : [id];
   ids.forEach((id, idx) => {
@@ -662,25 +660,21 @@ const closeSearch = () => {
 };
 
 // ドラッグオーバーイベントのハンドラ
-const handleDragEnter = (event: DragEvent) => {
+const handleDragEvent = (event: DragEvent, isOver: boolean) => {
   if (event.dataTransfer?.types?.includes("Files")) {
     event.stopPropagation();
     event.preventDefault();
-    isDraggingOver.value = true;
+    isDraggingOver.value = isOver;
   }
 };
 
-const handleDragLeave = (event: DragEvent) => {
-  if (event.dataTransfer?.types?.includes("Files")) {
-    event.stopPropagation();
-    event.preventDefault();
-    isDraggingOver.value = false;
-  }
-};
+const handleDragEnter = (event: DragEvent) => handleDragEvent(event, true);
+
+const handleDragLeave = (event: DragEvent) => handleDragEvent(event, false);
 
 const handleDragOver = (event: DragEvent) => {
+  // For dragover, browsers usually need preventDefault to allow drop
   if (event.dataTransfer?.types?.includes("Files")) {
-    event.stopPropagation();
     event.preventDefault();
     isDraggingOver.value = true;
   }
