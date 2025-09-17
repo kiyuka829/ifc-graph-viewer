@@ -4,28 +4,15 @@ IFC ファイルのグラフ可視化アプリ
 
 ![app](images/viewer.jpg)
 
-## 動作環境
-
-以下で確認
-
-- Windows10
-- Google Chrome: 120.0.6099.72
-- node: v22.15.0
-- npm: 9.7.1
-- Python: 3.12.9
-- IfcOpenShell: 0.8.2
-
 ## インストール
 
-バックエンドを Python の Flask、フロントエンドを Vite+Vue+TS で構築しているので、Python と Node.js の両方の環境を作る必要がある。
+バックエンドを Python の FastAPI、フロントエンドを Vite+Vue+TS で構築しているので、Python と Node.js の両方の環境を作る必要がある。
 
 ### Python
 
 ```sh
 cd python
-python -m venv env
-env\Scripts\activate.bat
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Node.js
@@ -42,7 +29,7 @@ npm install
 Python でバックエンド起動する。
 
 ```sh
-uvicorn fastapi_server:app --reload
+uv run uvicorn fastapi_server:app --reload
 ```
 
 Node.js でフロントエンド起動する。
@@ -64,7 +51,7 @@ npm run build
 作成された「nodejs/dist」を「python/dist」に移動し、Python でバックエンド起動する。
 
 ```sh
-uvicorn fastapi_server:app --reload
+uv run uvicorn fastapi_server:app --reload
 ```
 
 Python を動かした状態で「localhost:8000」にブラウザでアクセスする。
@@ -79,7 +66,7 @@ Python を動かした状態で「localhost:8000」にブラウザでアクセ�
 [方法 2：ビルド](#方法2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
 
 ```sh
-nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
+uv run nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
 ```
 
 ## 使い方簡易説明
