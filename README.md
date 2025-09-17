@@ -1,31 +1,18 @@
 # IFC Graph Viewer
 
-IFC ファイルのグラフ可視化アプリ
+Graph visualization app for IFC files
 
 ![app](images/viewer.jpg)
 
-## 動作環境
+## Installation
 
-以下で確認
-
-- Windows10
-- Google Chrome: 120.0.6099.72
-- node: v22.15.0
-- npm: 9.7.1
-- Python: 3.12.9
-- IfcOpenShell: 0.8.2
-
-## インストール
-
-バックエンドを Python の Flask、フロントエンドを Vite+Vue+TS で構築しているので、Python と Node.js の両方の環境を作る必要がある。
+This project is built with Python FastAPI for the backend and Vite+Vue+TS for the frontend, so you need to set up both Python and Node.js environments.
 
 ### Python
 
 ```sh
 cd python
-python -m venv env
-env\Scripts\activate.bat
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Node.js
@@ -35,62 +22,62 @@ cd nodejs
 npm install
 ```
 
-## 実行方法
+## How to Run
 
-### 方法 1
+### Method 1
 
-Python でバックエンド起動する。
+Start the backend with Python.
 
 ```sh
-uvicorn fastapi_server:app --reload
+uv run uvicorn fastapi_server:app --reload
 ```
 
-Node.js でフロントエンド起動する。
+Start the frontend with Node.js.
 
 ```sh
 npm run dev
 ```
 
-両方を起動した状態で「localhost:5173」にブラウザでアクセスする
+With both services running, access "localhost:5173" in your browser.
 
-### 方法 2：ビルド
+### Method 2: Build
 
-フロントエンドをビルドする。
+Build the frontend.
 
 ```sh
 npm run build
 ```
 
-作成された「nodejs/dist」を「python/dist」に移動し、Python でバックエンド起動する。
+Move the created "nodejs/dist" to "python/dist" and start the backend with Python.
 
 ```sh
-uvicorn fastapi_server:app --reload
+uv run uvicorn fastapi_server:app --reload
 ```
 
-Python を動かした状態で「localhost:8000」にブラウザでアクセスする。
+With Python running, access "localhost:8000" in your browser.
 
-### 方法 3：Releases の exe を使う
+### Method 3: Use exe from Releases
 
-[Releases](https://github.com/kiyuka829/ifc-graph-viewer/releases) にアップロードしている zip を解凍して、
-`ifc-graph-viewer.exe` を実行する。
+Extract the zip file uploaded to [Releases](https://github.com/kiyuka829/ifc-graph-viewer/releases) and
+run `ifc-graph-viewer.exe`.
 
-## exe 化
+## Creating exe
 
-[方法 2：ビルド](#方法2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
+After setting up the environment as described in [Method 2: Build](#method-2-build), run the following command:
 
 ```sh
-nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
+uv run nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
 ```
 
-## 使い方簡易説明
+## Basic Usage Guide
 
-- IFC ファイルを画面にドラッグ&ドロップする
-  - 対応しているファイル形式は `.ifc`, `.ifcx (ifcx_alpha)` のみ
-  - `.ifcx` は複数ファイルの同時ドロップ対応
-- ノードを選択すると画面右にノードの情報が表示される
-- Shift+ドラッグでノードを複数選択できる
-- ノードの黄色の丸をドラッグすることで、接続先のノードを展開される
-- ノードを選択した状態で Delete キーを押すとノードが削除される
-- 右クリックを押すと検索ウィンドウが表示される
-  - 検索ウィンドウの ID を選択すると右クリックした場所にノードが表示される
-- マウスホイールで表示の拡大縮小ができる
+- Drag and drop IFC files onto the screen
+  - Supported file formats are `.ifc` and `.ifcx (ifcx_alpha)` only
+  - `.ifcx` supports simultaneous dropping of multiple files
+- Select a node to display its information on the right side of the screen
+- Shift+drag to select multiple nodes
+- Drag the yellow circle on a node to expand connected nodes
+- Select a node and press the Delete key to remove the node
+- Right-click to display the search window
+  - Select an ID in the search window to display a node at the right-clicked location
+- Use the mouse wheel to zoom in and out of the display

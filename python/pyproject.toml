@@ -1,0 +1,14 @@
+[project]
+name = "ifc-graph-viewer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116.2",
+    "ifcopenshell>=0.8.3.post2",
+    "nuitka>=2.7.14",
+    "python-multipart>=0.0.20",
+    "pywebview>=6.0",
+    "uvicorn>=0.35.0",
+]
