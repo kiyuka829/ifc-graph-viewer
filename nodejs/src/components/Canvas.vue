@@ -34,9 +34,12 @@ const dragStartNodePositions = ref<{ [id: string]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: SearchData }>({});
+const lookupElements = ref<{ [key: string]: SearchData } | null>(null);
 
 // 右クリックメニュー表示フラグ
 const showSearch = ref<boolean>(false);
+let lookupTimeout: number | undefined;
+let lookupRequestId = 0;
 
 // ドラッグ中の位置を追跡するための状態
 const dragging = ref(false);
@@ -225,6 +228,7 @@ function clearCanvas() {
   showSearch.value = false;
   viewedAttrNode.value = null;
   ifcElements.value = {};
+  lookupElements.value = null;
 
   selectedNodeIds.value = [];
   rectSelectedNodeIds.value = [];
@@ -657,6 +661,72 @@ const handleRightClick = (event: MouseEvent) => {
 
 const closeSearch = () => {
   showSearch.value = false;
+  if (lookupTimeout !== undefined) {
+    window.clearTimeout(lookupTimeout);
+    lookupTimeout = undefined;
+  }
+  clearLookup();
+};
+
+const isIdQuery = (value: string) => /^[0-9]+$/.test(value);
+const isGlobalIdQuery = (value: string) => /^[A-Za-z0-9_$]{22}$/.test(value);
+const isLookupQuery = (value: string) =>
+  isIdQuery(value) || isGlobalIdQuery(value);
+
+const clearLookup = () => {
+  lookupRequestId += 1;
+  lookupElements.value = null;
+};
+
+const resetLookupResults = () => {
+  lookupElements.value = {};
+};
+
+const handleSearchQuery = (value: string) => {
+  const trimmed = value.trim();
+  if (lookupTimeout !== undefined) {
+    window.clearTimeout(lookupTimeout);
+    lookupTimeout = undefined;
+  }
+
+  if (trimmed.length === 0 || !isLookupQuery(trimmed)) {
+    clearLookup();
+    return;
+  }
+
+  if (!filepath.value.endsWith(".ifc")) {
+    clearLookup();
+    return;
+  }
+
+  const requestId = ++lookupRequestId;
+  resetLookupResults();
+
+  lookupTimeout = window.setTimeout(async () => {
+    try {
+      const key = isIdQuery(trimmed) ? "id" : "globalId";
+      const response = await axios.post(endpoint + "/lookup_entity", {
+        path: filepath.value,
+        key,
+        value: trimmed,
+      });
+      if (requestId !== lookupRequestId) {
+        return;
+      }
+      const items = response.data?.items ?? [];
+      const entityType = response.data?.entityType ?? "";
+      if (items.length > 0 && entityType) {
+        lookupElements.value = { [entityType]: { items } };
+      } else {
+        resetLookupResults();
+      }
+    } catch (error) {
+      if (requestId !== lookupRequestId) {
+        return;
+      }
+      resetLookupResults();
+    }
+  }, 250);
 };
 
 // ドラッグオーバーイベントのハンドラ
@@ -803,7 +873,12 @@ const handleDragOver = (event: DragEvent) => {
     </template>
     <template v-else>
       <div class="add-menu" v-if="showSearch" @click="closeSearch">
-        <SearchEntity :elements="ifcElements" @select="selectEntity" />
+        <SearchEntity
+          :elements="ifcElements"
+          :lookup-elements="lookupElements"
+          @select="selectEntity"
+          @query="handleSearchQuery"
+        />
       </div>
     </template>
   </div>

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { SearchData, SearchItem } from "./interfaces";
 import VirtualScroll from "./VirtualScroll.vue";
 
 const props = defineProps<{
   elements: { [key: string]: SearchData };
+  lookupElements?: { [key: string]: SearchData } | null;
 }>();
 
-const emits = defineEmits(["select"]);
+const emits = defineEmits(["select", "query"]);
 
 const searchQuery = ref("");
 const searchInput = ref<HTMLInputElement | null>(null);
@@ -17,6 +18,10 @@ const subMenuTop = ref<number>(0);
 const hoverItem = ref<string>("");
 const mainList = ref<HTMLElement | null>(null);
 
+const activeElements = computed(
+  () => props.lookupElements ?? props.elements
+);
+
 // コンポーネントが表示されたらフォーカスを設定
 onMounted(() => {
   if (searchInput.value) {
@@ -25,7 +30,11 @@ onMounted(() => {
 });
 
 const filteredList = computed(() => {
-  return Object.keys(props.elements)
+  const keys = Object.keys(activeElements.value);
+  if (props.lookupElements !== null && props.lookupElements !== undefined) {
+    return keys.sort();
+  }
+  return keys
     .filter((element) =>
       element.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
@@ -36,9 +45,13 @@ function openSubMenu(item: string, idx: number) {
   if (mainList.value === null) {
     return;
   }
+  const elements = activeElements.value;
+  if (!elements[item]) {
+    return;
+  }
   const scrollTop = mainList.value.scrollTop;
 
-  searchItems.value = props.elements[item].items;
+  searchItems.value = elements[item].items;
   subMenuTop.value = idx * 23 + 26 - scrollTop;
   hoverItem.value = item;
 }
@@ -51,6 +64,29 @@ const selectItem = (item: string) => {
 const handleClick = (event: MouseEvent) => {
   event.stopPropagation();
 };
+
+watch(searchQuery, (value) => {
+  emits("query", value);
+});
+
+watch(
+  () => props.lookupElements,
+  async (value) => {
+    if (value === undefined || value === null) {
+      searchItems.value = [];
+      hoverItem.value = "";
+      return;
+    }
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      searchItems.value = [];
+      hoverItem.value = "";
+      return;
+    }
+    await nextTick();
+    openSubMenu(keys[0], 0);
+  }
+);
 </script>
 
 <template>
