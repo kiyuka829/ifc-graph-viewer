@@ -178,3 +178,10 @@ def get_search_data():
         val["items"].sort(key=lambda x: x["id"])
 
     return search_data
+
+
+def get_search_item_by_id(_, id):
+    node = composed_data["nodes"].get(id)
+    if node is None:
+        return None
+    return node["name"], {"id": node["path"], "displayName": node["path"]}

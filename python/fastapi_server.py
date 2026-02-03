@@ -156,15 +156,24 @@ class LookupEntityRequest(BaseModel):
 @app.post("/lookup_entity")
 async def lookup_entity(request: LookupEntityRequest):
     try:
-        if not request.path.endswith(".ifc"):
-            raise HTTPException(status_code=400, detail="IFCファイルのみ対応しています。")
-
-        if request.key == "id":
-            result = ifc.get_search_item_by_id(request.path, request.value)
-        elif request.key == "globalId":
-            result = ifc.get_search_item_by_global_id(request.path, request.value)
+        if request.path.endswith(".ifc"):
+            if request.key == "id":
+                result = ifc.get_search_item_by_id(request.path, request.value)
+            elif request.key == "globalId":
+                result = ifc.get_search_item_by_global_id(request.path, request.value)
+            else:
+                raise HTTPException(status_code=400, detail="keyが不正です。")
+        elif request.path.endswith(".ifcx"):
+            if request.key == "id":
+                result = ifcx.get_search_item_by_id(request.path, request.value)
+            else:
+                raise HTTPException(
+                    status_code=400, detail="IFCXはidのみ対応しています。"
+                )
         else:
-            raise HTTPException(status_code=400, detail="keyが不正です。")
+            raise HTTPException(
+                status_code=400, detail="IFC/IFCXファイルのみ対応しています。"
+            )
 
         if result is None:
             return {
