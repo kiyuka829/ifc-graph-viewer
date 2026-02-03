@@ -34,9 +34,12 @@ const dragStartNodePositions = ref<{ [id: string]: Position }>({});
 
 // IFCファイルの要素（右クリックメニュー表示用）
 const ifcElements = ref<{ [key: string]: SearchData }>({});
+const lookupElements = ref<{ [key: string]: SearchData } | null>(null);
 
 // 右クリックメニュー表示フラグ
 const showSearch = ref<boolean>(false);
+let lookupTimeout: number | undefined;
+let lookupRequestId = 0;
 
 // ドラッグ中の位置を追跡するための状態
 const dragging = ref(false);
@@ -86,7 +89,7 @@ function onSidebarHandleMouseMove(e: MouseEvent) {
   const newWidth = window.innerWidth - e.clientX;
   sidebarWidth.value = Math.min(
     Math.max(newWidth, minSidebarWidth),
-    window.innerWidth * maxSidebarRatio
+    window.innerWidth * maxSidebarRatio,
   );
 }
 
@@ -117,10 +120,10 @@ function handleKeyDown(event: KeyboardEvent) {
     edges.value = edges.value.filter(
       (edge) =>
         !selectedNodeIds.value.includes(edge.from.nodeId) &&
-        !selectedNodeIds.value.includes(edge.to.nodeId)
+        !selectedNodeIds.value.includes(edge.to.nodeId),
     );
     nodes.value = nodes.value.filter(
-      (node) => !selectedNodeIds.value.includes(node.id)
+      (node) => !selectedNodeIds.value.includes(node.id),
     );
     selectedNodeIds.value = [];
   }
@@ -173,7 +176,7 @@ function drag(event: MouseEvent) {
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
         const length = node.attributes.filter((attr) =>
-          hasValue(attr.content)
+          hasValue(attr.content),
         ).length;
         // ヘッダーの高さ44px、bodyのpadding20px、属性の高さ29px
         const bottom = nodePosition.y + 44 + 20 + 29 * length;
@@ -190,10 +193,10 @@ function drag(event: MouseEvent) {
             // 範囲外にあるノードを選択解除
             if (rectSelectedNodeIds.value.includes(node.id)) {
               rectSelectedNodeIds.value = rectSelectedNodeIds.value.filter(
-                (id) => id !== node.id
+                (id) => id !== node.id,
               );
               selectedNodeIds.value = selectedNodeIds.value.filter(
-                (id) => id !== node.id
+                (id) => id !== node.id,
               );
             }
           }
@@ -225,6 +228,7 @@ function clearCanvas() {
   showSearch.value = false;
   viewedAttrNode.value = null;
   ifcElements.value = {};
+  lookupElements.value = null;
 
   selectedNodeIds.value = [];
   rectSelectedNodeIds.value = [];
@@ -355,11 +359,11 @@ const alignNodePosition = (
     | "middle"
     | "bottom"
     | "horizontal"
-    | "vertical"
+    | "vertical",
 ) => {
   if (selectedNodeIds.value.length <= 1) return;
   const selectedNodes = nodes.value.filter((node) =>
-    selectedNodeIds.value.includes(node.id)
+    selectedNodeIds.value.includes(node.id),
   );
   const xs = selectedNodes.map((node) => node.position.x);
   const ys = selectedNodes.map((node) => node.position.y);
@@ -390,7 +394,7 @@ const alignNodePosition = (
 const setAlignNodePosition = (
   selectedNodes: IfcNode[],
   { x = null, y = null }: { x?: number | null; y?: number | null },
-  interval = 0
+  interval = 0,
 ) => {
   selectedNodes.forEach((node, idx) => {
     if (x !== null) node.position.x = x + interval * idx;
@@ -405,7 +409,7 @@ const edgePosition = computed(() => {
     const from = edge.from;
     const from_node = nodes.value.find((c) => c.id === from.nodeId);
     const from_attr = from_node?.attributes.find(
-      (c) => c.name === from.attrName
+      (c) => c.name === from.attrName,
     );
     const from_edge = {
       x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition.x ?? 0),
@@ -434,7 +438,7 @@ const selectNode = (node: IfcNode, toggle = false) => {
     // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
       selectedNodeIds.value = selectedNodeIds.value.filter(
-        (id) => id !== node.id
+        (id) => id !== node.id,
       );
     } else {
       selectedNodeIds.value.push(node.id);
@@ -447,12 +451,15 @@ const selectNode = (node: IfcNode, toggle = false) => {
     }
 
     // 選択されたノードの初期位置を記録
-    dragStartNodePositions.value = nodes.value.reduce((obj, node) => {
-      if (selectedNodeIds.value.includes(node.id)) {
-        obj[node.id] = { ...node.position };
-      }
-      return obj;
-    }, {} as { [id: string]: Position });
+    dragStartNodePositions.value = nodes.value.reduce(
+      (obj, node) => {
+        if (selectedNodeIds.value.includes(node.id)) {
+          obj[node.id] = { ...node.position };
+        }
+        return obj;
+      },
+      {} as { [id: string]: Position },
+    );
   }
 };
 
@@ -463,7 +470,7 @@ const addNode_ = (
   srcName: string,
   inverse: boolean,
   dstPosition: Position,
-  idx: number
+  idx: number,
 ) => {
   const config = {
     method: "post",
@@ -546,7 +553,7 @@ const addNode_ = (
 
 const addNode = (
   nodeId: string,
-  data: { position: Position; attribute: Attribute }
+  data: { position: Position; attribute: Attribute },
 ) => {
   const id = data.attribute.content.value;
   const ids = Array.isArray(id) ? id : [id];
@@ -557,7 +564,7 @@ const addNode = (
       data.attribute.name,
       data.attribute.inverse,
       data.position,
-      idx
+      idx,
     );
   });
 };
@@ -657,6 +664,79 @@ const handleRightClick = (event: MouseEvent) => {
 
 const closeSearch = () => {
   showSearch.value = false;
+  if (lookupTimeout !== undefined) {
+    window.clearTimeout(lookupTimeout);
+    lookupTimeout = undefined;
+  }
+  clearLookup();
+};
+
+const isNumericIdQuery = (value: string) => /^[0-9]+$/.test(value);
+const isGlobalIdQuery = (value: string) => /^[A-Za-z0-9_$]{22}$/.test(value);
+const isUuidQuery = (value: string) =>
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+    value,
+  );
+const getLookupKey = (value: string, path: string) => {
+  if (path.endsWith(".ifc")) {
+    if (isNumericIdQuery(value)) return "id";
+    if (isGlobalIdQuery(value)) return "globalId";
+  }
+  if (path.endsWith(".ifcx")) {
+    if (isUuidQuery(value)) return "id";
+  }
+  return null;
+};
+
+const clearLookup = () => {
+  lookupRequestId += 1;
+  lookupElements.value = null;
+};
+
+const resetLookupResults = () => {
+  lookupElements.value = {};
+};
+
+const handleSearchQuery = (value: string) => {
+  const trimmed = value.trim();
+  if (lookupTimeout !== undefined) {
+    window.clearTimeout(lookupTimeout);
+    lookupTimeout = undefined;
+  }
+
+  const key = getLookupKey(trimmed, filepath.value);
+  if (trimmed.length === 0 || key === null) {
+    clearLookup();
+    return;
+  }
+
+  const requestId = ++lookupRequestId;
+  resetLookupResults();
+
+  lookupTimeout = window.setTimeout(async () => {
+    try {
+      const response = await axios.post(endpoint + "/lookup_entity", {
+        path: filepath.value,
+        key,
+        value: trimmed,
+      });
+      if (requestId !== lookupRequestId) {
+        return;
+      }
+      const items = response.data?.items ?? [];
+      const entityType = response.data?.entityType ?? "";
+      if (items.length > 0 && entityType) {
+        lookupElements.value = { [entityType]: { items } };
+      } else {
+        resetLookupResults();
+      }
+    } catch (error) {
+      if (requestId !== lookupRequestId) {
+        return;
+      }
+      resetLookupResults();
+    }
+  }, 250);
 };
 
 // ドラッグオーバーイベントのハンドラ
@@ -803,7 +883,12 @@ const handleDragOver = (event: DragEvent) => {
     </template>
     <template v-else>
       <div class="add-menu" v-if="showSearch" @click="closeSearch">
-        <SearchEntity :elements="ifcElements" @select="selectEntity" />
+        <SearchEntity
+          :elements="ifcElements"
+          :lookup-elements="lookupElements"
+          @select="selectEntity"
+          @query="handleSearchQuery"
+        />
       </div>
     </template>
   </div>
@@ -862,7 +947,9 @@ const handleDragOver = (event: DragEvent) => {
   z-index: 1000; /* 他の要素より前面に表示 */
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 .loading-overlay.active {

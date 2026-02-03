@@ -27,28 +27,51 @@ def get_by_id(path, id):
     return get_node_info(model, item)
 
 
+def build_display_name(item):
+    display_names = [f"#{item.id()}"]
+    info = item.get_info()
+    if (guid := info.get("GlobalId")) is not None:
+        display_names.append(guid)
+    if (name := info.get("Name")) is not None:
+        display_names.append(name)
+    return " | ".join(display_names)
+
+
+def build_search_item(item):
+    return {
+        "id": item.id(),
+        "displayName": build_display_name(item),
+    }
+
+
 def get_search_data(path):
     model = load_model(path)
     search_data = defaultdict(lambda: {"items": []})
     for item in model:
-        display_names = [f"#{item.id()}"]
-        info = item.get_info()
-        if (guid := info.get("GlobalId")) is not None:
-            display_names.append(guid)
-        if (name := info.get("Name")) is not None:
-            display_names.append(name)
-
-        search_data[item.is_a()]["items"].append(
-            {
-                "id": item.id(),
-                "displayName": " | ".join(display_names),
-            }
-        )
+        search_data[item.is_a()]["items"].append(build_search_item(item))
 
     for key, val in search_data.items():
         val["items"].sort(key=lambda x: x["id"])
 
     return search_data
+
+
+def get_search_item_by_id(path, id):
+    model = load_model(path)
+    try:
+        item = model.by_id(int(id))
+        return item.is_a(), build_search_item(item)
+    except RuntimeError:
+        return None
+
+
+def get_search_item_by_global_id(path, global_id):
+    model = load_model(path)
+    try:
+        item = model.by_guid(global_id)
+        return item.is_a(), build_search_item(item)
+    except RuntimeError:
+        return None
 
 
 def attribute_info(key: str, val, inverse: bool) -> Attribute:

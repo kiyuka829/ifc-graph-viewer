@@ -29,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+Path("dist").mkdir(parents=True, exist_ok=True)
 app.mount("/dist", StaticFiles(directory="dist", html=True))
 
 # ファイルアップロードの設定
@@ -141,6 +142,54 @@ async def get_node(request: NodeRequest):
             "message": "ノード追加に成功しました。",
             "node": node,
         }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
+
+
+class LookupEntityRequest(BaseModel):
+    path: str
+    key: str
+    value: str
+
+
+@app.post("/lookup_entity")
+async def lookup_entity(request: LookupEntityRequest):
+    try:
+        if request.path.endswith(".ifc"):
+            if request.key == "id":
+                result = ifc.get_search_item_by_id(request.path, request.value)
+            elif request.key == "globalId":
+                result = ifc.get_search_item_by_global_id(request.path, request.value)
+            else:
+                raise HTTPException(status_code=400, detail="keyが不正です。")
+        elif request.path.endswith(".ifcx"):
+            if request.key == "id":
+                result = ifcx.get_search_item_by_id(request.path, request.value)
+            else:
+                raise HTTPException(
+                    status_code=400, detail="IFCXはidのみ対応しています。"
+                )
+        else:
+            raise HTTPException(
+                status_code=400, detail="IFC/IFCXファイルのみ対応しています。"
+            )
+
+        if result is None:
+            return {
+                "message": "検索結果がありません。",
+                "entityType": "",
+                "items": [],
+            }
+
+        entity_type, item = result
+        return {
+            "message": "検索に成功しました。",
+            "entityType": entity_type,
+            "items": [item],
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
