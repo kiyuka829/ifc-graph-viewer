@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import axios from "axios";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
@@ -11,6 +10,31 @@ import SearchEntity from "./SearchEntity.vue";
 import ToolbarComponent from "./ToolbarComponent.vue";
 
 const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
+
+async function postJson<T>(url: string, payload: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+async function postFormData<T>(url: string, payload: FormData): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    body: payload,
+  });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
 
 // ノードとエッジのデータ
 const nodes = ref<IfcNode[]>([]);
@@ -245,7 +269,7 @@ function clearCanvas() {
 }
 
 // ファイルのアップロード
-const uploadFile = (files: FileList | File[]) => {
+const uploadFile = async (files: FileList | File[]) => {
   clearCanvas();
 
   // FormData オブジェクトを作成してファイルを追加
@@ -258,28 +282,24 @@ const uploadFile = (files: FileList | File[]) => {
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
-  axios
-    .post(endpoint + "/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    })
-    .then((response) => {
-      // レスポンスを処理
-      ifcElements.value = response.data.searchData;
-      const node = convertToNode(response.data.root);
-      nodes.value.push(node);
-      filepath.value = response.data.path;
-      viewFilename.value = response.data.path.split("/").pop() ?? "";
-      console.log(node);
-    })
-    .catch((error) => {
-      // エラー処理
-      console.error("ファイルのアップロードに失敗しました:", error);
-    })
-    .finally(() => {
-      isLoading.value = false;
-    });
+  try {
+    const data = await postFormData<{
+      searchData: { [key: string]: SearchData };
+      root: any;
+      path: string;
+    }>(endpoint + "/upload", formData);
+    ifcElements.value = data.searchData;
+    const node = convertToNode(data.root);
+    nodes.value.push(node);
+    filepath.value = data.path;
+    viewFilename.value = data.path.split("/").pop() ?? "";
+    console.log(node);
+  } catch (error) {
+    // エラー処理
+    console.error("ファイルのアップロードに失敗しました:", error);
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 const triggerFileInput = () => {
@@ -472,20 +492,14 @@ const addNode_ = (
   dstPosition: Position,
   idx: number,
 ) => {
-  const config = {
-    method: "post",
-    url: endpoint + "/get_node",
-    data: {
-      path: filepath.value,
-      id: dstId,
-    },
-  };
-
   isLoading.value = true;
-  axios(config)
-    .then((response) => {
+  postJson<{ node: any }>(endpoint + "/get_node", {
+    path: filepath.value,
+    id: dstId,
+  })
+    .then((data) => {
       // レスポンスを処理
-      const node = convertToNode(response.data.node);
+      const node = convertToNode(data.node);
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === dstId)) {
@@ -612,20 +626,14 @@ const selectEntity = (id: string) => {
   addNodeById(id, { ...rightClickPosition.value });
 };
 const addNodeById = (id: string, dstPosition: Position) => {
-  const config = {
-    method: "post",
-    url: endpoint + "/get_node",
-    data: {
-      path: filepath.value,
-      id: id,
-    },
-  };
-
   isLoading.value = true;
-  axios(config)
-    .then((response) => {
+  postJson<{ node: any }>(endpoint + "/get_node", {
+    path: filepath.value,
+    id,
+  })
+    .then((data) => {
       // レスポンスを処理
-      const node = convertToNode(response.data.node);
+      const node = convertToNode(data.node);
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === node.id)) {
@@ -715,7 +723,10 @@ const handleSearchQuery = (value: string) => {
 
   lookupTimeout = window.setTimeout(async () => {
     try {
-      const response = await axios.post(endpoint + "/lookup_entity", {
+      const response = await postJson<{
+        items?: SearchData["items"];
+        entityType?: string;
+      }>(endpoint + "/lookup_entity", {
         path: filepath.value,
         key,
         value: trimmed,
@@ -723,8 +734,8 @@ const handleSearchQuery = (value: string) => {
       if (requestId !== lookupRequestId) {
         return;
       }
-      const items = response.data?.items ?? [];
-      const entityType = response.data?.entityType ?? "";
+      const items = response.items ?? [];
+      const entityType = response.entityType ?? "";
       if (items.length > 0 && entityType) {
         lookupElements.value = { [entityType]: { items } };
       } else {
