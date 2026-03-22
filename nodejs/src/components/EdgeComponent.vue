@@ -27,7 +27,8 @@ const strokeDashArray = computed(() => (props.dashed ? "5, 5" : "none"));
   <path
     :d="pathD"
     :stroke-dasharray="strokeDashArray"
-    stroke="black"
+    :style="{ stroke: 'var(--edge-color)' }"
+    stroke-width="1.5"
     fill="none"
   />
 </template>

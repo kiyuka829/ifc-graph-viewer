@@ -8,6 +8,7 @@ import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
 import ToolbarComponent from "./ToolbarComponent.vue";
+import ThemeToggle from "./ThemeToggle.vue";
 
 const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
 
@@ -773,6 +774,11 @@ const handleDragOver = (event: DragEvent) => {
 </script>
 
 <template>
+  <!-- Theme toggle – always visible, fixed top-right -->
+  <div class="theme-toggle-fixed">
+    <ThemeToggle />
+  </div>
+
   <div
     class="file-drop-area"
     @dragenter.prevent
@@ -781,7 +787,11 @@ const handleDragOver = (event: DragEvent) => {
     @click="triggerFileInput"
     v-if="filepath === ''"
   >
-    Drag & Drop or Click
+    <div class="drop-content">
+      <div class="drop-icon">📂</div>
+      <p class="drop-title">Drop IFC / IFCX file here</p>
+      <p class="drop-sub">or click to browse</p>
+    </div>
     <input
       type="file"
       ref="fileInput"
@@ -789,12 +799,17 @@ const handleDragOver = (event: DragEvent) => {
       class="hidden-input"
     />
   </div>
-  <h4 v-else class="fileInput" style="margin-top: 0">
-    {{ viewFilename }}
-  </h4>
 
-  <!-- 処理中の表示 -->
-  <div :class="['loading-overlay', { active: isLoading }]">Processing...</div>
+  <!-- Header bar (shown when a file is loaded) -->
+  <div class="app-header" v-if="filepath !== ''">
+    <span class="filename-badge" :title="viewFilename">{{ viewFilename }}</span>
+  </div>
+
+  <!-- Processing overlay -->
+  <div :class="['loading-overlay', { active: isLoading }]">
+    <div class="spinner"></div>
+    <span>Processing…</span>
+  </div>
 
   <div
     class="container"
@@ -806,7 +821,7 @@ const handleDragOver = (event: DragEvent) => {
   >
     <div
       class="sidebar-resize-handle"
-      :style="{ right: sidebarWidth + 'px', height: '100vh' }"
+      :style="{ right: sidebarWidth + 'px' }"
       @mousedown="onSidebarHandleMouseDown"
     ></div>
     <div
@@ -820,7 +835,7 @@ const handleDragOver = (event: DragEvent) => {
       @contextmenu.prevent="handleRightClick"
       ref="zoomContainer"
     >
-      <!-- エッジ -->
+      <!-- Edges -->
       <svg class="edge-container" xmlns="http://www.w3.org/2000/svg">
         <g
           :style="{
@@ -834,8 +849,7 @@ const handleDragOver = (event: DragEvent) => {
             :from="edge.from"
             :to="edge.to"
           />
-
-          <!-- 追加途中のエッジ -->
+          <!-- Drawing edge -->
           <EdgeComponent
             v-if="drawingEdge !== null"
             :from="drawingEdge.from"
@@ -845,7 +859,7 @@ const handleDragOver = (event: DragEvent) => {
         </g>
       </svg>
 
-      <!-- ノード -->
+      <!-- Nodes -->
       <div
         class="node-container"
         :style="{
@@ -865,7 +879,7 @@ const handleDragOver = (event: DragEvent) => {
         />
       </div>
 
-      <!-- 選択ボックス -->
+      <!-- Selection rectangle -->
       <div
         v-show="rectSelecting"
         class="selection-rectangle"
@@ -877,20 +891,23 @@ const handleDragOver = (event: DragEvent) => {
         }"
       ></div>
 
-      <!-- ツールバー -->
+      <!-- Toolbar -->
       <ToolbarComponent @align:node="alignNodePosition($event)" />
     </div>
 
-    <!-- 属性表示欄 -->
+    <!-- Property sidebar -->
     <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
       <div v-if="viewedAttrNode">
         <PropertyArea :node="viewedAttrNode" />
       </div>
+      <div v-else class="sidebar-empty">
+        <span>Select a node to view its properties</span>
+      </div>
     </div>
 
-    <!-- ノード追加メニュー -->
+    <!-- Node-add menu -->
     <template v-if="Object.keys(ifcElements).length === 0">
-      <div class="search-loading-text">Loading search data...</div>
+      <div class="search-loading-text">Loading search data…</div>
     </template>
     <template v-else>
       <div class="add-menu" v-if="showSearch" @click="closeSearch">
@@ -906,56 +923,121 @@ const handleDragOver = (event: DragEvent) => {
 </template>
 
 <style scoped>
+/* ── Layout ───────────────────────────────────────────────── */
 .container {
   display: flex;
   height: 100vh;
 }
 
+/* ── File Drop Area ───────────────────────────────────────── */
 .file-drop-area {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   z-index: 3;
-  width: 100%;
-  height: 100vh;
-  background-color: #f0f0f0;
-  border: 5px dashed #ccc;
+  background-color: var(--bg-surface);
+  border: 2px dashed var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  color: #aaa;
   cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .file-drop-area:hover {
-  background-color: #f9f9f9;
+  background-color: var(--bg-panel);
+  border-color: var(--accent);
 }
 
-.fileInput {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1;
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.drop-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.drop-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drop-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .hidden-input {
   display: none;
 }
 
-.loading-overlay {
+/* ── App Header ───────────────────────────────────────────── */
+.app-header {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
+  right: 0;
+  z-index: 10;
+  height: 44px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+
+.app-header > * {
+  pointer-events: auto;
+}
+
+.filename-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+/* Theme toggle – always fixed in top-right corner */
+.theme-toggle-fixed {
+  position: fixed;
+  top: 6px;
+  right: 14px;
+  z-index: 20;
+}
+
+/* ── Loading Overlay ──────────────────────────────────────── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: var(--overlay-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.5em;
-  z-index: 1000; /* 他の要素より前面に表示 */
+  gap: 16px;
+  color: #ffffff;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
   opacity: 0;
   visibility: hidden;
   transition:
@@ -968,39 +1050,76 @@ const handleDragOver = (event: DragEvent) => {
   visibility: visible;
 }
 
+/* Spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Canvas ───────────────────────────────────────────────── */
 .canvas {
   height: 100vh;
   overflow: auto;
   position: relative;
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
+/* ── Sidebar ──────────────────────────────────────────────── */
 .sidebar {
-  position: absolute;
-  top: 0;
+  position: fixed;
+  top: 44px; /* below header */
   right: 0;
-  height: 100vh;
+  height: calc(100vh - 44px);
   z-index: 2;
   word-wrap: break-word;
   overflow: auto;
-  background-color: #f0f0f0;
+  background-color: var(--bg-surface);
+  border-left: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
 }
 
+.sidebar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* ── Sidebar Resize Handle ────────────────────────────────── */
 .sidebar-resize-handle {
   position: fixed;
-  top: 0;
-  width: 3px;
-  height: 100vh;
+  top: 44px;
+  width: 4px;
+  height: calc(100vh - 44px);
   cursor: ew-resize;
-  background: #ccc;
-  z-index: 1;
+  background: var(--border-color);
+  z-index: 3;
   opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s;
 }
 
 .sidebar-resize-handle:hover {
-  background: #888;
+  background: var(--accent);
   opacity: 0.8;
 }
 
+/* ── Node & Edge Containers ───────────────────────────────── */
 .node-container {
   transform-origin: 0 0;
   position: absolute;
@@ -1018,12 +1137,15 @@ const handleDragOver = (event: DragEvent) => {
   height: 100%;
 }
 
+/* ── Selection Rectangle ──────────────────────────────────── */
 .selection-rectangle {
   position: absolute;
-  border: 2px dashed #4a90e2; /* 青い点線の境界線 */
-  background-color: rgba(74, 144, 226, 0.3); /* 半透明の青色背景 */
+  border: 2px dashed var(--selection-border);
+  background-color: var(--selection-bg);
+  pointer-events: none;
 }
 
+/* ── Node-add Menu / Add Menu ─────────────────────────────── */
 .add-menu {
   position: absolute;
   overflow: auto;
@@ -1033,24 +1155,7 @@ const handleDragOver = (event: DragEvent) => {
   height: 100%;
 }
 
-.align-icons {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.align-icon {
-  padding: 3px;
-  cursor: pointer;
-}
-
-.align-icon:hover {
-  background-color: rgba(129, 129, 129, 0.3);
-}
-
+/* ── Search Loading ───────────────────────────────────────── */
 .search-loading-text {
   position: absolute;
   z-index: -1;
@@ -1058,21 +1163,20 @@ const handleDragOver = (event: DragEvent) => {
   left: 20px;
   width: 200px;
   text-align: left;
-  color: gray;
+  color: var(--text-muted);
   font-style: italic;
+  font-size: 0.8rem;
   padding: 8px 0;
 }
 
-/* ドラッグオーバー時のハイライト表示 */
+/* ── Drag-over Overlay ────────────────────────────────────── */
 .container.drag-over::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.2);
+  inset: 0;
+  background-color: var(--accent-subtle);
+  border: 2px dashed var(--accent);
   z-index: 10;
-  pointer-events: none; /* マウスイベントを下層に通す */
+  pointer-events: none;
 }
 </style>
