@@ -9,7 +9,11 @@ const applyTheme = (dark: boolean) => {
   } else {
     document.documentElement.removeAttribute("data-theme");
   }
-  localStorage.setItem("theme", dark ? "dark" : "light");
+  try {
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  } catch {
+    // Ignore persistence failures (e.g., storage disabled or quota exceeded)
+  }
 };
 
 onMounted(() => {
@@ -28,14 +32,15 @@ const toggle = () => {
   <button
     class="theme-toggle"
     :class="{ dark: isDark }"
-    :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+    :aria-pressed="isDark"
+    :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
     @click.stop="toggle"
     @mousedown.stop
   >
-    <span class="toggle-track">
+    <span class="toggle-track" aria-hidden="true">
       <span class="toggle-thumb"></span>
     </span>
-    <span class="toggle-label">{{ isDark ? "🌙" : "☀️" }}</span>
+    <span class="toggle-label" aria-hidden="true">{{ isDark ? "🌙" : "☀️" }}</span>
   </button>
 </template>
 
@@ -62,6 +67,11 @@ const toggle = () => {
 .theme-toggle:hover {
   background: var(--bg-panel-hover);
   box-shadow: var(--shadow-md);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Pill track */

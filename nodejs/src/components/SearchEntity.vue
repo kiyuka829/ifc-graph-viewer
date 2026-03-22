@@ -240,8 +240,9 @@ watch(
 /* List items */
 .menu-item {
   width: 148px;
-  height: 22px;
-  line-height: 22px;
+  height: 23px;
+  line-height: 23px;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   color: var(--text-primary);

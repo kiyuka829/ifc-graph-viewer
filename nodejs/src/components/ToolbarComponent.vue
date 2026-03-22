@@ -120,12 +120,11 @@ const alignNodes = (event: MouseEvent, align: string) => {
   color: var(--accent);
 }
 
-/* SVG icons inherit color */
-.align-icon :deep(svg path),
-.align-icon :deep(svg rect),
-.align-icon :deep(svg line),
-.align-icon :deep(svg polygon) {
+/* SVG icons inherit color – target shape elements directly (not nested svg) */
+.align-icon :deep(path),
+.align-icon :deep(rect),
+.align-icon :deep(line),
+.align-icon :deep(polygon) {
   fill: currentColor;
-  stroke: currentColor;
 }
 </style>
