@@ -90,19 +90,42 @@ const alignNodes = (event: MouseEvent, align: string) => {
 <style scoped>
 .align-icons {
   position: absolute;
-  top: 10px;
+  top: 54px; /* 44px header + 10px offset */
   right: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 6px 4px;
+  box-shadow: var(--shadow-md);
 }
 
 .align-icon {
-  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
+  color: var(--text-secondary);
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .align-icon:hover {
-  background-color: rgba(129, 129, 129, 0.3);
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* SVG icons inherit color */
+.align-icon :deep(svg path),
+.align-icon :deep(svg rect),
+.align-icon :deep(svg line),
+.align-icon :deep(svg polygon) {
+  fill: currentColor;
+  stroke: currentColor;
 }
 </style>

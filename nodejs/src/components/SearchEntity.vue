@@ -116,10 +116,7 @@ watch(
           v-for="(item, idx) in filteredList"
           :key="item"
           @mouseover="openSubMenu(item, idx)"
-          class="menu-item truncate-text"
-          :style="{
-            backgroundColor: item === hoverItem ? '#a7b3e9' : undefined,
-          }"
+          :class="['menu-item', 'truncate-text', { active: item === hoverItem }]"
           :title="item"
         >
           {{ item }}
@@ -174,34 +171,65 @@ watch(
 
 <style scoped>
 .menu-container {
-  font-size: small;
+  font-size: 0.8rem;
 }
 
+/* Search box */
 .search-box {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 150px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface);
 }
+
 .search-box-text {
-  width: 140px;
-  /* margin-bottom: 20px; */
+  width: 136px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.search-box-text:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+.search-box-text::placeholder {
+  color: var(--text-muted);
+}
+
+/* Wrapper menu panel */
 .menu {
-  border: 1px solid #ccc;
-  /* display: flex; */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-surface);
 }
 
+/* Main list */
 .main-list {
   max-height: 500px;
   overflow: auto;
-  background-color: #f0f0f0;
+  background-color: var(--bg-surface);
 }
+
+/* Sub-list panel */
 .sub-list {
-  border: 1px solid #ccc;
-  background-color: #f0f0f0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
+
 .sub-list-container {
   min-width: 150px;
   max-width: 500px;
@@ -209,22 +237,42 @@ watch(
   overflow: auto;
 }
 
+/* List items */
 .menu-item {
-  width: 146px;
-  height: 19px;
-  line-height: 19px;
+  width: 148px;
+  height: 22px;
+  line-height: 22px;
   align-items: center;
   justify-content: space-between;
+  color: var(--text-primary);
 }
 
 .main-list .menu-item,
 .sub-list .sub-item {
-  padding: 2px;
+  padding: 2px 8px;
   cursor: pointer;
+  transition: background-color 0.12s;
 }
+
 .main-list .menu-item:hover,
 .sub-list .sub-item:hover {
-  background-color: #a7b3e9;
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* Highlighted (active sub-menu item) */
+.main-list .menu-item.active {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.sub-list .sub-item {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.sub-list .sub-item:hover {
+  color: var(--accent);
 }
 
 .truncate-text {

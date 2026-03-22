@@ -245,25 +245,45 @@ const isId = (content: AttrContent): boolean => {
 <style scoped>
 .node {
   position: relative;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   width: 200px;
-  background-color: #fafafacc;
+  background-color: var(--node-bg);
   user-select: none;
+  box-shadow: var(--shadow-md);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.node:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .node-header {
-  background-color: #f0f0f0;
-  border-radius: 5px 5px 0px 0px;
-  border-bottom: 1px solid #ccc;
-  padding: 10px;
+  background-color: var(--node-header-bg);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
 }
 
 .id {
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
 }
 
 .truncate-text {
@@ -272,38 +292,47 @@ const isId = (content: AttrContent): boolean => {
   white-space: nowrap;
 }
 
+/* Reference connection dot (left side, cyan/sky) */
 .icon {
   position: absolute;
-  left: -5px;
-  height: 10px;
-  width: 10px;
-  background-color: #00cc99; /* 明るめの青っぽい緑 */
-  color: white;
+  left: -6px;
+  height: 12px;
+  width: 12px;
+  background-color: var(--success);
+  border: 2px solid var(--bg-surface);
   border-radius: 50%;
-}
-.icon:hover {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5); /* 影を追加 */
-  background-color: #2dbd2d; /* 背景色を少し明るく */
-}
-/* node.reference が null の場合にホバー処理を無効化 */
-.icon-disabled {
-  pointer-events: none; /* イベントを無効化 */
-  background-color: green; /* 背景色を無効状態：暗めの緑に変更 */
-  box-shadow: none; /* 影を削除 */
-  cursor: default; /* 通常のカーソル */
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
 }
 
+.icon:hover {
+  background-color: var(--success-hover);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.icon-disabled {
+  pointer-events: none;
+  background-color: var(--border-color-strong);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Node body */
 .node-body {
-  padding: 10px;
+  padding: 8px 10px;
 }
 
 .attribute {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 24px;
   line-height: 24px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
 }
 
 .inverse-attribute {
@@ -311,25 +340,36 @@ const isId = (content: AttrContent): boolean => {
   justify-content: flex-end;
 }
 
+/* Attribute connection dot (right side, warning/orange) */
 .dot {
   position: absolute;
-  right: -5px;
-  height: 10px;
-  width: 10px;
-  background-color: orange;
+  right: -6px;
+  height: 12px;
+  width: 12px;
+  background-color: var(--warning);
+  border: 2px solid var(--bg-surface);
   border-radius: 50%;
   display: inline-block;
   cursor: pointer;
-}
-.dot:hover {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5); /* 影を追加 */
-  background-color: #ffa500; /* 背景色を少し明るく */
-}
-.inverse-attribute .dot {
-  left: -5px;
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
 }
 
+.dot:hover {
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.inverse-attribute .dot {
+  left: -6px;
+  right: auto;
+}
+
+/* Selected state */
 .selected {
-  border-color: blue; /* 選択されたノードのボーダーの色を変更 */
+  border-color: var(--node-selected-border);
+  box-shadow:
+    0 0 0 2px var(--accent-subtle),
+    var(--shadow-lg);
 }
 </style>
