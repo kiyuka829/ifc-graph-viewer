@@ -21,9 +21,9 @@
   --accent-subtle: rgba(79, 70, 229, 0.14);
 
   /* Status colours */
-  --success: #0ea5e9;
-  --success-hover: #0284c7;
-  --warning: #f97316;
+  --success: #a78bfa;
+  --success-hover: #7c3aed;
+  --warning: #34d399;
 
   /* Node */
   --node-bg: rgba(255, 255, 255, 0.97);
@@ -65,9 +65,9 @@
   --accent-subtle: rgba(124, 133, 248, 0.18);
 
   /* Status colours */
-  --success: #22d3ee;
-  --success-hover: #06b6d4;
-  --warning: #fb923c;
+  --success: #c4b5fd;
+  --success-hover: #a78bfa;
+  --warning: #6ee7b7;
 
   /* Node */
   --node-bg: rgba(28, 31, 51, 0.97);

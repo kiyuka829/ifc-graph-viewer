@@ -76,7 +76,7 @@ uv run nuitka --standalone --follow-imports app.py --output-dir=../dist --includ
   - `.ifcx` supports simultaneous dropping of multiple files
 - Select a node to display its information on the right side of the screen
 - Shift+drag to select multiple nodes
-- Drag the yellow circle on a node to expand connected nodes
+- Drag the circle on a node to expand connected nodes
 - Select a node and press the Delete key to remove the node
 - Right-click to display the search window
   - Select an ID in the search window to display a node at the right-clicked location
