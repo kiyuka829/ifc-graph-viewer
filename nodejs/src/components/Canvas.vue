@@ -9,6 +9,7 @@ import PropertyArea from "./PropertyArea.vue";
 import SearchEntity from "./SearchEntity.vue";
 import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
+import FitScreenIcon from "../assets/icons/fit-screen.svg";
 
 const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
 
@@ -987,9 +988,10 @@ const handleDragOver = (event: DragEvent) => {
           type="button"
           :disabled="!hasNodes"
           @click="fitToScreen"
+          aria-label="Fit all nodes to screen"
           title="Fit all nodes to screen"
         >
-          Fit
+          <FitScreenIcon class="zoom-fit-icon" width="14" height="14" />
         </button>
       </div>
       <ThemeToggle />
@@ -1290,9 +1292,15 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 .zoom-fit {
-  min-width: 42px;
-  padding: 0 8px;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
   font-weight: 600;
+}
+
+.zoom-fit-icon {
+  display: block;
+  margin: 0 auto;
 }
 
 .zoom-btn:hover:not(:disabled),
