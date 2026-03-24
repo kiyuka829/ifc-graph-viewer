@@ -7,18 +7,39 @@ import AlignTopIcon from "../assets/icons/align-top.svg";
 import AlignBottomIcon from "../assets/icons/align-bottom.svg";
 import AlignHorizontalIcon from "../assets/icons/align-horizontal.svg";
 import AlignVerticalIcon from "../assets/icons/align-vertical.svg";
+import SearchIcon from "../assets/icons/search.svg";
 
-const emit = defineEmits(["align:node"]);
+defineProps<{
+  showSearch?: boolean;
+}>();
+
+const emit = defineEmits(["align:node", "toggle:search"]);
 
 // ノードを整列する
 const alignNodes = (event: MouseEvent, align: string) => {
   event.stopPropagation();
   emit("align:node", align);
 };
+
+// 検索パネルの表示/非表示を切り替える
+const toggleSearch = (event: Event) => {
+  event.stopPropagation();
+  emit("toggle:search");
+};
 </script>
 
 <template>
   <div class="align-icons">
+    <span title="検索" tabindex="0" @keydown.enter="toggleSearch" @keydown.space.prevent="toggleSearch">
+      <SearchIcon
+        class="align-icon"
+        :class="{ active: showSearch }"
+        height="1rem"
+        @click="toggleSearch($event)"
+        @mousedown.stop
+      />
+    </span>
+    <div class="divider"></div>
     <span title="左揃え">
       <AlignLeftIcon
         title="Align Left"
@@ -102,7 +123,19 @@ const alignNodes = (event: MouseEvent, align: string) => {
   cursor: pointer;
 }
 
+.align-icon.active {
+  background-color: rgba(74, 144, 226, 0.4);
+  border-radius: 4px;
+}
+
 .align-icon:hover {
   background-color: rgba(129, 129, 129, 0.3);
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: rgba(129, 129, 129, 0.4);
+  margin: 4px 0;
 }
 </style>

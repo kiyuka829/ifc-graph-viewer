@@ -670,6 +670,23 @@ const handleRightClick = (event: MouseEvent) => {
   showSearch.value = true;
 };
 
+// ツールバーの検索ボタンから検索パネルを開閉する
+const toggleSearchFromToolbar = () => {
+  if (showSearch.value) {
+    closeSearch();
+  } else {
+    // キャンバスの中央付近にノードを追加するためのデフォルト位置を設定
+    const container = zoomContainer.value;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const centerX = (rect.width / 2 - position.value.x) / scale.value;
+      const centerY = (rect.height / 2 - position.value.y) / scale.value;
+      rightClickPosition.value = { x: centerX, y: centerY };
+    }
+    showSearch.value = true;
+  }
+};
+
 const closeSearch = () => {
   showSearch.value = false;
   if (lookupTimeout !== undefined) {
@@ -878,7 +895,7 @@ const handleDragOver = (event: DragEvent) => {
       ></div>
 
       <!-- ツールバー -->
-      <ToolbarComponent @align:node="alignNodePosition($event)" />
+      <ToolbarComponent :showSearch="showSearch" @align:node="alignNodePosition($event)" @toggle:search="toggleSearchFromToolbar()" />
     </div>
 
     <!-- 属性表示欄 -->
