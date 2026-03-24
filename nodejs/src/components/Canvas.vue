@@ -90,9 +90,11 @@ const zoomContainer = ref<HTMLElement | null>(null);
 const minScale = 0.1;
 const maxScale = 2;
 const zoomStep = 0.1;
+const headerHeight = 44;
 const zoomPercentLabel = computed(() => `${Math.round(scale.value * 100)}%`);
 const canZoomIn = computed(() => scale.value < maxScale - 0.001);
 const canZoomOut = computed(() => scale.value > minScale + 0.001);
+const hasNodes = computed(() => nodes.value.length > 0);
 
 // ドラッグオーバー時のハイライト表示用
 const isDraggingOver = ref(false);
@@ -641,21 +643,13 @@ const zoomOut = () => {
   setScaleAroundCanvasCenter(scale.value - zoomStep);
 };
 
-const resetZoom = () => {
+const getGraphBounds = () => {
   if (nodes.value.length === 0) {
-    scale.value = 1;
-    position.value = { x: 0, y: 0 };
-    return;
-  }
-
-  const container = zoomContainer.value;
-  if (!container) {
-    scale.value = 1;
-    return;
+    return null;
   }
 
   const nodeWidth = 200;
-  const bounds = nodes.value.reduce(
+  return nodes.value.reduce(
     (acc, node) => {
       const nodeHeight =
         32 +
@@ -680,6 +674,61 @@ const resetZoom = () => {
       maxY: Number.NEGATIVE_INFINITY,
     },
   );
+};
+
+const fitToScreen = () => {
+  const container = zoomContainer.value;
+  const bounds = getGraphBounds();
+  if (!container || !bounds) {
+    return;
+  }
+
+  const graphWidth = Math.max(1, bounds.maxX - bounds.minX);
+  const graphHeight = Math.max(1, bounds.maxY - bounds.minY);
+  const padding = 40;
+  const visibleTopInset = headerHeight;
+  const availableWidth = Math.max(1, container.clientWidth - padding * 2);
+  const availableHeight = Math.max(
+    1,
+    container.clientHeight - visibleTopInset - padding * 2,
+  );
+  const targetScale = Math.min(
+    maxScale,
+    Math.max(
+      minScale,
+      Math.min(availableWidth / graphWidth, availableHeight / graphHeight),
+    ),
+  );
+
+  const graphCenter = {
+    x: (bounds.minX + bounds.maxX) / 2,
+    y: (bounds.minY + bounds.maxY) / 2,
+  };
+  const viewportCenter = {
+    x: container.clientWidth / 2,
+    y: visibleTopInset + (container.clientHeight - visibleTopInset) / 2,
+  };
+
+  scale.value = targetScale;
+  position.value = {
+    x: viewportCenter.x - graphCenter.x * targetScale,
+    y: viewportCenter.y - graphCenter.y * targetScale,
+  };
+};
+
+const resetZoom = () => {
+  const bounds = getGraphBounds();
+  if (!bounds) {
+    scale.value = 1;
+    position.value = { x: 0, y: 0 };
+    return;
+  }
+
+  const container = zoomContainer.value;
+  if (!container) {
+    scale.value = 1;
+    return;
+  }
 
   const viewportCenter = {
     x: container.clientWidth / 2,
@@ -932,6 +981,15 @@ const handleDragOver = (event: DragEvent) => {
           title="Zoom in"
         >
           +
+        </button>
+        <button
+          class="zoom-fit"
+          type="button"
+          :disabled="!hasNodes"
+          @click="fitToScreen"
+          title="Fit all nodes to screen"
+        >
+          Fit
         </button>
       </div>
       <ThemeToggle />
@@ -1207,7 +1265,8 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 .zoom-btn,
-.zoom-level {
+.zoom-level,
+.zoom-fit {
   height: 24px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -1230,14 +1289,22 @@ const handleDragOver = (event: DragEvent) => {
   font-weight: 600;
 }
 
+.zoom-fit {
+  min-width: 42px;
+  padding: 0 8px;
+  font-weight: 600;
+}
+
 .zoom-btn:hover:not(:disabled),
-.zoom-level:hover:not(:disabled) {
+.zoom-level:hover:not(:disabled),
+.zoom-fit:hover:not(:disabled) {
   background-color: var(--accent-subtle);
   color: var(--accent);
   border-color: var(--accent);
 }
 
-.zoom-btn:disabled {
+.zoom-btn:disabled,
+.zoom-fit:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
