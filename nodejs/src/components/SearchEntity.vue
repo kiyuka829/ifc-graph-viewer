@@ -92,11 +92,6 @@ watch(
 <template>
   <div
     class="menu-container"
-    :style="{
-      position: 'absolute',
-      top: 60 + 'px',
-      left: 20 + 'px',
-    }"
     @click="handleClick"
   >
     <div class="menu">
@@ -172,6 +167,7 @@ watch(
 <style scoped>
 .menu-container {
   font-size: 0.8rem;
+  position: relative;
 }
 
 /* Search box */

@@ -783,11 +783,6 @@ const handleDragOver = (event: DragEvent) => {
 </script>
 
 <template>
-  <!-- Theme toggle – always visible, fixed top-right -->
-  <div class="theme-toggle-fixed">
-    <ThemeToggle />
-  </div>
-
   <div
     class="file-drop-area"
     @dragenter.prevent
@@ -812,20 +807,36 @@ const handleDragOver = (event: DragEvent) => {
   <!-- Header bar (shown when a file is loaded) -->
   <div class="app-header" v-if="filepath !== ''">
     <span class="filename-badge" :title="viewFilename">{{ viewFilename }}</span>
-    <button
-      class="header-search-btn"
-      :class="{ active: showSearch }"
-      :disabled="Object.keys(ifcElements).length === 0"
-      :title="Object.keys(ifcElements).length === 0 ? 'Loading search data…' : 'Search entities'"
-      @click="openHeaderSearch"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      Search
-    </button>
+    <div class="header-right">
+      <button
+        class="header-search-btn"
+        :class="{ active: showSearch }"
+        :disabled="Object.keys(ifcElements).length === 0"
+        :title="Object.keys(ifcElements).length === 0 ? 'Loading search data…' : 'Search entities'"
+        @click="openHeaderSearch"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Search
+      </button>
+      <ThemeToggle />
+    </div>
   </div>
+
+  <!-- Search dropdown (fixed below header, outside canvas) -->
+  <template v-if="showSearch && Object.keys(ifcElements).length > 0">
+    <div class="search-backdrop" @click="closeSearch"></div>
+    <div class="search-dropdown">
+      <SearchEntity
+        :elements="ifcElements"
+        :lookup-elements="lookupElements"
+        @select="selectEntity"
+        @query="handleSearchQuery"
+      />
+    </div>
+  </template>
 
   <!-- Processing overlay -->
   <div :class="['loading-overlay', { active: isLoading }]">
@@ -926,18 +937,6 @@ const handleDragOver = (event: DragEvent) => {
         <span>Select a node to view its properties</span>
       </div>
     </div>
-
-    <!-- Node-add menu -->
-    <template v-if="showSearch && Object.keys(ifcElements).length > 0">
-      <div class="add-menu" @click="closeSearch">
-        <SearchEntity
-          :elements="ifcElements"
-          :lookup-elements="lookupElements"
-          @select="selectEntity"
-          @query="handleSearchQuery"
-        />
-      </div>
-    </template>
   </div>
 </template>
 
@@ -1069,13 +1068,14 @@ const handleDragOver = (event: DragEvent) => {
   cursor: not-allowed;
 }
 
-/* Theme toggle – always fixed in top-right corner */
-.theme-toggle-fixed {
-  position: fixed;
-  top: 6px;
-  right: 14px;
-  z-index: 20;
+/* Right-side header group (search btn + theme toggle) */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+/* Theme toggle is now inside the header; no separate fixed wrapper needed */
 
 /* ── Loading Overlay ──────────────────────────────────────── */
 .loading-overlay {
@@ -1198,14 +1198,18 @@ const handleDragOver = (event: DragEvent) => {
   pointer-events: none;
 }
 
-/* ── Node-add Menu / Add Menu ─────────────────────────────── */
-.add-menu {
-  position: absolute;
-  overflow: auto;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* ── Search Dropdown & Backdrop ──────────────────────────── */
+.search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+}
+
+.search-dropdown {
+  position: fixed;
+  top: 52px; /* below 44px header + 8px gap */
+  left: 20px;
+  z-index: 15;
 }
 
 /* ── Search Loading ───────────────────────────────────────── */
