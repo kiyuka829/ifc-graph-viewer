@@ -75,7 +75,7 @@ const dragEndPosition = ref<Position>({ x: 0, y: 0 });
 const rectSelecting = ref(false);
 
 // 右クリック位置
-const rightClickPosition = ref({ x: 0, y: 0 });
+const nodeSpawnPosition = ref({ x: 0, y: 0 });
 
 // アップロードしたファイルパス
 const filepath = ref<string>("");
@@ -261,7 +261,7 @@ function clearCanvas() {
   dragStartNodePositions.value = {};
   drawingEdge.value = null;
   isDraggingOver.value = false;
-  rightClickPosition.value = { x: 0, y: 0 };
+  nodeSpawnPosition.value = { x: 0, y: 0 };
   zoomContainer.value = null;
   scale.value = 1;
   position.value = { x: 0, y: 0 };
@@ -624,7 +624,7 @@ const clearSelect = (event: MouseEvent) => {
 
 const selectEntity = (id: string) => {
   // 選択された項目の処理
-  addNodeById(id, { ...rightClickPosition.value });
+  addNodeById(id, { ...nodeSpawnPosition.value });
 };
 const addNodeById = (id: string, dstPosition: Position) => {
   isLoading.value = true;
@@ -664,10 +664,19 @@ const getRelativePosition = (event: MouseEvent) => {
   return { x: relativeX, y: relativeY };
 };
 
-const handleRightClick = (event: MouseEvent) => {
-  event.preventDefault(); // デフォルトのコンテキストメニューを防ぐ
-  const relativePosition = getRelativePosition(event);
-  rightClickPosition.value = relativePosition;
+const openHeaderSearch = () => {
+  if (showSearch.value) {
+    closeSearch();
+    return;
+  }
+  // ノードをキャンバスの中心付近に配置する
+  const container = zoomContainer.value;
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    const centerX = (rect.width / 2 - position.value.x) / scale.value;
+    const centerY = (rect.height / 2 - position.value.y) / scale.value;
+    nodeSpawnPosition.value = { x: centerX, y: centerY };
+  }
   showSearch.value = true;
 };
 
@@ -803,6 +812,19 @@ const handleDragOver = (event: DragEvent) => {
   <!-- Header bar (shown when a file is loaded) -->
   <div class="app-header" v-if="filepath !== ''">
     <span class="filename-badge" :title="viewFilename">{{ viewFilename }}</span>
+    <button
+      class="header-search-btn"
+      :class="{ active: showSearch }"
+      :disabled="Object.keys(ifcElements).length === 0"
+      :title="Object.keys(ifcElements).length === 0 ? 'Loading search data…' : 'Search entities'"
+      @click="openHeaderSearch"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Search
+    </button>
   </div>
 
   <!-- Processing overlay -->
@@ -832,7 +854,7 @@ const handleDragOver = (event: DragEvent) => {
       @mouseup="endDrag"
       @mouseleave="endDrag"
       @wheel="handleWheel"
-      @contextmenu.prevent="handleRightClick"
+      @contextmenu.prevent
       ref="zoomContainer"
     >
       <!-- Edges -->
@@ -906,11 +928,8 @@ const handleDragOver = (event: DragEvent) => {
     </div>
 
     <!-- Node-add menu -->
-    <template v-if="Object.keys(ifcElements).length === 0">
-      <div class="search-loading-text">Loading search data…</div>
-    </template>
-    <template v-else>
-      <div class="add-menu" v-if="showSearch" @click="closeSearch">
+    <template v-if="showSearch && Object.keys(ifcElements).length > 0">
+      <div class="add-menu" @click="closeSearch">
         <SearchEntity
           :elements="ifcElements"
           :lookup-elements="lookupElements"
@@ -1014,6 +1033,40 @@ const handleDragOver = (event: DragEvent) => {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 3px 10px;
+}
+
+/* Header search button */
+.header-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.header-search-btn:hover:not(:disabled) {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.header-search-btn.active {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.header-search-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Theme toggle – always fixed in top-right corner */
@@ -1156,18 +1209,6 @@ const handleDragOver = (event: DragEvent) => {
 }
 
 /* ── Search Loading ───────────────────────────────────────── */
-.search-loading-text {
-  position: absolute;
-  z-index: -1;
-  top: 60px;
-  left: 20px;
-  width: 200px;
-  text-align: left;
-  color: var(--text-muted);
-  font-style: italic;
-  font-size: 0.8rem;
-  padding: 8px 0;
-}
 
 /* ── Drag-over Overlay ────────────────────────────────────── */
 .container.drag-over::after {
