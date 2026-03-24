@@ -124,7 +124,7 @@ watch(
       :style="{
         position: 'absolute',
         top: subMenuTop + 'px',
-        left: 148 + 'px',
+        left: 220 + 'px',
       }"
       v-if="searchItems.length > 0"
     >
@@ -181,7 +181,7 @@ watch(
 }
 
 .search-box-text {
-  width: 136px;
+  width: 208px;
   padding: 5px 8px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -235,7 +235,7 @@ watch(
 
 /* List items */
 .menu-item {
-  width: 148px;
+  width: 220px;
   height: 23px;
   line-height: 23px;
   display: flex;

@@ -669,13 +669,12 @@ const openHeaderSearch = () => {
     closeSearch();
     return;
   }
-  // ノードをキャンバスの中心付近に配置する
+  // ノードをキャンバスの左上付近に配置する
   const container = zoomContainer.value;
   if (container) {
-    const rect = container.getBoundingClientRect();
-    const centerX = (rect.width / 2 - position.value.x) / scale.value;
-    const centerY = (rect.height / 2 - position.value.y) / scale.value;
-    nodeSpawnPosition.value = { x: centerX, y: centerY };
+    const leftX = (40 - position.value.x) / scale.value;
+    const topY = (80 - position.value.y) / scale.value;
+    nodeSpawnPosition.value = { x: leftX, y: topY };
   }
   showSearch.value = true;
 };
@@ -807,7 +806,7 @@ const handleDragOver = (event: DragEvent) => {
   <!-- Header bar (shown when a file is loaded) -->
   <div class="app-header" v-if="filepath !== ''">
     <span class="filename-badge" :title="viewFilename">{{ viewFilename }}</span>
-    <div class="header-right">
+    <div class="header-center">
       <button
         class="header-search-btn"
         :class="{ active: showSearch }"
@@ -821,6 +820,8 @@ const handleDragOver = (event: DragEvent) => {
         </svg>
         Search
       </button>
+    </div>
+    <div class="header-right">
       <ThemeToggle />
     </div>
   </div>
@@ -1018,6 +1019,14 @@ const handleDragOver = (event: DragEvent) => {
   pointer-events: auto;
 }
 
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+}
+
 .filename-badge {
   display: inline-flex;
   align-items: center;
@@ -1208,7 +1217,8 @@ const handleDragOver = (event: DragEvent) => {
 .search-dropdown {
   position: fixed;
   top: 52px; /* below 44px header + 8px gap */
-  left: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 15;
 }
 
