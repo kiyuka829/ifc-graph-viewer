@@ -87,6 +87,12 @@ const isLoading = ref(false);
 const scale = ref(1);
 const position = ref({ x: 0, y: 0 });
 const zoomContainer = ref<HTMLElement | null>(null);
+const minScale = 0.1;
+const maxScale = 2;
+const zoomStep = 0.1;
+const zoomPercentLabel = computed(() => `${Math.round(scale.value * 100)}%`);
+const canZoomIn = computed(() => scale.value < maxScale - 0.001);
+const canZoomOut = computed(() => scale.value > minScale + 0.001);
 
 // ドラッグオーバー時のハイライト表示用
 const isDraggingOver = ref(false);
@@ -595,22 +601,100 @@ const handleWheel = (event: WheelEvent) => {
   const container = zoomContainer.value;
   if (!container) return;
 
-  const previousScale = scale.value;
-
-  const zoomIntensity = 0.1;
-  const wheelDelta = event.deltaY;
-  // ズームインまたはズームアウト
-  const scaleChange = wheelDelta > 0 ? -zoomIntensity : zoomIntensity;
-  // スケールが小さすぎるか大きすぎないように制限する
-  scale.value = Math.min(Math.max(0.1, scale.value + scaleChange), 2);
-  if (previousScale === scale.value) return;
-
-  // スケール変更に基づいて位置を調整
   const rect = container.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  position.value.x -= (x - position.value.x) * (scaleChange / previousScale);
-  position.value.y -= (y - position.value.y) * (scaleChange / previousScale);
+  const wheelDelta = event.deltaY;
+  const nextScale = scale.value + (wheelDelta > 0 ? -zoomStep : zoomStep);
+  setScaleAroundPoint(nextScale, {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  });
+};
+
+const setScaleAroundPoint = (nextScale: number, point: Position) => {
+  const previousScale = scale.value;
+  const clampedScale = Math.min(Math.max(minScale, nextScale), maxScale);
+  if (previousScale === clampedScale) return;
+
+  const scaleChange = clampedScale - previousScale;
+  scale.value = clampedScale;
+  position.value.x -=
+    (point.x - position.value.x) * (scaleChange / previousScale);
+  position.value.y -=
+    (point.y - position.value.y) * (scaleChange / previousScale);
+};
+
+const setScaleAroundCanvasCenter = (nextScale: number) => {
+  const container = zoomContainer.value;
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  setScaleAroundPoint(nextScale, {
+    x: rect.width / 2,
+    y: rect.height / 2,
+  });
+};
+
+const zoomIn = () => {
+  setScaleAroundCanvasCenter(scale.value + zoomStep);
+};
+
+const zoomOut = () => {
+  setScaleAroundCanvasCenter(scale.value - zoomStep);
+};
+
+const resetZoom = () => {
+  if (nodes.value.length === 0) {
+    scale.value = 1;
+    position.value = { x: 0, y: 0 };
+    return;
+  }
+
+  const container = zoomContainer.value;
+  if (!container) {
+    scale.value = 1;
+    return;
+  }
+
+  const nodeWidth = 200;
+  const bounds = nodes.value.reduce(
+    (acc, node) => {
+      const nodeHeight =
+        32 +
+        16 +
+        28 * node.attributes.filter((attr) => hasValue(attr.content)).length;
+      const left = node.position.x;
+      const right = node.position.x + nodeWidth;
+      const top = node.position.y;
+      const bottom = node.position.y + nodeHeight;
+
+      return {
+        minX: Math.min(acc.minX, left),
+        maxX: Math.max(acc.maxX, right),
+        minY: Math.min(acc.minY, top),
+        maxY: Math.max(acc.maxY, bottom),
+      };
+    },
+    {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY,
+    },
+  );
+
+  const viewportCenter = {
+    x: container.clientWidth / 2,
+    y: container.clientHeight / 2,
+  };
+  const graphCenter = {
+    x: (bounds.minX + bounds.maxX) / 2,
+    y: (bounds.minY + bounds.maxY) / 2,
+  };
+
+  scale.value = 1;
+  position.value = {
+    x: viewportCenter.x - graphCenter.x,
+    y: viewportCenter.y - graphCenter.y,
+  };
 };
 
 // ノード以外の領域をクリックした場合に選択を解除する
@@ -822,6 +906,34 @@ const handleDragOver = (event: DragEvent) => {
       </button>
     </div>
     <div class="header-right">
+      <div class="zoom-controls" title="Zoom controls">
+        <button
+          class="zoom-btn"
+          type="button"
+          :disabled="!canZoomOut"
+          @click="zoomOut"
+          title="Zoom out"
+        >
+          -
+        </button>
+        <button
+          class="zoom-level"
+          type="button"
+          @click="resetZoom"
+          title="Reset zoom to 100% and center graph"
+        >
+          {{ zoomPercentLabel }}
+        </button>
+        <button
+          class="zoom-btn"
+          type="button"
+          :disabled="!canZoomIn"
+          @click="zoomIn"
+          title="Zoom in"
+        >
+          +
+        </button>
+      </div>
       <ThemeToggle />
     </div>
   </div>
@@ -1082,6 +1194,52 @@ const handleDragOver = (event: DragEvent) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+
+.zoom-btn,
+.zoom-level {
+  height: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.zoom-btn {
+  width: 24px;
+  font-weight: 700;
+}
+
+.zoom-level {
+  min-width: 64px;
+  padding: 0 8px;
+  font-weight: 600;
+}
+
+.zoom-btn:hover:not(:disabled),
+.zoom-level:hover:not(:disabled) {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Theme toggle is now inside the header; no separate fixed wrapper needed */
