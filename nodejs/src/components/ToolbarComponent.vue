@@ -19,67 +19,67 @@ const alignNodes = (event: MouseEvent, align: string) => {
 
 <template>
   <div class="align-icons">
-    <span title="左揃え">
+    <span title="Align left">
       <AlignLeftIcon
         title="Align Left"
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'left')"
         @mousedown.stop
       />
     </span>
-    <span title="左右中央揃え">
+    <span title="Align horizontal center">
       <AlignCenterIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'center')"
         @mousedown.stop
       />
     </span>
-    <span title="右揃え">
+    <span title="Align right">
       <AlignRightIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'right')"
         @mousedown.stop
       />
     </span>
-    <span title="上揃え">
+    <span title="Align top">
       <AlignTopIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'top')"
         @mousedown.stop
       />
     </span>
-    <span title="上下中央揃え">
+    <span title="Align vertical center">
       <AlignMiddleIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'middle')"
         @mousedown.stop
       />
     </span>
-    <span title="下揃え">
+    <span title="Align bottom">
       <AlignBottomIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'bottom')"
         @mousedown.stop
       />
     </span>
-    <span title="水平方向に整列">
+    <span title="Distribute horizontally">
       <AlignHorizontalIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'horizontal')"
         @mousedown.stop
       />
     </span>
-    <span title="垂直方向に整列">
+    <span title="Distribute vertically">
       <AlignVerticalIcon
         class="align-icon"
-        height="1rem"
+        height="0.7rem"
         @click="alignNodes($event, 'vertical')"
         @mousedown.stop
       />
@@ -90,16 +90,16 @@ const alignNodes = (event: MouseEvent, align: string) => {
 <style scoped>
 .align-icons {
   position: absolute;
-  top: 54px; /* 44px header + 10px offset */
-  right: 10px;
+  top: 48px; /* 44px header + 4px offset */
+  right: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 6px 4px;
+  border-radius: 6px;
+  padding: 2px;
   box-shadow: var(--shadow-md);
 }
 
@@ -107,9 +107,10 @@ const alignNodes = (event: MouseEvent, align: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 18px;
+  height: 18px;
+  margin: 1px;
+  border-radius: 4px;
   cursor: pointer;
   color: var(--text-secondary);
   transition: background-color 0.15s, color 0.15s;
@@ -124,7 +125,15 @@ const alignNodes = (event: MouseEvent, align: string) => {
 .align-icon :deep(path),
 .align-icon :deep(rect),
 .align-icon :deep(line),
-.align-icon :deep(polygon) {
+.align-icon :deep(polygon),
+.align-icon :deep(circle),
+.align-icon :deep(ellipse) {
   fill: currentColor;
+  stroke: currentColor;
+}
+
+.align-icon :deep(svg) {
+  fill: currentColor;
+  stroke: currentColor;
 }
 </style>
