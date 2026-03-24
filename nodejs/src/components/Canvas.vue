@@ -203,8 +203,8 @@ function drag(event: MouseEvent) {
         const length = node.attributes.filter((attr) =>
           hasValue(attr.content),
         ).length;
-        // ヘッダーの高さ44px、bodyのpadding20px、属性の高さ29px
-        const bottom = nodePosition.y + 44 + 20 + 29 * length;
+        // ヘッダーの高さ32px、bodyのpadding16px(上下各8px)、属性の高さ24px+margin4px=28px
+        const bottom = nodePosition.y + 32 + 16 + 28 * length;
 
         // 選択開始前に選択済みのノードは処理しない
         if (!previousSelectedNodeIds.value.includes(node.id)) {
@@ -337,7 +337,7 @@ function convertToNode(data: any): IfcNode {
     const attribute = {
       name: attr.name,
       content: attr.content,
-      edgePosition: { x: attr.inverse ? 0 : 200, y: 68 + count * 29 },
+      edgePosition: { x: attr.inverse ? 0 : 200, y: 52 + count * 28 },
       inverse: attr.inverse,
     };
     hasValue(attr.content) && count++;
@@ -350,7 +350,7 @@ function convertToNode(data: any): IfcNode {
   const reference = {
     name: "Reference",
     content: data.references.content,
-    edgePosition: { x: 0, y: 25 },
+    edgePosition: { x: 0, y: 16 },
     inverse: true,
   };
   node.reference = reference;
@@ -434,7 +434,7 @@ const edgePosition = computed(() => {
     );
     const from_edge = {
       x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition.x ?? 0),
-      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition.y ?? 22.5),
+      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition.y ?? 16),
     };
 
     const to = edge.to;
@@ -442,7 +442,7 @@ const edgePosition = computed(() => {
     const to_attr = to_node?.attributes.find((c) => c.name === to.attrName);
     const to_edge = {
       x: (to_node?.position.x ?? 0) + (to_attr?.edgePosition.x ?? 0),
-      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition.y ?? 22.5),
+      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition.y ?? 16),
     };
 
     return {
@@ -521,7 +521,7 @@ const addNode_ = (
       // （ノードが複数あるときは重ならないように位置をずらす）
       const position = {
         x: dstPosition.x - (targetAttr?.edgePosition.x ?? 0) + idx * 10,
-        y: dstPosition.y - (targetAttr?.edgePosition.y ?? 22.5) + idx * 10,
+        y: dstPosition.y - (targetAttr?.edgePosition.y ?? 16) + idx * 10,
       };
       node.position = position;
 

@@ -52,7 +52,7 @@ function openSubMenu(item: string, idx: number) {
   const scrollTop = mainList.value.scrollTop;
 
   searchItems.value = elements[item].items;
-  subMenuTop.value = idx * 23 + 26 - scrollTop;
+  subMenuTop.value = idx * 23 + 39.5 - scrollTop;
   hoverItem.value = item;
 }
 
