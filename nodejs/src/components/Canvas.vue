@@ -945,12 +945,26 @@ const handleDragOver = (event: DragEvent) => {
         class="header-search-btn"
         :class="{ active: showSearch }"
         :disabled="Object.keys(ifcElements).length === 0"
-        :title="Object.keys(ifcElements).length === 0 ? 'Loading search data…' : 'Search entities'"
+        :title="
+          Object.keys(ifcElements).length === 0
+            ? 'Loading search data…'
+            : 'Search entities'
+        "
         @click="openHeaderSearch"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         Search
       </button>
@@ -1131,7 +1145,9 @@ const handleDragOver = (event: DragEvent) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
 .file-drop-area:hover {
@@ -1228,7 +1244,10 @@ const handleDragOver = (event: DragEvent) => {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 
@@ -1277,7 +1296,10 @@ const handleDragOver = (event: DragEvent) => {
   font-size: 0.78rem;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .zoom-btn {
@@ -1366,23 +1388,75 @@ const handleDragOver = (event: DragEvent) => {
   height: 100vh;
   overflow: auto;
   position: relative;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   background-color: var(--bg-canvas);
   background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
+.canvas::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.canvas::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.canvas::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid var(--scrollbar-track);
+}
+
+.canvas::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.canvas::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
 /* ── Sidebar ──────────────────────────────────────────────── */
 .sidebar {
   position: fixed;
-  top: 44px; /* below header */
+  top: 44px;
+  /* below header */
   right: 0;
   height: calc(100vh - 44px);
   z-index: 2;
   word-wrap: break-word;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   background-color: var(--bg-surface);
   border-left: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid var(--scrollbar-track);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.sidebar::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
 .sidebar-empty {
@@ -1406,7 +1480,9 @@ const handleDragOver = (event: DragEvent) => {
   background: var(--border-color);
   z-index: 3;
   opacity: 0.5;
-  transition: opacity 0.15s, background 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
 }
 
 .sidebar-resize-handle:hover {
@@ -1449,7 +1525,8 @@ const handleDragOver = (event: DragEvent) => {
 
 .search-dropdown {
   position: fixed;
-  top: 52px; /* below 44px header + 8px gap */
+  top: 52px;
+  /* below 44px header + 8px gap */
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;

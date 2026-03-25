@@ -41,6 +41,11 @@
 
   /* Dot grid */
   --grid-dot: rgba(100, 110, 150, 0.25);
+
+  /* Scrollbar */
+  --scrollbar-track: #e5e7ef;
+  --scrollbar-thumb: #bcc2d3;
+  --scrollbar-thumb-hover: #a4abc0;
 }
 
 [data-theme="dark"] {
@@ -85,6 +90,11 @@
 
   /* Dot grid */
   --grid-dot: rgba(150, 160, 220, 0.12);
+
+  /* Scrollbar */
+  --scrollbar-track: #1a1f31;
+  --scrollbar-thumb: #4b5478;
+  --scrollbar-thumb-hover: #64709f;
 }
 
 /* ── Base ───────────────────────────────────────────────────── */
