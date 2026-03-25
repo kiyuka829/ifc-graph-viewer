@@ -3,9 +3,10 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute, SearchData } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute, SearchData, IfcHeader } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
+import HeaderInfoArea from "./HeaderInfoArea.vue";
 import SearchEntity from "./SearchEntity.vue";
 import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
@@ -83,6 +84,10 @@ const filepath = ref<string>("");
 const fileInput = ref<HTMLInputElement | null>(null);
 const viewFilename = ref<string>("");
 const isLoading = ref(false);
+
+// ヘッダー情報の表示状態
+const headerInfo = ref<IfcHeader | null>(null);
+const isHeaderInfoActive = ref(false);
 
 // 描画領域の拡大縮小、移動
 const scale = ref(1);
@@ -263,6 +268,8 @@ function clearCanvas() {
   viewedAttrNode.value = null;
   ifcElements.value = {};
   lookupElements.value = null;
+  headerInfo.value = null;
+  isHeaderInfoActive.value = false;
 
   selectedNodeIds.value = [];
   rectSelectedNodeIds.value = [];
@@ -478,6 +485,7 @@ const selectNode = (node: IfcNode, toggle = false) => {
     if (!selectedNodeIds.value.includes(node.id)) {
       viewedAttrNode.value = node;
       selectedNodeIds.value = [node.id];
+      isHeaderInfoActive.value = false;
     }
 
     // 選択されたノードの初期位置を記録
@@ -822,6 +830,26 @@ const closeSearch = () => {
   clearLookup();
 };
 
+const toggleHeaderInfo = async () => {
+  if (isHeaderInfoActive.value) {
+    isHeaderInfoActive.value = false;
+    return;
+  }
+  // ヘッダー情報を取得して表示
+  if (headerInfo.value === null) {
+    try {
+      const data = await postJson<{ header: IfcHeader }>(endpoint + "/get_header", {
+        path: filepath.value,
+      });
+      headerInfo.value = data.header;
+    } catch (error) {
+      console.error("ヘッダー情報の取得に失敗しました:", error);
+    }
+  }
+  isHeaderInfoActive.value = true;
+  viewedAttrNode.value = null;
+};
+
 const isNumericIdQuery = (value: string) => /^[0-9]+$/.test(value);
 const isGlobalIdQuery = (value: string) => /^[A-Za-z0-9_$]{22}$/.test(value);
 const isUuidQuery = (value: string) =>
@@ -939,7 +967,12 @@ const handleDragOver = (event: DragEvent) => {
 
   <!-- Header bar (shown when a file is loaded) -->
   <div class="app-header" v-if="filepath !== ''">
-    <span class="filename-badge" :title="viewFilename">{{ viewFilename }}</span>
+    <button
+      class="filename-badge"
+      :class="{ active: isHeaderInfoActive }"
+      :title="isHeaderInfoActive ? 'Hide file header info' : 'Show file header info'"
+      @click="toggleHeaderInfo"
+    >{{ viewFilename }}</button>
     <div class="header-center">
       <button
         class="header-search-btn"
@@ -1117,7 +1150,13 @@ const handleDragOver = (event: DragEvent) => {
 
     <!-- Property sidebar -->
     <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
-      <div v-if="viewedAttrNode">
+      <div v-if="isHeaderInfoActive">
+        <HeaderInfoArea v-if="headerInfo" :header="headerInfo" :filename="viewFilename" />
+        <div v-else class="sidebar-empty">
+          <span>Failed to load header information</span>
+        </div>
+      </div>
+      <div v-else-if="viewedAttrNode">
         <PropertyArea :node="viewedAttrNode" />
       </div>
       <div v-else class="sidebar-empty">
@@ -1229,6 +1268,23 @@ const handleDragOver = (event: DragEvent) => {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 3px 10px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.filename-badge:hover {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.filename-badge.active {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Header search button */

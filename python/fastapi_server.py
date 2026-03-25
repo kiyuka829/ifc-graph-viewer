@@ -195,5 +195,28 @@ async def lookup_entity(request: LookupEntityRequest):
         raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
 
 
+class HeaderRequest(BaseModel):
+    path: str
+
+
+@app.post("/get_header")
+async def get_header(request: HeaderRequest):
+    try:
+        if request.path.endswith(".ifc"):
+            header_info = ifc.get_header_info(request.path)
+        elif request.path.endswith(".ifcx"):
+            header_info = ifcx.get_header_info(request.path)
+        else:
+            raise HTTPException(
+                status_code=400, detail="IFC/IFCXファイルのみ対応しています。"
+            )
+        return {"header": header_info}
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

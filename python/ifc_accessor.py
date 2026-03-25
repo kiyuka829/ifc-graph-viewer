@@ -74,6 +74,45 @@ def get_search_item_by_global_id(path, global_id):
         return None
 
 
+def get_header_info(path):
+    model = load_model(path)
+    header = model.header
+    result = {}
+
+    try:
+        desc = header.file_description
+        result["file_description"] = {
+            "description": list(desc.description) if desc.description else [],
+            "implementation_level": desc.implementation_level or "",
+        }
+    except Exception:
+        pass
+
+    try:
+        name = header.file_name
+        result["file_name"] = {
+            "name": name.name or "",
+            "time_stamp": name.time_stamp or "",
+            "author": list(name.author) if name.author else [],
+            "organization": list(name.organization) if name.organization else [],
+            "preprocessor_version": name.preprocessor_version or "",
+            "originating_system": name.originating_system or "",
+            "authorization": name.authorization or "",
+        }
+    except Exception:
+        pass
+
+    try:
+        schema = header.file_schema
+        result["file_schema"] = {
+            "schemas": list(schema.schema_identifiers) if schema.schema_identifiers else [],
+        }
+    except Exception:
+        pass
+
+    return result
+
+
 def attribute_info(key: str, val, inverse: bool) -> Attribute:
     def _instance2content(val):
         if val.id() == 0:

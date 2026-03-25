@@ -45,3 +45,30 @@ export interface SearchItem {
   id: string;
   displayName: string;
 }
+
+export interface IfcFileDescription {
+  description: string[];
+  implementation_level: string;
+}
+
+export interface IfcFileName {
+  name: string;
+  time_stamp: string;
+  author: string[];
+  organization: string[];
+  preprocessor_version: string;
+  originating_system: string;
+  authorization: string;
+}
+
+export interface IfcFileSchema {
+  schemas: string[];
+}
+
+export interface IfcHeader {
+  file_description?: IfcFileDescription;
+  file_name?: IfcFileName;
+  file_schema?: IfcFileSchema;
+  // IFCX
+  ifcx_version?: string;
+}

@@ -185,3 +185,13 @@ def get_search_item_by_id(_, id):
     if node is None:
         return None
     return node["name"], {"id": node["path"], "displayName": node["path"]}
+
+
+def get_header_info(path):
+    if path not in load_files:
+        return {}
+    ifcx_data = load_files[path]
+    header = ifcx_data.get("header", {})
+    return {
+        "ifcx_version": header.get("ifcxVersion", ""),
+    }
