@@ -98,37 +98,74 @@ const stringifyContents = (content: AttrContent): string => {
 
 <style scoped>
 .property-area {
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+  padding: 16px;
+}
+
+.property-area h3 {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.property-area h4 {
+  margin: 14px 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.property-area p {
+  margin: 4px 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.property-area p strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-}
-
-table,
-th,
-td {
-  border: 1px solid #ddd;
-  font-size: 0.8rem;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 th,
 td {
-  padding: 8px;
+  padding: 6px 10px;
   text-align: left;
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 th {
-  background-color: #f4f4f4;
+  background-color: var(--bg-panel);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
 }
 
-tbody tr:nth-child(odd) {
-  background-color: #f9f9f9;
+tbody tr:nth-child(even) {
+  background-color: var(--bg-panel);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
 }
 
 tbody tr:hover {
-  background-color: #eef4ff;
+  background-color: var(--accent-subtle);
 }
 </style>
