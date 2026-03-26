@@ -482,11 +482,12 @@ const selectNode = (node: IfcNode, toggle = false) => {
       selectedNodeIds.value.push(node.id);
     }
   } else {
+    viewedAttrNode.value = node;
+    isHeaderInfoActive.value = false;
+
     // 未選択であれば選択
     if (!selectedNodeIds.value.includes(node.id)) {
-      viewedAttrNode.value = node;
       selectedNodeIds.value = [node.id];
-      isHeaderInfoActive.value = false;
     }
 
     // 選択されたノードの初期位置を記録
