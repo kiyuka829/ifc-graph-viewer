@@ -46,6 +46,14 @@ export interface SearchItem {
   displayName: string;
 }
 
+export type IfcHeaderValue =
+  | string
+  | number
+  | boolean
+  | null
+  | IfcHeaderValue[]
+  | { [key: string]: IfcHeaderValue };
+
 export interface IfcFileDescription {
   description: string[];
   implementation_level: string;
@@ -66,9 +74,17 @@ export interface IfcFileSchema {
 }
 
 export interface IfcHeader {
+  [key: string]: IfcHeaderValue;
+}
+
+export interface IfcStructuredHeader {
   file_description?: IfcFileDescription;
   file_name?: IfcFileName;
   file_schema?: IfcFileSchema;
-  // IFCX
-  ifcx_version?: string;
+}
+
+export interface HeaderEntry {
+  filename: string;
+  format: "ifc" | "ifcx";
+  header: IfcHeader;
 }

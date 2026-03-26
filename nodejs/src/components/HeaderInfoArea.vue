@@ -1,96 +1,172 @@
 <script setup lang="ts">
-import { IfcHeader } from "./interfaces";
+import { HeaderEntry, IfcHeader, IfcHeaderValue, IfcStructuredHeader } from "./interfaces";
+
+interface HeaderRow {
+  key: string;
+  value: string;
+}
 
 defineProps<{
-  header: IfcHeader;
-  filename: string;
+  headers: HeaderEntry[];
 }>();
+
+const isPlainObject = (value: IfcHeaderValue): value is IfcHeader =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const formatPrimitive = (value: string | number | boolean | null): string => {
+  if (value === null) {
+    return "null";
+  }
+  return String(value);
+};
+
+const flattenHeaderValue = (value: IfcHeaderValue, keyPath = ""): HeaderRow[] => {
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return [{ key: keyPath || "(root)", value: "[]" }];
+    }
+    if (value.every((item) => !Array.isArray(item) && !isPlainObject(item))) {
+      return [{ key: keyPath || "(root)", value: JSON.stringify(value) }];
+    }
+    return value.flatMap((item, index) =>
+      flattenHeaderValue(item, `${keyPath || "(root)"}[${index}]`),
+    );
+  }
+
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return [{ key: keyPath || "(root)", value: "{}" }];
+    }
+    return entries.flatMap(([key, child]) =>
+      flattenHeaderValue(child, keyPath ? `${keyPath}.${key}` : key),
+    );
+  }
+
+  return [{ key: keyPath || "(root)", value: formatPrimitive(value) }];
+};
+
+const getHeaderRows = (header: IfcHeader): HeaderRow[] => flattenHeaderValue(header);
+const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcStructuredHeader;
 </script>
 
 <template>
   <div class="header-info-area">
     <h3>File Header</h3>
-    <p class="filename-label">{{ filename }}</p>
 
-    <!-- IFC: FILE_DESCRIPTION -->
-    <template v-if="header.file_description">
-      <h4>FILE_DESCRIPTION</h4>
-      <table>
-        <tbody>
-          <tr>
-            <td class="key-cell">Description</td>
-            <td>{{ header.file_description.description.length ? header.file_description.description.join(", ") : "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Implementation Level</td>
-            <td>{{ header.file_description.implementation_level || "—" }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
+    <div v-for="entry in headers" :key="entry.filename" class="header-block">
+      <p class="filename-label">{{ entry.filename }}</p>
 
-    <!-- IFC: FILE_NAME -->
-    <template v-if="header.file_name">
-      <h4>FILE_NAME</h4>
-      <table>
-        <tbody>
-          <tr>
-            <td class="key-cell">Name</td>
-            <td>{{ header.file_name.name || "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Time Stamp</td>
-            <td>{{ header.file_name.time_stamp || "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Author</td>
-            <td>{{ header.file_name.author.length ? header.file_name.author.join(", ") : "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Organization</td>
-            <td>{{ header.file_name.organization.length ? header.file_name.organization.join(", ") : "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Preprocessor</td>
-            <td>{{ header.file_name.preprocessor_version || "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Originating System</td>
-            <td>{{ header.file_name.originating_system || "—" }}</td>
-          </tr>
-          <tr>
-            <td class="key-cell">Authorization</td>
-            <td>{{ header.file_name.authorization || "—" }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
+      <template v-if="entry.format === 'ifc'">
+        <template v-if="getIfcHeader(entry.header).file_schema">
+          <h4>FILE_SCHEMA</h4>
+          <table>
+            <tbody>
+              <tr>
+                <td class="key-cell">Schema</td>
+                <td>
+                  {{
+                    getIfcHeader(entry.header).file_schema?.schemas.length
+                      ? getIfcHeader(entry.header).file_schema?.schemas.join(", ")
+                      : "—"
+                  }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
 
-    <!-- IFC: FILE_SCHEMA -->
-    <template v-if="header.file_schema">
-      <h4>FILE_SCHEMA</h4>
-      <table>
-        <tbody>
-          <tr>
-            <td class="key-cell">Schema</td>
-            <td>{{ header.file_schema.schemas.length ? header.file_schema.schemas.join(", ") : "—" }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
+        <template v-if="getIfcHeader(entry.header).file_name">
+          <h4>FILE_NAME</h4>
+          <table>
+            <tbody>
+              <tr>
+                <td class="key-cell">Name</td>
+                <td>{{ getIfcHeader(entry.header).file_name?.name || "—" }}</td>
+              </tr>
+              <tr>
+                <td class="key-cell">Time Stamp</td>
+                <td>{{ getIfcHeader(entry.header).file_name?.time_stamp || "—" }}</td>
+              </tr>
+              <tr>
+                <td class="key-cell">Author</td>
+                <td>
+                  {{
+                    getIfcHeader(entry.header).file_name?.author.length
+                      ? getIfcHeader(entry.header).file_name?.author.join(", ")
+                      : "—"
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td class="key-cell">Organization</td>
+                <td>
+                  {{
+                    getIfcHeader(entry.header).file_name?.organization.length
+                      ? getIfcHeader(entry.header).file_name?.organization.join(", ")
+                      : "—"
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td class="key-cell">Preprocessor</td>
+                <td>
+                  {{ getIfcHeader(entry.header).file_name?.preprocessor_version || "—" }}
+                </td>
+              </tr>
+              <tr>
+                <td class="key-cell">Originating System</td>
+                <td>
+                  {{ getIfcHeader(entry.header).file_name?.originating_system || "—" }}
+                </td>
+              </tr>
+              <tr>
+                <td class="key-cell">Authorization</td>
+                <td>{{ getIfcHeader(entry.header).file_name?.authorization || "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
 
-    <!-- IFCX: version -->
-    <template v-if="header.ifcx_version">
-      <h4>IFCX Header</h4>
-      <table>
-        <tbody>
-          <tr>
-            <td class="key-cell">Version</td>
-            <td>{{ header.ifcx_version }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
+        <template v-if="getIfcHeader(entry.header).file_description">
+          <h4>FILE_DESCRIPTION</h4>
+          <table>
+            <tbody>
+              <tr>
+                <td class="key-cell">Description</td>
+                <td>
+                  {{
+                    getIfcHeader(entry.header).file_description?.description.length
+                      ? getIfcHeader(entry.header).file_description?.description.join(", ")
+                      : "—"
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td class="key-cell">Implementation Level</td>
+                <td>
+                  {{ getIfcHeader(entry.header).file_description?.implementation_level || "—" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+      </template>
+
+      <template v-else>
+        <table>
+          <tbody>
+            <tr
+              v-for="row in getHeaderRows(entry.header)"
+              :key="`${entry.filename}:${row.key}`"
+            >
+              <td class="key-cell">{{ row.key }}</td>
+              <td>{{ row.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -108,9 +184,14 @@ defineProps<{
   padding-bottom: 8px;
 }
 
+.header-block + .header-block {
+  margin-top: 16px;
+}
+
 .filename-label {
-  margin: 4px 0 12px;
+  margin: 12px 0 8px;
   font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
   word-break: break-all;
 }

@@ -2,11 +2,16 @@ import copy
 import json
 import re
 from collections import defaultdict
+from pathlib import Path
 
 from models import Attribute, Content, Node
 
 load_files = {}
 composed_data = {}
+
+
+def normalize_path(path):
+    return Path(path).name
 
 
 def flatten_dict(d, parent_key="", sep="::"):
@@ -80,7 +85,8 @@ def clear_load_files():
 
 
 def load_model(path):
-    if path not in load_files:
+    normalized_path = normalize_path(path)
+    if normalized_path not in load_files:
         with open(path, "r") as f:
             ifcx_file = json.load(f)
         version = ifcx_file.get("header", {}).get("ifcxVersion")
@@ -90,7 +96,7 @@ def load_model(path):
                 f"but got '{version}'"
             )
 
-        load_files[path] = ifcx_file
+        load_files[normalized_path] = ifcx_file
 
 
 def compose():
@@ -188,10 +194,12 @@ def get_search_item_by_id(_, id):
 
 
 def get_header_info(path):
-    if path not in load_files:
-        return {}
-    ifcx_data = load_files[path]
-    header = ifcx_data.get("header", {})
-    return {
-        "ifcx_version": header.get("ifcxVersion", ""),
-    }
+    requested_paths = [normalize_path(p.strip()) for p in str(path).split(",") if p.strip()]
+    return [
+        {
+            "filename": requested_path,
+            "header": load_files[requested_path].get("header", {}),
+        }
+        for requested_path in requested_paths
+        if requested_path in load_files
+    ]

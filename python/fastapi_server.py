@@ -203,14 +203,27 @@ class HeaderRequest(BaseModel):
 async def get_header(request: HeaderRequest):
     try:
         if request.path.endswith(".ifc"):
-            header_info = ifc.get_header_info(request.path)
+            header_info = [
+                {
+                    "filename": Path(request.path).name,
+                    "format": "ifc",
+                    "header": ifc.get_header_info(request.path),
+                }
+            ]
         elif request.path.endswith(".ifcx"):
-            header_info = ifcx.get_header_info(request.path)
+            header_info = [
+                {
+                    "filename": item["filename"],
+                    "format": "ifcx",
+                    "header": item["header"],
+                }
+                for item in ifcx.get_header_info(request.path)
+            ]
         else:
             raise HTTPException(
                 status_code=400, detail="IFC/IFCXファイルのみ対応しています。"
             )
-        return {"header": header_info}
+        return {"headers": header_info}
     except HTTPException:
         raise
     except Exception as e:

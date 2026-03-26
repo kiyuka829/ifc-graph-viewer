@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute, SearchData, IfcHeader } from "./interfaces";
+import { IfcNode, Edge, Position, Attribute, SearchData, HeaderEntry } from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
@@ -86,7 +86,7 @@ const viewFilename = ref<string>("");
 const isLoading = ref(false);
 
 // ヘッダー情報の表示状態
-const headerInfo = ref<IfcHeader | null>(null);
+const headerInfo = ref<HeaderEntry[] | null>(null);
 const isHeaderInfoActive = ref(false);
 
 // 描画領域の拡大縮小、移動
@@ -838,10 +838,10 @@ const toggleHeaderInfo = async () => {
   // ヘッダー情報を取得して表示
   if (headerInfo.value === null) {
     try {
-      const data = await postJson<{ header: IfcHeader }>(endpoint + "/get_header", {
+      const data = await postJson<{ headers: HeaderEntry[] }>(endpoint + "/get_header", {
         path: filepath.value,
       });
-      headerInfo.value = data.header;
+      headerInfo.value = data.headers;
     } catch (error) {
       console.error("ヘッダー情報の取得に失敗しました:", error);
     }
@@ -1151,7 +1151,7 @@ const handleDragOver = (event: DragEvent) => {
     <!-- Property sidebar -->
     <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
       <div v-if="isHeaderInfoActive">
-        <HeaderInfoArea v-if="headerInfo" :header="headerInfo" :filename="viewFilename" />
+        <HeaderInfoArea v-if="headerInfo" :headers="headerInfo" />
         <div v-else class="sidebar-empty">
           <span>Failed to load header information</span>
         </div>
