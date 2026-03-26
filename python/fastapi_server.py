@@ -47,27 +47,6 @@ def allowed_file(filename: str) -> bool:
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
 
 
-def build_header_info(path: str):
-    if path.endswith(".ifc"):
-        return [
-            {
-                "filename": Path(path).name,
-                "format": "ifc",
-                "header": ifc.get_header_info(path),
-            }
-        ]
-    if path.endswith(".ifcx"):
-        return [
-            {
-                "filename": item["filename"],
-                "format": "ifcx",
-                "header": item["header"],
-            }
-            for item in ifcx.get_header_info(path)
-        ]
-    raise HTTPException(status_code=400, detail="IFC/IFCXファイルのみ対応しています。")
-
-
 @app.post("/upload")
 async def upload_file(files: List[UploadFile] = File(...)):
     # ファイルが空でないか、または正しいファイル名を持っているかを確認
@@ -98,23 +77,36 @@ async def upload_file(files: List[UploadFile] = File(...)):
             file_path = file_path_list[0]
             root_node = ifc.get_ifc_project(file_path)
             search_data = ifc.get_search_data(file_path)
+            header_info = [
+                {
+                    "filename": file_path.name,
+                    "format": "ifc",
+                    "header": ifc.get_header_info(file_path),
+                }
+            ]
             path_str = file_path.as_posix()
         elif file_path_list[0].suffix == ".ifcx":
             ifcx.clear_load_files()
 
             # .ifcxは複数処理
             path_strs = []
+            header_info = []
             for file_path in file_path_list:
                 if file_path.suffix == ".ifcx":
                     path_strs.append(file_path.name)
                     ifcx.load_model(file_path)
+                    header_info.append(
+                        {
+                            "filename": file_path.name,
+                            "format": "ifcx",
+                            "header": ifcx.get_header_info(file_path),
+                        }
+                    )
             ifcx.compose()
 
             root_node = ifcx.get_root_node()
             search_data = ifcx.get_search_data()
             path_str = ", ".join(path_strs)
-
-        header_info = build_header_info(path_str)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
