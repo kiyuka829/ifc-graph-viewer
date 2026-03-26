@@ -77,16 +77,31 @@ async def upload_file(files: List[UploadFile] = File(...)):
             file_path = file_path_list[0]
             root_node = ifc.get_ifc_project(file_path)
             search_data = ifc.get_search_data(file_path)
+            header_info = [
+                {
+                    "filename": file_path.name,
+                    "format": "ifc",
+                    "header": ifc.get_header_info(file_path),
+                }
+            ]
             path_str = file_path.as_posix()
         elif file_path_list[0].suffix == ".ifcx":
             ifcx.clear_load_files()
 
             # .ifcxは複数処理
             path_strs = []
+            header_info = []
             for file_path in file_path_list:
                 if file_path.suffix == ".ifcx":
                     path_strs.append(file_path.name)
                     ifcx.load_model(file_path)
+                    header_info.append(
+                        {
+                            "filename": file_path.name,
+                            "format": "ifcx",
+                            "header": ifcx.get_header_info(file_path),
+                        }
+                    )
             ifcx.compose()
 
             root_node = ifcx.get_root_node()
@@ -100,6 +115,7 @@ async def upload_file(files: List[UploadFile] = File(...)):
         "message": "ファイルがアップロードされました。",
         "root": root_node,
         "searchData": search_data,
+        "headers": header_info,
         "path": path_str,
     }
 

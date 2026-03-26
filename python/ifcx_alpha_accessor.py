@@ -185,3 +185,7 @@ def get_search_item_by_id(_, id):
     if node is None:
         return None
     return node["name"], {"id": node["path"], "displayName": node["path"]}
+
+
+def get_header_info(path):
+    return load_files[path].get("header", {})
