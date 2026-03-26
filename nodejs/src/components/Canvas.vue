@@ -86,7 +86,7 @@ const viewFilename = ref<string>("");
 const isLoading = ref(false);
 
 // ヘッダー情報の表示状態
-const headerInfo = ref<HeaderEntry[] | null>(null);
+const headerInfo = ref<HeaderEntry[]>([]);
 const isHeaderInfoActive = ref(false);
 
 // 描画領域の拡大縮小、移動
@@ -268,7 +268,7 @@ function clearCanvas() {
   viewedAttrNode.value = null;
   ifcElements.value = {};
   lookupElements.value = null;
-  headerInfo.value = null;
+  headerInfo.value = [];
   isHeaderInfoActive.value = false;
 
   selectedNodeIds.value = [];
@@ -304,12 +304,13 @@ const uploadFile = async (files: FileList | File[]) => {
       searchData: { [key: string]: SearchData };
       root: any;
       path: string;
+      headers: HeaderEntry[];
     }>(endpoint + "/upload", formData);
     ifcElements.value = data.searchData;
+    headerInfo.value = data.headers;
     const node = convertToNode(data.root);
     nodes.value.push(node);
     filepath.value = data.path;
-    viewFilename.value = data.path.split("/").pop() ?? "";
     console.log(node);
   } catch (error) {
     // エラー処理
@@ -830,21 +831,10 @@ const closeSearch = () => {
   clearLookup();
 };
 
-const toggleHeaderInfo = async () => {
+const toggleHeaderInfo = () => {
   if (isHeaderInfoActive.value) {
     isHeaderInfoActive.value = false;
     return;
-  }
-  // ヘッダー情報を取得して表示
-  if (headerInfo.value === null) {
-    try {
-      const data = await postJson<{ headers: HeaderEntry[] }>(endpoint + "/get_header", {
-        path: filepath.value,
-      });
-      headerInfo.value = data.headers;
-    } catch (error) {
-      console.error("ヘッダー情報の取得に失敗しました:", error);
-    }
   }
   isHeaderInfoActive.value = true;
   viewedAttrNode.value = null;
@@ -1151,10 +1141,7 @@ const handleDragOver = (event: DragEvent) => {
     <!-- Property sidebar -->
     <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
       <div v-if="isHeaderInfoActive">
-        <HeaderInfoArea v-if="headerInfo" :headers="headerInfo" />
-        <div v-else class="sidebar-empty">
-          <span>Failed to load header information</span>
-        </div>
+        <HeaderInfoArea :headers="headerInfo" />
       </div>
       <div v-else-if="viewedAttrNode">
         <PropertyArea :node="viewedAttrNode" />

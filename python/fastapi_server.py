@@ -47,6 +47,27 @@ def allowed_file(filename: str) -> bool:
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
 
 
+def build_header_info(path: str):
+    if path.endswith(".ifc"):
+        return [
+            {
+                "filename": Path(path).name,
+                "format": "ifc",
+                "header": ifc.get_header_info(path),
+            }
+        ]
+    if path.endswith(".ifcx"):
+        return [
+            {
+                "filename": item["filename"],
+                "format": "ifcx",
+                "header": item["header"],
+            }
+            for item in ifcx.get_header_info(path)
+        ]
+    raise HTTPException(status_code=400, detail="IFC/IFCXファイルのみ対応しています。")
+
+
 @app.post("/upload")
 async def upload_file(files: List[UploadFile] = File(...)):
     # ファイルが空でないか、または正しいファイル名を持っているかを確認
@@ -92,6 +113,8 @@ async def upload_file(files: List[UploadFile] = File(...)):
             root_node = ifcx.get_root_node()
             search_data = ifcx.get_search_data()
             path_str = ", ".join(path_strs)
+
+        header_info = build_header_info(path_str)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"IFCファイル処理エラー: {str(e)}")
@@ -100,6 +123,7 @@ async def upload_file(files: List[UploadFile] = File(...)):
         "message": "ファイルがアップロードされました。",
         "root": root_node,
         "searchData": search_data,
+        "headers": header_info,
         "path": path_str,
     }
 
@@ -188,42 +212,6 @@ async def lookup_entity(request: LookupEntityRequest):
             "entityType": entity_type,
             "items": [item],
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"エラー: {str(e)}")
-
-
-class HeaderRequest(BaseModel):
-    path: str
-
-
-@app.post("/get_header")
-async def get_header(request: HeaderRequest):
-    try:
-        if request.path.endswith(".ifc"):
-            header_info = [
-                {
-                    "filename": Path(request.path).name,
-                    "format": "ifc",
-                    "header": ifc.get_header_info(request.path),
-                }
-            ]
-        elif request.path.endswith(".ifcx"):
-            header_info = [
-                {
-                    "filename": item["filename"],
-                    "format": "ifcx",
-                    "header": item["header"],
-                }
-                for item in ifcx.get_header_info(request.path)
-            ]
-        else:
-            raise HTTPException(
-                status_code=400, detail="IFC/IFCXファイルのみ対応しています。"
-            )
-        return {"headers": header_info}
     except HTTPException:
         raise
     except Exception as e:
