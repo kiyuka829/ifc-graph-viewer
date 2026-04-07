@@ -218,7 +218,11 @@ function drag(event: MouseEvent) {
           hasValue(attr.content),
         ).length;
         // ヘッダーの高さ32px、bodyのpadding16px(上下各8px)、属性の高さ24px+margin4px=28px
-        const bottom = nodePosition.y + 32 + 16 + 28 * length;
+        const bottom =
+          nodePosition.y +
+          NODE_HEADER_HEIGHT +
+          NODE_BODY_PADDING_Y * 2 +
+          ATTRIBUTE_EDGE_ROW_GAP * length;
 
         // 選択開始前に選択済みのノードは処理しない
         if (!previousSelectedNodeIds.value.includes(node.id)) {
@@ -338,6 +342,15 @@ const handleDrop = (event: DragEvent) => {
   }
 };
 
+const NODE_WIDTH = 200;
+const NODE_HEADER_HEIGHT = 32;
+const NODE_BODY_PADDING_Y = 8;
+const ATTRIBUTE_HEIGHT = 24;
+const REFERENCE_EDGE_Y = NODE_HEADER_HEIGHT / 2 + 0.5;
+const ATTRIBUTE_EDGE_START_Y =
+  NODE_HEADER_HEIGHT + NODE_BODY_PADDING_Y + ATTRIBUTE_HEIGHT / 2 + 0.5;
+const ATTRIBUTE_EDGE_ROW_GAP = 28;
+
 // レスポンスデータをNodeに変換
 function convertToNode(data: any): IfcNode {
   const node: IfcNode = {
@@ -354,7 +367,10 @@ function convertToNode(data: any): IfcNode {
     const attribute = {
       name: attr.name,
       content: attr.content,
-      edgePosition: { x: attr.inverse ? 0 : 200, y: 52 + count * 28 },
+      edgePosition: {
+        x: attr.inverse ? 0 : NODE_WIDTH,
+        y: ATTRIBUTE_EDGE_START_Y + count * ATTRIBUTE_EDGE_ROW_GAP,
+      },
       inverse: attr.inverse,
     };
     hasValue(attr.content) && count++;
@@ -367,7 +383,7 @@ function convertToNode(data: any): IfcNode {
   const reference = {
     name: "Reference",
     content: data.references.content,
-    edgePosition: { x: 0, y: 16 },
+    edgePosition: { x: 0, y: REFERENCE_EDGE_Y },
     inverse: true,
   };
   node.reference = reference;

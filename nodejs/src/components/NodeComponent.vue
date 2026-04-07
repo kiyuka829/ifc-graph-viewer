@@ -264,7 +264,8 @@ const isId = (content: AttrContent): boolean => {
   background-color: var(--node-header-bg);
   border-radius: 8px 8px 0 0;
   border-bottom: 1px solid var(--border-color);
-  padding: 8px 10px;
+  height: 32px;
+  padding: 7px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
