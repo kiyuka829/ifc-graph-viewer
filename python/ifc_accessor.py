@@ -108,7 +108,7 @@ def attribute_info(key: str, val, inverse: bool) -> Attribute:
     def _instance2content(val):
         if val.id() == 0:
             # IFCXX($,$,IFCINTEGER(2),$) みたく直接IFCの場合
-            return Content(type="value", value=val.wrappedValue)
+            return Content(type="value", value=str(val))
         else:
             return Content(type="id", value=val.id())
 
@@ -116,8 +116,9 @@ def attribute_info(key: str, val, inverse: bool) -> Attribute:
         return Attribute(name=key, content=_instance2content(val), inverse=inverse)
     elif isinstance(val, tuple):
         if all(isinstance(v, ifcopenshell.entity_instance) for v in val):
+            content_type = "value" if len(val) > 0 and val[0].id() == 0 else "id"
             values = [_instance2content(v).value for v in val]
-            content = Content(type="id", value=values)
+            content = Content(type=content_type, value=values)
             return Attribute(name=key, content=content, inverse=inverse)
         else:
             # (0, 0, 0) みたいな座標の場合
