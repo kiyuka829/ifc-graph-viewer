@@ -214,7 +214,38 @@ watch(
 .main-list {
   max-height: 500px;
   overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   background-color: var(--bg-surface);
+}
+
+.main-list::-webkit-scrollbar,
+.sub-list-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.main-list::-webkit-scrollbar-track,
+.sub-list-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.main-list::-webkit-scrollbar-thumb,
+.sub-list-container::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid var(--scrollbar-track);
+}
+
+.main-list::-webkit-scrollbar-thumb:hover,
+.sub-list-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.main-list::-webkit-scrollbar-corner,
+.sub-list-container::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
 /* Sub-list panel */
@@ -231,6 +262,10 @@ watch(
   max-width: 500px;
   max-height: 500px;
   overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  background-color: var(--bg-surface);
 }
 
 /* List items */

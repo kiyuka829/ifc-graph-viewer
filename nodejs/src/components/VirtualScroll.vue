@@ -78,6 +78,32 @@ onMounted(() => {
 <style scoped>
 .scroll-container {
   overflow-y: auto;
-  border: 1px solid #ccc;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  background-color: var(--bg-surface);
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid var(--scrollbar-track);
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.scroll-container::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 </style>
