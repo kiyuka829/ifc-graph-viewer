@@ -264,7 +264,8 @@ const isId = (content: AttrContent): boolean => {
   background-color: var(--node-header-bg);
   border-radius: 8px 8px 0 0;
   border-bottom: 1px solid var(--border-color);
-  padding: 8px 10px;
+  height: 32px;
+  padding: 7px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -273,14 +274,14 @@ const isId = (content: AttrContent): boolean => {
 
 .id {
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .title {
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   flex: 1;
   min-width: 0;
@@ -331,7 +332,7 @@ const isId = (content: AttrContent): boolean => {
   justify-content: space-between;
   height: 24px;
   line-height: 24px;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
