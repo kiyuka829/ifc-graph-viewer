@@ -103,7 +103,7 @@ const stringifyContents = (content: AttrContent): string => {
 
 .property-area h3 {
   margin: 0 0 12px;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-color);
@@ -112,7 +112,7 @@ const stringifyContents = (content: AttrContent): string => {
 
 .property-area h4 {
   margin: 14px 0 6px;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -121,7 +121,7 @@ const stringifyContents = (content: AttrContent): string => {
 
 .property-area p {
   margin: 4px 0;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   color: var(--text-primary);
 }
 
@@ -143,7 +143,7 @@ th,
 td {
   padding: 6px 10px;
   text-align: left;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
 }
@@ -153,7 +153,7 @@ th {
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.04em;
 }
 

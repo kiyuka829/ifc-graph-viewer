@@ -1249,7 +1249,7 @@ const handleDragOver = (event: DragEvent) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
   background: var(--bg-panel);
@@ -1281,7 +1281,7 @@ const handleDragOver = (event: DragEvent) => {
   align-items: center;
   gap: 5px;
   padding: 4px 12px;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: var(--bg-panel);
@@ -1337,7 +1337,7 @@ const handleDragOver = (event: DragEvent) => {
   border-radius: 6px;
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -1510,7 +1510,7 @@ const handleDragOver = (event: DragEvent) => {
   height: 120px;
   padding: 24px;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   text-align: center;
 }
 

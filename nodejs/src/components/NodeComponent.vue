@@ -273,14 +273,14 @@ const isId = (content: AttrContent): boolean => {
 
 .id {
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .title {
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   flex: 1;
   min-width: 0;
@@ -331,7 +331,7 @@ const isId = (content: AttrContent): boolean => {
   justify-content: space-between;
   height: 24px;
   line-height: 24px;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
