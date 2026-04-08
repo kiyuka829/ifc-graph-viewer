@@ -1,3 +1,8 @@
+import atexit
+import os
+import shutil
+import sys
+import tempfile
 import traceback
 from pathlib import Path
 from typing import List, Union
@@ -11,7 +16,6 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# アプリケーションの初期化
 app = FastAPI()
 
 origins = [
@@ -29,18 +33,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Path("dist").mkdir(parents=True, exist_ok=True)
-app.mount("/dist", StaticFiles(directory="dist", html=True))
+def get_app_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+APP_ROOT = get_app_root()
+DIST_DIR = APP_ROOT / "dist"
+app.mount("/dist", StaticFiles(directory=str(DIST_DIR), html=True, check_dir=False))
 
 # ファイルアップロードの設定
-UPLOAD_FOLDER = Path("uploads")
+UPLOAD_ROOT = Path(tempfile.mkdtemp(prefix="ifc-graph-viewer-"))
+UPLOAD_FOLDER = UPLOAD_ROOT / "uploads"
 ALLOWED_EXTENSIONS = {".ifc", ".ifcx"}  # NOSONAR
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+atexit.register(lambda: shutil.rmtree(UPLOAD_ROOT, ignore_errors=True))
 
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
-    return FileResponse("dist/index.html")
+    return FileResponse(DIST_DIR / "index.html")
 
 
 def allowed_file(filename: str) -> bool:

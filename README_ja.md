@@ -66,7 +66,7 @@ Python を動かした状態で「localhost:8000」にブラウザでアクセ�
 [方法 2：ビルド](#方法-2ビルド) で実行できる状態にしてから、以下のコマンドを実行。
 
 ```sh
-uv run nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
+uv run nuitka --standalone --follow-imports --windows-console-mode=disable --company-name="Your Name or Org" --product-name="IFC Graph Viewer" --file-version=0.1.0.0 --product-version=0.1.0 --file-description="IFC Graph Viewer" app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
 ```
 
 ## 使い方簡易説明
