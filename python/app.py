@@ -6,9 +6,9 @@ import webview
 from fastapi_server import app as server
 
 
-def find_free_port():
+def find_free_port(host="127.0.0.1"):
     s = socket.socket()
-    s.bind(("", 0))  # OSに空いてるポートを選ばせる
+    s.bind((host, 0))  # ローカルループバックだけで空きポートを確保する
     port = s.getsockname()[1]
     s.close()
     return port

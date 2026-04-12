@@ -66,7 +66,7 @@ run `ifc-graph-viewer.exe`.
 After setting up the environment as described in [Method 2: Build](#method-2-build), run the following command:
 
 ```sh
-uv run nuitka --standalone --follow-imports app.py --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
+uv run nuitka app.py --standalone --follow-imports --windows-console-mode=disable --output-dir=../dist --include-data-dir=dist=dist --output-filename=ifc-graph-viewer
 ```
 
 ## Basic Usage Guide
