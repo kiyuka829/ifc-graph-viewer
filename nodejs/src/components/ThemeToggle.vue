@@ -54,7 +54,7 @@ const toggle = () => {
   border: 1px solid var(--border-color);
   border-radius: 20px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   box-shadow: var(--shadow-sm);
   transition:
@@ -108,7 +108,7 @@ const toggle = () => {
 }
 
 .toggle-label {
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1;
 }
 </style>

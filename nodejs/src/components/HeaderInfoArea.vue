@@ -177,7 +177,7 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
 
 .header-info-area h3 {
   margin: 0 0 4px;
-  font-size: 0.9rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-color);
@@ -190,7 +190,7 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
 
 .filename-label {
   margin: 12px 0 8px;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
   word-break: break-all;
@@ -198,7 +198,7 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
 
 .header-info-area h4 {
   margin: 14px 0 6px;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -216,7 +216,7 @@ table {
 td {
   padding: 6px 10px;
   text-align: left;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
   word-break: break-all;

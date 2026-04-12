@@ -332,7 +332,7 @@ const isId = (content: AttrContent): boolean => {
   justify-content: space-between;
   height: 24px;
   line-height: 24px;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
