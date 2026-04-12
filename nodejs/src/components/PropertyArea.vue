@@ -143,7 +143,7 @@ th,
 td {
   padding: 6px 10px;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
 }
@@ -153,7 +153,7 @@ th {
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   letter-spacing: 0.04em;
 }
 

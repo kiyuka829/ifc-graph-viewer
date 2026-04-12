@@ -166,7 +166,7 @@ watch(
 
 <style scoped>
 .menu-container {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   position: relative;
 }
 
@@ -187,7 +187,7 @@ watch(
   border-radius: 6px;
   background: var(--bg-panel);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -299,7 +299,7 @@ watch(
 }
 
 .sub-list .sub-item {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
