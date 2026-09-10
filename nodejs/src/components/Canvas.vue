@@ -12,6 +12,7 @@ import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 import FitScreenIcon from "../assets/icons/fit-screen.svg";
 
+import { enableIfc } from "../data/config";
 import { modelSource } from "../data/source";
 
 // ノードとエッジのデータ
@@ -917,13 +918,13 @@ const handleDragOver = (event: DragEvent) => {
   >
     <div class="drop-content">
       <div class="drop-icon">📂</div>
-      <p class="drop-title">Drop IFC / IFCX file here</p>
+      <p class="drop-title">Drop {{ enableIfc ? "IFC / IFCX" : "IFCX" }} file here</p>
       <p class="drop-sub">or click to browse</p>
     </div>
     <input
       type="file"
       multiple
-      accept=".ifc,.ifcx"
+      :accept="enableIfc ? '.ifc,.ifcx' : '.ifcx'"
       ref="fileInput"
       @change="handleFileSelect"
       class="hidden-input"

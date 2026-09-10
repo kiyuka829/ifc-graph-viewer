@@ -1,19 +1,17 @@
-import { apiSource } from "./api";
+import { enableIfc } from "./config";
+import { validateFiles } from "./filePolicy";
 import { IfcxSource } from "./ifcx";
 import type { ModelSource } from "./model";
 
-let active: ModelSource = apiSource;
+let active: ModelSource | undefined;
 export const modelSource: ModelSource = {
   async load(files) {
-    if (!files.length) throw new Error("Select a file.");
-    const extensions = files.map(file => file.name.split(".").pop()?.toLowerCase());
-    if (extensions.some(extension => extension !== "ifc" && extension !== "ifcx")) throw new Error("Only IFC and IFCX files are supported.");
-    if (new Set(extensions).size !== 1) throw new Error("Load IFC and IFCX files separately.");
-    const next = extensions[0] === "ifcx" ? new IfcxSource() : apiSource;
+    const format = validateFiles(files, enableIfc);
+    const next = enableIfc && format === "ifc" ? (await import("./api")).apiSource : new IfcxSource();
     const data = await next.load(files);
     active = next;
     return data;
   },
-  getNode: (path, id) => active.getNode(path, id),
-  lookup: (path, key, value) => active.lookup(path, key, value),
+  getNode: (path, id) => active ? active.getNode(path, id) : Promise.reject(new Error("Load a model first.")),
+  lookup: (path, key, value) => active ? active.lookup(path, key, value) : Promise.reject(new Error("Load a model first.")),
 };
