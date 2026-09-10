@@ -12,32 +12,7 @@ import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 import FitScreenIcon from "../assets/icons/fit-screen.svg";
 
-const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
-
-async function postJson<T>(url: string, payload: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
-
-async function postFormData<T>(url: string, payload: FormData): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    body: payload,
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
+import { apiSource as modelSource } from "../data/api";
 
 // ノードとエッジのデータ
 const nodes = ref<IfcNode[]>([]);
@@ -293,23 +268,13 @@ function clearCanvas() {
 const uploadFile = async (files: FileList | File[]) => {
   clearCanvas();
 
-  // FormData オブジェクトを作成してファイルを追加
-  const formData = new FormData();
   const fileArray = Array.from(files);
-  fileArray.forEach((file) => {
-    formData.append("files", file);
-  });
   viewFilename.value = fileArray.map((f) => f.name).join(", ");
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
   try {
-    const data = await postFormData<{
-      searchData: { [key: string]: SearchData };
-      root: any;
-      path: string;
-      headers: HeaderEntry[];
-    }>(endpoint + "/upload", formData);
+    const data = await modelSource.load(fileArray);
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
     const node = convertToNode(data.root);
@@ -529,10 +494,7 @@ const addNode_ = (
   idx: number,
 ) => {
   isLoading.value = true;
-  postJson<{ node: any }>(endpoint + "/get_node", {
-    path: filepath.value,
-    id: dstId,
-  })
+  modelSource.getNode(filepath.value, dstId)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -788,10 +750,7 @@ const selectEntity = (id: string) => {
 };
 const addNodeById = (id: string, dstPosition: Position) => {
   isLoading.value = true;
-  postJson<{ node: any }>(endpoint + "/get_node", {
-    path: filepath.value,
-    id,
-  })
+  modelSource.getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -901,14 +860,7 @@ const handleSearchQuery = (value: string) => {
 
   lookupTimeout = window.setTimeout(async () => {
     try {
-      const response = await postJson<{
-        items?: SearchData["items"];
-        entityType?: string;
-      }>(endpoint + "/lookup_entity", {
-        path: filepath.value,
-        key,
-        value: trimmed,
-      });
+      const response = await modelSource.lookup(filepath.value, key, trimmed);
       if (requestId !== lookupRequestId) {
         return;
       }
