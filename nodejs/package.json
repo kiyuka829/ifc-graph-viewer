@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs",
+    "build:pages": "vue-tsc && vite build --mode pages"
   },
   "dependencies": {
     "vite-svg-loader": "^5.1.0",

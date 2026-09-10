@@ -16,7 +16,7 @@ export interface Attribute {
 
 export interface AttrContent {
   type: string;
-  value: string | number | (string | number)[];
+  value: string | number | boolean | null | unknown[] | Record<string, unknown>;
 }
 
 // attrName = undefined はノードの左上に接続されているとき

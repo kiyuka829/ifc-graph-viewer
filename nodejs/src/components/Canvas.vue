@@ -12,32 +12,8 @@ import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 import FitScreenIcon from "../assets/icons/fit-screen.svg";
 
-const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
-
-async function postJson<T>(url: string, payload: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
-
-async function postFormData<T>(url: string, payload: FormData): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    body: payload,
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
+import { enableIfc } from "../data/config";
+import { modelSource } from "../data/source";
 
 // ノードとエッジのデータ
 const nodes = ref<IfcNode[]>([]);
@@ -81,6 +57,7 @@ const nodeSpawnPosition = ref({ x: 0, y: 0 });
 
 // アップロードしたファイルパス
 const filepath = ref<string>("");
+const loadError = ref("");
 const fileInput = ref<HTMLInputElement | null>(null);
 const viewFilename = ref<string>("");
 const isLoading = ref(false);
@@ -291,25 +268,16 @@ function clearCanvas() {
 
 // ファイルのアップロード
 const uploadFile = async (files: FileList | File[]) => {
-  clearCanvas();
-
-  // FormData オブジェクトを作成してファイルを追加
-  const formData = new FormData();
+  if (isLoading.value) return;
+  loadError.value = "";
   const fileArray = Array.from(files);
-  fileArray.forEach((file) => {
-    formData.append("files", file);
-  });
-  viewFilename.value = fileArray.map((f) => f.name).join(", ");
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
   try {
-    const data = await postFormData<{
-      searchData: { [key: string]: SearchData };
-      root: any;
-      path: string;
-      headers: HeaderEntry[];
-    }>(endpoint + "/upload", formData);
+    const data = await modelSource.load(fileArray);
+    clearCanvas();
+    viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
     const node = convertToNode(data.root);
@@ -318,7 +286,7 @@ const uploadFile = async (files: FileList | File[]) => {
     console.log(node);
   } catch (error) {
     // エラー処理
-    console.error("ファイルのアップロードに失敗しました:", error);
+    loadError.value = error instanceof Error ? error.message : "Failed to load file.";
   } finally {
     isLoading.value = false;
   }
@@ -332,6 +300,7 @@ const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
     uploadFile(target.files); // 選択されたファイルを処理
+    target.value = "";
   }
 };
 const handleDrop = (event: DragEvent) => {
@@ -529,10 +498,7 @@ const addNode_ = (
   idx: number,
 ) => {
   isLoading.value = true;
-  postJson<{ node: any }>(endpoint + "/get_node", {
-    path: filepath.value,
-    id: dstId,
-  })
+  modelSource.getNode(filepath.value, dstId)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -788,10 +754,7 @@ const selectEntity = (id: string) => {
 };
 const addNodeById = (id: string, dstPosition: Position) => {
   isLoading.value = true;
-  postJson<{ node: any }>(endpoint + "/get_node", {
-    path: filepath.value,
-    id,
-  })
+  modelSource.getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -864,11 +827,11 @@ const isUuidQuery = (value: string) =>
     value,
   );
 const getLookupKey = (value: string, path: string) => {
-  if (path.endsWith(".ifc")) {
+  if (path.toLowerCase().endsWith(".ifc")) {
     if (isNumericIdQuery(value)) return "id";
     if (isGlobalIdQuery(value)) return "globalId";
   }
-  if (path.endsWith(".ifcx")) {
+  if (path.toLowerCase().endsWith(".ifcx")) {
     if (isUuidQuery(value)) return "id";
   }
   return null;
@@ -901,14 +864,7 @@ const handleSearchQuery = (value: string) => {
 
   lookupTimeout = window.setTimeout(async () => {
     try {
-      const response = await postJson<{
-        items?: SearchData["items"];
-        entityType?: string;
-      }>(endpoint + "/lookup_entity", {
-        path: filepath.value,
-        key,
-        value: trimmed,
-      });
+      const response = await modelSource.lookup(filepath.value, key, trimmed);
       if (requestId !== lookupRequestId) {
         return;
       }
@@ -951,6 +907,7 @@ const handleDragOver = (event: DragEvent) => {
 </script>
 
 <template>
+  <p v-if="loadError" role="alert" class="load-error">{{ loadError }}</p>
   <div
     class="file-drop-area"
     @dragenter.prevent
@@ -961,11 +918,13 @@ const handleDragOver = (event: DragEvent) => {
   >
     <div class="drop-content">
       <div class="drop-icon">📂</div>
-      <p class="drop-title">Drop IFC / IFCX file here</p>
+      <p class="drop-title">Drop {{ enableIfc ? "IFC / IFCX" : "IFCX" }} file here</p>
       <p class="drop-sub">or click to browse</p>
     </div>
     <input
       type="file"
+      multiple
+      :accept="enableIfc ? '.ifc,.ifcx' : '.ifcx'"
       ref="fileInput"
       @change="handleFileSelect"
       class="hidden-input"
@@ -1171,6 +1130,7 @@ const handleDragOver = (event: DragEvent) => {
 </template>
 
 <style scoped>
+.load-error { position: fixed; top: 60px; left: 20px; right: 20px; z-index: 1000; background: #fff0f0; color: #921b1b; padding: 12px; border: 1px solid #921b1b; }
 /* ── Layout ───────────────────────────────────────────────── */
 .container {
   display: flex;

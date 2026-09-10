@@ -6,7 +6,9 @@ Graph visualization app for IFC files
 
 ## Installation
 
-This project is built with Python FastAPI for the backend and Vite+Vue+TS for the frontend, so you need to set up both Python and Node.js environments.
+The backend uses Python FastAPI, and the frontend uses Vite+Vue+TS.
+Both Python and Node.js are required to view IFC files.
+IFCX files are processed entirely in the browser, so you do not need to install or run Python if you only view IFCX files.
 
 ### Python
 
@@ -82,3 +84,14 @@ uv run nuitka app.py --standalone --follow-imports --windows-console-mode=disabl
   - Select an ID in the search window to display a node near the top-left area of the canvas
 - Use the mouse wheel to zoom in and out of the display
 - Use the zoom controls in the top-right of the header for zoom in/out, reset, and fit-to-screen
+
+## Previewing the Pages Build
+
+```sh
+cd nodejs
+npm run build:pages
+npm run preview -- --mode pages
+```
+
+Open `http://localhost:4173/ifc-graph-viewer/` in your browser.
+Pages mode supports IFCX only.

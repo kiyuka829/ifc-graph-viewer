@@ -6,6 +6,6 @@ import svgLoader from "vite-svg-loader";
 export default defineConfig(({ mode }) => {
   return {
     plugins: [vue(), svgLoader({})],
-    base: mode === "development" ? "/" : "/dist/",
+    base: mode === "pages" ? "/ifc-graph-viewer/" : mode === "development" ? "/" : "/dist/",
   };
 });

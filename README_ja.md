@@ -6,7 +6,9 @@ IFC ファイルのグラフ可視化アプリ
 
 ## インストール
 
-バックエンドを Python の FastAPI、フロントエンドを Vite+Vue+TS で構築しているので、Python と Node.js の両方の環境を作る必要がある。
+バックエンドは Python の FastAPI、フロントエンドは Vite+Vue+TS で構築している。
+IFC を表示する場合は Python と Node.js の両方の環境が必要。
+IFCX のみ表示する場合はブラウザ内で処理するため、Python の環境構築・起動は不要。
 
 ### Python
 
@@ -82,3 +84,14 @@ uv run nuitka app.py --standalone --follow-imports --windows-console-mode=disabl
   - 検索結果の ID を選択すると、キャンバス左上付近にノードが表示される
 - マウスホイールで表示の拡大縮小ができる
 - ヘッダー右上のズーム操作で拡大・縮小・リセット・全体表示（Fit）ができる
+
+## Pages 用ビルドの確認方法
+
+```sh
+cd nodejs
+npm run build:pages
+npm run preview -- --mode pages
+```
+
+`http://localhost:4173/ifc-graph-viewer/` にアクセスする。
+Pages モードは IFCX のみに対応。

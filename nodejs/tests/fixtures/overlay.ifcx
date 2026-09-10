@@ -1,0 +1,1 @@
+{"header":{"ifcxVersion":"ifcx_alpha"},"data":[{"path":"project","attributes":{"label":"Merged","nested":{"replacement":42}}},{"path":"second","inherits":{"wall":"wall"}}]}
