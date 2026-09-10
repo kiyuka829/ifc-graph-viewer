@@ -12,7 +12,7 @@ import ToolbarComponent from "./ToolbarComponent.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 import FitScreenIcon from "../assets/icons/fit-screen.svg";
 
-import { apiSource as modelSource } from "../data/api";
+import { modelSource } from "../data/source";
 
 // ノードとエッジのデータ
 const nodes = ref<IfcNode[]>([]);
@@ -56,6 +56,7 @@ const nodeSpawnPosition = ref({ x: 0, y: 0 });
 
 // アップロードしたファイルパス
 const filepath = ref<string>("");
+const loadError = ref("");
 const fileInput = ref<HTMLInputElement | null>(null);
 const viewFilename = ref<string>("");
 const isLoading = ref(false);
@@ -266,15 +267,16 @@ function clearCanvas() {
 
 // ファイルのアップロード
 const uploadFile = async (files: FileList | File[]) => {
-  clearCanvas();
-
+  if (isLoading.value) return;
+  loadError.value = "";
   const fileArray = Array.from(files);
-  viewFilename.value = fileArray.map((f) => f.name).join(", ");
   isLoading.value = true;
 
   // ファイルをサーバーにアップロード
   try {
     const data = await modelSource.load(fileArray);
+    clearCanvas();
+    viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
     const node = convertToNode(data.root);
@@ -283,7 +285,7 @@ const uploadFile = async (files: FileList | File[]) => {
     console.log(node);
   } catch (error) {
     // エラー処理
-    console.error("ファイルのアップロードに失敗しました:", error);
+    loadError.value = error instanceof Error ? error.message : "Failed to load file.";
   } finally {
     isLoading.value = false;
   }
@@ -297,6 +299,7 @@ const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
     uploadFile(target.files); // 選択されたファイルを処理
+    target.value = "";
   }
 };
 const handleDrop = (event: DragEvent) => {
@@ -823,11 +826,11 @@ const isUuidQuery = (value: string) =>
     value,
   );
 const getLookupKey = (value: string, path: string) => {
-  if (path.endsWith(".ifc")) {
+  if (path.toLowerCase().endsWith(".ifc")) {
     if (isNumericIdQuery(value)) return "id";
     if (isGlobalIdQuery(value)) return "globalId";
   }
-  if (path.endsWith(".ifcx")) {
+  if (path.toLowerCase().endsWith(".ifcx")) {
     if (isUuidQuery(value)) return "id";
   }
   return null;
@@ -903,6 +906,7 @@ const handleDragOver = (event: DragEvent) => {
 </script>
 
 <template>
+  <p v-if="loadError" role="alert" class="load-error">{{ loadError }}</p>
   <div
     class="file-drop-area"
     @dragenter.prevent
@@ -918,6 +922,8 @@ const handleDragOver = (event: DragEvent) => {
     </div>
     <input
       type="file"
+      multiple
+      accept=".ifc,.ifcx"
       ref="fileInput"
       @change="handleFileSelect"
       class="hidden-input"
@@ -1123,6 +1129,7 @@ const handleDragOver = (event: DragEvent) => {
 </template>
 
 <style scoped>
+.load-error { position: fixed; top: 60px; left: 20px; right: 20px; z-index: 1000; background: #fff0f0; color: #921b1b; padding: 12px; border: 1px solid #921b1b; }
 /* ── Layout ───────────────────────────────────────────────── */
 .container {
   display: flex;

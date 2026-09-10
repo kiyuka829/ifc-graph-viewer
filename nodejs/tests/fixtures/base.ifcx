@@ -1,0 +1,1 @@
+{"header":{"ifcxVersion":"ifcx-alpha","author":"Browser test"},"data":[{"path":"project","children":{"wall":"wall","__proto__":"__proto__"},"attributes":{"label":"Original","nested":{"flag":true,"empty":null,"array":[1,{"x":2}]} }},{"path":"wall","attributes":{"parent":"project","self":"wall"}},{"path":"__proto__","attributes":{"label":"Safe path"}}]}
