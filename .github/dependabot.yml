@@ -5,22 +5,10 @@ updates:
     directory: /nodejs
     schedule:
       interval: weekly
-    groups:
-      npm-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
+    open-pull-requests-limit: 0
 
   - package-ecosystem: uv
     directory: /python
     schedule:
       interval: weekly
-    groups:
-      python-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
+    open-pull-requests-limit: 0
