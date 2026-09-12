@@ -15,10 +15,7 @@ test("IFC-disabled configuration accepts IFCX and rejects IFC", () => {
 test("IFC-enabled builds accept both formats individually and reject mixed and empty selections", () => {
   assert.equal(validateFiles(files("a.ifc"), true), "ifc");
   assert.equal(validateFiles(files("a.ifcx"), true), "ifcx");
-  assert.throws(
-    () => validateFiles(files("a.ifc", "b.ifcx"), true),
-    /separately/,
-  );
+  assert.throws(() => validateFiles(files("a.ifc", "b.ifcx"), true), /separately/);
   assert.throws(() => validateFiles(files("a.ifc", "b.ifc"), true), /one IFC/);
   assert.throws(() => validateFiles([], true), /Select a file/);
 });

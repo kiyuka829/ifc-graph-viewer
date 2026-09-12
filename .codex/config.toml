@@ -1,0 +1,6 @@
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = "npm --prefix nodejs run format && uv run --directory python ruff format ."
+statusMessage = "Formatting Node.js and Python files"

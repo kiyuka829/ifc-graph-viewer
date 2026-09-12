@@ -3,16 +3,12 @@ export function validateFiles(
   enableIfc: boolean,
 ): "ifc" | "ifcx" {
   if (!files.length) throw new Error("Select a file.");
-  const extensions = files.map((file) =>
-    file.name.split(".").pop()?.toLowerCase(),
-  );
+  const extensions = files.map((file) => file.name.split(".").pop()?.toLowerCase());
   if (!enableIfc && extensions.includes("ifc"))
     throw new Error(
       "IFC loading is unavailable in this version. Please use the local version for IFC files.",
     );
-  if (
-    extensions.some((extension) => extension !== "ifc" && extension !== "ifcx")
-  )
+  if (extensions.some((extension) => extension !== "ifc" && extension !== "ifcx"))
     throw new Error(
       enableIfc
         ? "Only IFC and IFCX files are supported."

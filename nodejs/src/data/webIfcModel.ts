@@ -33,9 +33,7 @@ export class WebIfcModel {
       throw new Error("Create a new IFC model before loading another file.");
     this.model = this.api.OpenModel(bytes);
     if (this.model < 0)
-      throw new Error(
-        "Unable to open IFC: invalid file or unsupported schema.",
-      );
+      throw new Error("Unable to open IFC: invalid file or unsupported schema.");
     const all = this.api.GetAllLines(this.model);
     for (let i = 0; i < all.size(); i++) this.ids.add(all.get(i));
     const searchData: ModelData["searchData"] = Object.create(null);
@@ -56,9 +54,7 @@ export class WebIfcModel {
     const projects = this.api.GetLineIDsWithType(this.model, IFCPROJECT);
     if (!projects.size()) throw new Error("IFC contains no IfcProject.");
     const headerArgs = (type: number) =>
-      this.unwrap(
-        this.api.GetHeaderLine(this.model, type)?.arguments ?? [],
-      ) as any[];
+      this.unwrap(this.api.GetHeaderLine(this.model, type)?.arguments ?? []) as any[];
     const description = headerArgs(FILE_DESCRIPTION),
       name = headerArgs(FILE_NAME),
       schema = headerArgs(FILE_SCHEMA);
@@ -92,8 +88,7 @@ export class WebIfcModel {
   }
 
   private visitReferences(value: any, visit: (id: number) => void) {
-    if (Array.isArray(value))
-      value.forEach((v) => this.visitReferences(v, visit));
+    if (Array.isArray(value)) value.forEach((v) => this.visitReferences(v, visit));
     else if (value && typeof value === "object") {
       if (value.type === REF && value.value > 0) visit(value.value);
       else Object.values(value).forEach((v) => this.visitReferences(v, visit));
@@ -205,11 +200,7 @@ export class WebIfcModel {
   private searchItem(line: any) {
     return {
       id: String(line.expressID),
-      displayName: [
-        `#${line.expressID}`,
-        line.GlobalId?.value,
-        line.Name?.value,
-      ]
+      displayName: [`#${line.expressID}`, line.GlobalId?.value, line.Name?.value]
         .filter((v) => v !== undefined && v !== null)
         .join(" | "),
     };

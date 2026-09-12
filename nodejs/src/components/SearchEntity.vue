@@ -18,9 +18,7 @@ const subMenuTop = ref<number>(0);
 const hoverItem = ref<string>("");
 const mainList = ref<HTMLElement | null>(null);
 
-const activeElements = computed(
-  () => props.lookupElements ?? props.elements
-);
+const activeElements = computed(() => props.lookupElements ?? props.elements);
 
 // コンポーネントが表示されたらフォーカスを設定
 onMounted(() => {
@@ -36,7 +34,7 @@ const filteredList = computed(() => {
   }
   return keys
     .filter((element) =>
-      element.toLowerCase().includes(searchQuery.value.toLowerCase())
+      element.toLowerCase().includes(searchQuery.value.toLowerCase()),
     )
     .sort();
 });
@@ -85,15 +83,12 @@ watch(
     }
     await nextTick();
     openSubMenu(keys[0], 0);
-  }
+  },
 );
 </script>
 
 <template>
-  <div
-    class="menu-container"
-    @click="handleClick"
-  >
+  <div class="menu-container" @click="handleClick">
     <div class="menu">
       <!-- 検索欄 -->
       <div class="search-box">
@@ -189,7 +184,9 @@ watch(
   color: var(--text-primary);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .search-box-text:focus {

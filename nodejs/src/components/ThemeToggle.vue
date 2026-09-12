@@ -18,8 +18,7 @@ const applyTheme = (dark: boolean) => {
 
 onMounted(() => {
   // Sync with whatever was applied by the inline script in index.html
-  isDark.value =
-    document.documentElement.getAttribute("data-theme") === "dark";
+  isDark.value = document.documentElement.getAttribute("data-theme") === "dark";
 });
 
 const toggle = () => {
