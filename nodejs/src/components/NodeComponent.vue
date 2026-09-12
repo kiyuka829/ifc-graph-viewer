@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { isRelationAttribute } from "../data/graph";
 import type { GraphRelation, GraphNode } from "../data/graph";
 import type { CanvasNodeState, Position } from "./interfaces";
-import { groupRelations, hasValue, relationPortId } from "./utils";
+import { hasValue, relationPortId } from "./utils";
 
 const props = defineProps<{
   node: GraphNode;
@@ -31,25 +32,32 @@ const lastMousePosition = ref({ x: 0, y: 0 });
 const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
 const currentMouseMoveHandler = ref<((event: MouseEvent) => void) | null>(null);
 
-const relationGroups = computed(() =>
-  groupRelations(
-    props.node.relationIds
-      .map((id) => props.relations.find((relation) => relation.id === id))
-      .filter((relation): relation is GraphRelation => relation !== undefined),
-  ),
+const relationsById = computed(
+  () => new Map(props.relations.map((relation) => [relation.id, relation])),
 );
-const references = computed(
-  () => relationGroups.value.find((group) => group[0].kind === "reference") ?? [],
+const references = computed(() =>
+  props.node.relationIds
+    .map((id) => relationsById.value.get(id))
+    .filter((relation): relation is GraphRelation => relation?.kind === "reference"),
 );
-const displayRelationGroups = computed(() =>
-  relationGroups.value.filter((group) => group[0].kind !== "reference"),
-);
+const attributeRelations = (relationIds: string[]) =>
+  relationIds
+    .map((id) => relationsById.value.get(id))
+    .filter((relation): relation is GraphRelation => relation !== undefined);
 const relationLabel = (relation: GraphRelation) =>
   relation.kind === "child" || relation.kind === "inherits"
     ? `${relation.kind}: ${relation.label}`
     : relation.label;
 const isInverse = (relation: GraphRelation) =>
   relation.kind === "inverse" || relation.kind === "reference";
+const attributeLabel = (name: string, relationIds: string[]) => {
+  const relation = attributeRelations(relationIds)[0];
+  return relation ? relationLabel(relation) : name;
+};
+const isInverseAttribute = (relationIds: string[]) => {
+  const relation = attributeRelations(relationIds)[0];
+  return relation ? isInverse(relation) : false;
+};
 
 // ノードの移動
 const onMouseDown = (event: MouseEvent) => {
@@ -236,27 +244,32 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
       ></span>
     </div>
     <div class="node-body">
-      <template v-for="attribute in node.attributes" :key="attribute.name">
-        <div class="attribute" v-if="hasValue(attribute.value)">
+      <template v-for="(attribute, index) in node.attributes" :key="index">
+        <div
+          v-if="!isRelationAttribute(attribute) && hasValue(attribute.value)"
+          class="attribute"
+        >
           <span class="truncate-text" :title="attribute.name">{{
             attribute.name
           }}</span>
         </div>
+        <div
+          v-else-if="isRelationAttribute(attribute) && attribute.relationIds.length"
+          class="attribute"
+          :class="{ 'inverse-attribute': isInverseAttribute(attribute.relationIds) }"
+        >
+          <span class="truncate-text" :title="attribute.name">{{
+            attributeLabel(attribute.name, attribute.relationIds)
+          }}</span>
+          <span
+            class="dot"
+            @mousedown.prevent="
+              (event) =>
+                onDotMouseDown(event, attributeRelations(attribute.relationIds))
+            "
+          ></span>
+        </div>
       </template>
-      <div
-        v-for="relations in displayRelationGroups"
-        :key="relationPortId(relations[0])"
-        class="attribute"
-        :class="{ 'inverse-attribute': isInverse(relations[0]) }"
-      >
-        <span class="truncate-text" :title="relationLabel(relations[0])">{{
-          relationLabel(relations[0])
-        }}</span>
-        <span
-          class="dot"
-          @mousedown.prevent="(event) => onDotMouseDown(event, relations)"
-        ></span>
-      </div>
     </div>
   </div>
   <!--  -->

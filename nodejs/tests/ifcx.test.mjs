@@ -21,11 +21,19 @@ test("composition returns graph nodes without mutating headers", async () => {
   assert.deepEqual(model.root.header, { primary: "project" });
   assert.equal(model.headers.length, 2);
   assert.deepEqual(model.root.attributes, [
+    {
+      name: "wall",
+      relationIds: ['["project","child","wall","wall",0]'],
+    },
+    {
+      name: "__proto__",
+      relationIds: ['["project","child","__proto__","__proto__",0]'],
+    },
     { name: "label", value: "Merged" },
     { name: "nested::replacement", value: 42 },
   ]);
   const base = await new IfcxSource().load([await fixture("base.ifcx")]);
-  assert.deepEqual(base.root.attributes.slice(1), [
+  assert.deepEqual(base.root.attributes.slice(3), [
     { name: "nested::flag", value: true },
     { name: "nested::empty", value: null },
     { name: "nested::array", value: [1, { x: 2 }] },
@@ -84,6 +92,20 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
     secondary: "IfcWall",
   });
   const root = await source.getNode("", "root");
+  assert.deepEqual(root.node.attributes, [
+    {
+      name: "first",
+      relationIds: ['["root","child","first","target",0]'],
+    },
+    {
+      name: "same",
+      relationIds: ['["root","child","same","target",0]'],
+    },
+    {
+      name: "same",
+      relationIds: ['["root","inherits","same","target",0]'],
+    },
+  ]);
   assert.deepEqual(
     root.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
@@ -96,6 +118,10 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   const target = await source.getNode("", "target");
   assert.deepEqual(target.node.attributes, [
     { name: "bsi::ifc::class::code", value: "IfcWall" },
+    {
+      name: "self",
+      relationIds: ['["target","attribute","self","target",0]'],
+    },
     { name: "plain", value: "text" },
     { name: "nested::flag", value: true },
     { name: "array", value: [1, { x: 2 }] },

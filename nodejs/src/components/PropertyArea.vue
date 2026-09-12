@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { GraphNode, GraphRelation } from "../data/graph";
-import { groupRelations } from "./utils";
+import { isRelationAttribute } from "../data/graph";
+import type { GraphAttribute, GraphNode, GraphRelation } from "../data/graph";
 
 const props = defineProps<{
   node: GraphNode;
@@ -14,15 +14,22 @@ const nodeRelations = computed(() =>
     .map((id) => props.relations.find((relation) => relation.id === id))
     .filter((relation): relation is GraphRelation => relation !== undefined),
 );
-const inverseRelationGroups = computed(() =>
-  groupRelations(nodeRelations.value.filter((relation) => relation.kind === "inverse")),
+const relationsById = computed(
+  () => new Map(props.relations.map((relation) => [relation.id, relation])),
 );
-const relationGroups = computed(() =>
-  groupRelations(
-    nodeRelations.value.filter(
-      (relation) => relation.kind !== "inverse" && relation.kind !== "reference",
-    ),
-  ),
+const attributeRelations = (attribute: GraphAttribute) =>
+  isRelationAttribute(attribute)
+    ? attribute.relationIds
+        .map((id) => relationsById.value.get(id))
+        .filter((relation): relation is GraphRelation => relation !== undefined)
+    : [];
+const isInverseAttribute = (attribute: GraphAttribute) =>
+  attributeRelations(attribute)[0]?.kind === "inverse";
+const attributes = computed(() =>
+  props.node.attributes.filter((attribute) => !isInverseAttribute(attribute)),
+);
+const inverseAttributes = computed(() =>
+  props.node.attributes.filter(isInverseAttribute),
 );
 const referenceRelations = computed(() =>
   nodeRelations.value.filter((relation) => relation.kind === "reference"),
@@ -40,6 +47,12 @@ const stringifyValue = (value: any): string => {
 };
 const isIfc = computed(() => props.node.header.secondary?.startsWith("#") ?? false);
 const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
+const stringifyAttribute = (attribute: GraphAttribute) =>
+  isRelationAttribute(attribute)
+    ? attributeRelations(attribute)
+        .map((relation) => stringifyId(relation.targetId))
+        .join(", ")
+    : stringifyValue(attribute.value);
 </script>
 
 <template>
@@ -57,38 +70,14 @@ const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="attribute in node.attributes" :key="attribute.name">
+        <tr v-for="(attribute, index) in attributes" :key="index">
           <td>{{ attribute.name }}</td>
-          <td>{{ stringifyValue(attribute.value) }}</td>
+          <td>{{ stringifyAttribute(attribute) }}</td>
         </tr>
       </tbody>
     </table>
 
-    <template v-if="relationGroups.length">
-      <h4>Relations</h4>
-      <table>
-        <thead>
-          <tr>
-            <th>Kind</th>
-            <th>Name</th>
-            <th>Content</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="relations in relationGroups" :key="relations[0].id">
-            <td>{{ relations[0].kind }}</td>
-            <td>{{ relations[0].label }}</td>
-            <td>
-              {{
-                relations.map((relation) => stringifyId(relation.targetId)).join(", ")
-              }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
-
-    <template v-if="inverseRelationGroups.length">
+    <template v-if="inverseAttributes.length">
       <h4>Inverse Attributes</h4>
       <table>
         <thead>
@@ -98,13 +87,9 @@ const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
           </tr>
         </thead>
         <tbody>
-          <tr v-for="relations in inverseRelationGroups" :key="relations[0].id">
-            <td>{{ relations[0].label }}</td>
-            <td>
-              {{
-                relations.map((relation) => stringifyId(relation.targetId)).join(", ")
-              }}
-            </td>
+          <tr v-for="(attribute, index) in inverseAttributes" :key="index">
+            <td>{{ attribute.name }}</td>
+            <td>{{ stringifyAttribute(attribute) }}</td>
           </tr>
         </tbody>
       </table>

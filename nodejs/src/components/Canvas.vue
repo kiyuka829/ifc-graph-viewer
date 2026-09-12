@@ -10,7 +10,8 @@ import type {
   SearchData,
   HeaderEntry,
 } from "./interfaces";
-import { groupRelations, hasValue, relationPortId } from "./utils";
+import { hasValue, relationPortId } from "./utils";
+import { isRelationAttribute } from "../data/graph";
 import type { GraphNode, GraphNodeResponse, GraphRelation } from "../data/graph";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
@@ -207,9 +208,7 @@ function drag(event: MouseEvent) {
         const left = nodePosition.x;
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
-        const length =
-          node.attributes.filter((attr) => hasValue(attr.value)).length +
-          relationRowCount(node);
+        const length = attributeRowCount(node);
         // ヘッダーの高さ32px、bodyのpadding16px(上下各8px)、属性の高さ24px+margin4px=28px
         const bottom =
           nodePosition.y +
@@ -339,37 +338,40 @@ const ATTRIBUTE_EDGE_ROW_GAP = 28;
 const isInverseRelation = (relation: GraphRelation) =>
   relation.kind === "inverse" || relation.kind === "reference";
 
-const relationGroups = (node: GraphNode) =>
-  groupRelations(
-    node.relationIds
-      .map((id) => relations.value.find((relation) => relation.id === id))
-      .filter((relation): relation is GraphRelation => relation !== undefined),
-  );
-
-const relationRowCount = (node: GraphNode) =>
-  relationGroups(node).filter((group) => group[0].kind !== "reference").length;
+const attributeRowCount = (node: GraphNode) =>
+  node.attributes.filter((attribute) =>
+    isRelationAttribute(attribute)
+      ? attribute.relationIds.length > 0
+      : hasValue(attribute.value),
+  ).length;
 
 function updatePortPositions(node: GraphNode) {
   const state = nodeStates.value[node.id];
   if (!state) return;
   const visibleAttributes = node.attributes.filter((attribute) =>
-    hasValue(attribute.value),
+    isRelationAttribute(attribute)
+      ? attribute.relationIds.length > 0
+      : hasValue(attribute.value),
   );
   const portPositions: Record<string, Position> = {};
-  const groups = relationGroups(node);
-  const references = groups.find((group) => group[0].kind === "reference");
-  if (references) portPositions.reference = { x: 0, y: REFERENCE_EDGE_Y };
-  groups
-    .filter((group) => group[0].kind !== "reference")
-    .forEach((group, index) => {
-      const relation = group[0];
-      portPositions[relationPortId(relation)] = {
-        x: isInverseRelation(relation) ? 0 : NODE_WIDTH,
-        y:
-          ATTRIBUTE_EDGE_START_Y +
-          (visibleAttributes.length + index) * ATTRIBUTE_EDGE_ROW_GAP,
-      };
-    });
+  const nodeRelations = node.relationIds
+    .map((id) => relations.value.find((relation) => relation.id === id))
+    .filter((relation): relation is GraphRelation => relation !== undefined);
+  if (nodeRelations.some((relation) => relation.kind === "reference"))
+    portPositions.reference = { x: 0, y: REFERENCE_EDGE_Y };
+  visibleAttributes.forEach((attribute, index) => {
+    if (!isRelationAttribute(attribute)) return;
+    const attributeRelations = attribute.relationIds
+      .map((id) => relations.value.find((relation) => relation.id === id))
+      .filter((relation): relation is GraphRelation => relation !== undefined);
+    const relation = attributeRelations[0];
+    if (!relation) return;
+    const position = {
+      x: isInverseRelation(relation) ? 0 : NODE_WIDTH,
+      y: ATTRIBUTE_EDGE_START_Y + index * ATTRIBUTE_EDGE_ROW_GAP,
+    };
+    for (const item of attributeRelations) portPositions[item.id] = position;
+  });
   state.portPositions = portPositions;
 }
 
@@ -631,12 +633,7 @@ const getGraphBounds = () => {
   const nodeWidth = 200;
   return nodes.value.reduce(
     (acc, node) => {
-      const nodeHeight =
-        32 +
-        16 +
-        28 *
-          (node.attributes.filter((attr) => hasValue(attr.value)).length +
-            relationRowCount(node));
+      const nodeHeight = 32 + 16 + 28 * attributeRowCount(node);
       const nodePosition = nodeStates.value[node.id]?.position ?? { x: 0, y: 0 };
       const left = nodePosition.x;
       const right = nodePosition.x + nodeWidth;

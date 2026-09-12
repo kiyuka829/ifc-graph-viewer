@@ -138,25 +138,31 @@ export class IfcxSource implements ModelSource {
       const key = JSON.stringify([node.path, kind, label, targetId]);
       const occurrence = occurrences.get(key) ?? 0;
       occurrences.set(key, occurrence + 1);
+      const id = relationId(node.path, kind, label, targetId, occurrence);
       relations.push({
-        id: relationId(node.path, kind, label, targetId, occurrence),
+        id,
         sourceId: node.path,
         targetId,
         kind,
         label,
       });
+      return id;
     };
-    for (const [label, targetId] of Object.entries(node.children))
-      addRelation("child", label, targetId);
-    for (const [label, targetId] of Object.entries(node.inherits))
-      addRelation("inherits", label, targetId);
-    const attributes = flatten(node.attributes).flatMap(([name, value]) => {
-      if (typeof value === "string" && this.nodes.has(value)) {
-        addRelation("attribute", name, value);
-        return [];
-      }
-      return [{ name, value }];
-    });
+    const attributes = [
+      ...Object.entries(node.children).map(([name, targetId]) => ({
+        name,
+        relationIds: [addRelation("child", name, targetId)],
+      })),
+      ...Object.entries(node.inherits).map(([name, targetId]) => ({
+        name,
+        relationIds: [addRelation("inherits", name, targetId)],
+      })),
+      ...flatten(node.attributes).map(([name, value]) =>
+        typeof value === "string" && this.nodes.has(value)
+          ? { name, relationIds: [addRelation("attribute", name, value)] }
+          : { name, value },
+      ),
+    ];
     for (const sourceId of this.references.get(node.path) ?? [])
       addRelation("reference", "references", sourceId);
     const code = classification(node);

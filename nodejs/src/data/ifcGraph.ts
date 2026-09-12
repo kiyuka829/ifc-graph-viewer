@@ -38,25 +38,34 @@ export function ifcNodeToGraph(node: LegacyIfcNode): GraphNodeResponse {
   const relations: GraphRelation[] = [];
   const occurrences = new Map<string, number>();
   const addRelations = (attribute: LegacyAttribute, kind: GraphRelationKind) => {
+    const ids: string[] = [];
     for (const targetId of relationIds(attribute.content.value)) {
       const key = JSON.stringify([sourceId, kind, attribute.name, targetId]);
       const index = occurrences.get(key) ?? 0;
       occurrences.set(key, index + 1);
+      const id = relationId(sourceId, kind, attribute.name, targetId, index);
       relations.push({
-        id: relationId(sourceId, kind, attribute.name, targetId, index),
+        id,
         sourceId,
         targetId,
         kind,
         label: attribute.name,
       });
+      ids.push(id);
     }
+    return ids;
   };
-  const attributes = node.attributes.flatMap((attribute) => {
+  const attributes = node.attributes.map((attribute) => {
     if (attribute.content.type === "id") {
-      addRelations(attribute, attribute.inverse ? "inverse" : "attribute");
-      return [];
+      return {
+        name: attribute.name,
+        relationIds: addRelations(
+          attribute,
+          attribute.inverse ? "inverse" : "attribute",
+        ),
+      };
     }
-    return [{ name: attribute.name, value: attribute.content.value }];
+    return { name: attribute.name, value: attribute.content.value };
   });
   if (node.references.content.type === "id") addRelations(node.references, "reference");
   else

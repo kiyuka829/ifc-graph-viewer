@@ -28,6 +28,18 @@ test("converts IFC values and relations without losing occurrence or direction",
     attributes: [
       { name: "Name", value: "Wall" },
       { name: "NullValue", value: null },
+      {
+        name: "Points",
+        relationIds: [
+          '["12","attribute","Points","3",0]',
+          '["12","attribute","Points","3",1]',
+          '["12","attribute","Points","4",0]',
+        ],
+      },
+      {
+        name: "IsDefinedBy",
+        relationIds: ['["12","inverse","IsDefinedBy","25",0]'],
+      },
       { name: "Tags", value: [] },
     ],
     relationIds: [

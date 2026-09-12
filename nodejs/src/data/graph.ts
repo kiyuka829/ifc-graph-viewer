@@ -7,8 +7,12 @@ export interface NodeHeader {
 }
 
 export type GraphAttribute =
-  | { name: string; value: unknown; relationIds?: never }
-  | { name: string; relationIds: string[]; value?: never };
+  { name: string; value: unknown } | { name: string; relationIds: string[] };
+
+export const isRelationAttribute = (
+  attribute: GraphAttribute,
+): attribute is Extract<GraphAttribute, { relationIds: string[] }> =>
+  "relationIds" in attribute;
 
 export type GraphRelationKind =
   "attribute" | "inverse" | "reference" | "child" | "inherits";
