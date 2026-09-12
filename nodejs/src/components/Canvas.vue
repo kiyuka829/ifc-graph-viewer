@@ -12,6 +12,7 @@ import {
   HeaderEntry,
 } from "./interfaces";
 import { hasValue } from "./utils";
+import { graphResponseToIfcNode } from "./graphCompatibility";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -285,7 +286,7 @@ const uploadFile = async (files: FileList | File[]) => {
     viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
-    const node = convertToNode(data.root);
+    const node = convertToNode({ node: data.root, relations: data.relations });
     nodes.value.push(node);
     filepath.value = data.path;
     console.log(node);
@@ -326,41 +327,17 @@ const ATTRIBUTE_EDGE_START_Y =
 const ATTRIBUTE_EDGE_ROW_GAP = 28;
 
 // レスポンスデータをNodeに変換
-function convertToNode(data: any): IfcNode {
-  const node: IfcNode = {
-    id: data.id,
-    type: data.type,
-    reference: null,
-    attributes: [],
-    position: { x: 40, y: 60 },
-  };
-
-  // attributes
+function convertToNode(data: Parameters<typeof graphResponseToIfcNode>[0]): IfcNode {
+  const node = graphResponseToIfcNode(data);
   let count = 0;
-  for (const attr of data.attributes) {
-    const attribute = {
-      name: attr.name,
-      content: attr.content,
-      edgePosition: {
-        x: attr.inverse ? 0 : NODE_WIDTH,
-        y: ATTRIBUTE_EDGE_START_Y + count * ATTRIBUTE_EDGE_ROW_GAP,
-      },
-      inverse: attr.inverse,
+  for (const attribute of node.attributes) {
+    attribute.edgePosition = {
+      x: attribute.inverse ? 0 : NODE_WIDTH,
+      y: ATTRIBUTE_EDGE_START_Y + count * ATTRIBUTE_EDGE_ROW_GAP,
     };
-    hasValue(attr.content) && count++;
-    node.attributes.push(attribute);
+    hasValue(attribute.content) && count++;
   }
-
-  if (data.references.content.value.length === 0) {
-    return node;
-  }
-  const reference = {
-    name: "Reference",
-    content: data.references.content,
-    edgePosition: { x: 0, y: REFERENCE_EDGE_Y },
-    inverse: true,
-  };
-  node.reference = reference;
+  if (node.reference) node.reference.edgePosition = { x: 0, y: REFERENCE_EDGE_Y };
 
   return node;
 }
@@ -503,7 +480,7 @@ const addNode_ = (
     .getNode(filepath.value, dstId)
     .then((data) => {
       // レスポンスを処理
-      const node = convertToNode(data.node);
+      const node = convertToNode(data);
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === dstId)) {
@@ -756,7 +733,7 @@ const addNodeById = (id: string, dstPosition: Position) => {
     .getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
-      const node = convertToNode(data.node);
+      const node = convertToNode(data);
 
       // 表示済みならノードを追加しない
       if (!nodes.value.find((c) => c.id === node.id)) {

@@ -10,6 +10,7 @@ import {
   IFCGEOMETRICREPRESENTATIONSUBCONTEXT,
 } from "web-ifc";
 import type { ModelData } from "./model";
+import { ifcNodeToGraph } from "./ifcGraph.ts";
 
 // Keep the WASM API inside its worker; only plain data crosses the boundary.
 export class WebIfcModel {
@@ -58,9 +59,11 @@ export class WebIfcModel {
     const description = headerArgs(FILE_DESCRIPTION),
       name = headerArgs(FILE_NAME),
       schema = headerArgs(FILE_SCHEMA);
+    const root = this.getNode(String(projects.get(0)));
     return {
       path: filename,
-      root: this.getNode(String(projects.get(0))).node,
+      root: root.node,
+      relations: root.relations,
       searchData,
       headers: [
         {
@@ -178,23 +181,21 @@ export class WebIfcModel {
         inverse: true,
       });
     }
-    return {
-      node: {
-        id,
-        type: this.api.GetNameFromTypeCode(normal.type),
-        attributes,
-        references: {
-          name: "references",
-          content: {
-            type: "id",
-            value: [...(this.incoming.get(id) ?? [])]
-              .filter((ref) => !inverseIds.has(ref))
-              .sort((a, b) => a - b),
-          },
-          inverse: true,
+    return ifcNodeToGraph({
+      id,
+      type: this.api.GetNameFromTypeCode(normal.type),
+      attributes,
+      references: {
+        name: "references",
+        content: {
+          type: "id",
+          value: [...(this.incoming.get(id) ?? [])]
+            .filter((ref) => !inverseIds.has(ref))
+            .sort((a, b) => a - b),
         },
+        inverse: true,
       },
-    };
+    });
   }
 
   private searchItem(line: any) {

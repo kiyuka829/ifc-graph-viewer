@@ -51,7 +51,7 @@ const stringifyContents = (content: AttrContent): string => {
           v-for="attribute in node.attributes.filter((attr) => !attr.inverse)"
           :key="attribute.name"
         >
-          <td>{{ attribute.name }}</td>
+          <td>{{ attribute.displayName ?? attribute.name }}</td>
           <td>{{ stringifyContents(attribute.content) }}</td>
         </tr>
       </tbody>
@@ -71,7 +71,7 @@ const stringifyContents = (content: AttrContent): string => {
             v-for="attribute in node.attributes.filter((attr) => attr.inverse)"
             :key="attribute.name"
           >
-            <td>{{ attribute.name }}</td>
+            <td>{{ attribute.displayName ?? attribute.name }}</td>
             <td>{{ stringifyContents(attribute.content) }}</td>
           </tr>
         </tbody>

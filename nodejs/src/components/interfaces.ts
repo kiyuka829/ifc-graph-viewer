@@ -1,6 +1,7 @@
 export interface IfcNode {
   id: string;
   type: string;
+  secondary?: string;
   reference: Attribute | null;
   attributes: Attribute[];
   position: Position;
@@ -9,6 +10,7 @@ export interface IfcNode {
 
 export interface Attribute {
   name: string;
+  displayName?: string;
   content: AttrContent; // 接続先のIDまたはテキストデータ
   inverse: boolean;
   edgePosition: Position; // エッジの接続位置
@@ -16,7 +18,7 @@ export interface Attribute {
 
 export interface AttrContent {
   type: string;
-  value: string | number | boolean | null | unknown[] | Record<string, unknown>;
+  value: unknown;
 }
 
 // attrName = undefined はノードの左上に接続されているとき

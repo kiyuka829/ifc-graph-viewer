@@ -208,8 +208,9 @@ const isId = (content: AttrContent): boolean => {
     @mousedown="onMouseDown"
   >
     <div class="node-header">
-      <!-- TODO: ID表記処理がごり押しなので注意 -->
-      <span class="id">{{ typeof node.id === "number" ? "#" + node.id : "" }}</span>
+      <span v-if="node.secondary" class="id" :title="node.secondary">{{
+        node.secondary
+      }}</span>
       <span class="title truncate-text" :title="node.type">{{ node.type }}</span>
       <span
         :class="['icon', { 'icon-disabled': !node.reference }]"
@@ -223,9 +224,11 @@ const isId = (content: AttrContent): boolean => {
           v-if="hasValue(attribute.content)"
           :class="{ 'inverse-attribute': attribute.inverse }"
         >
-          <span class="truncate-text" :title="attribute.name">{{
-            attribute.name
-          }}</span>
+          <span
+            class="truncate-text"
+            :title="attribute.displayName ?? attribute.name"
+            >{{ attribute.displayName ?? attribute.name }}</span
+          >
           <span
             class="dot"
             v-if="isId(attribute.content)"
@@ -273,6 +276,10 @@ const isId = (content: AttrContent): boolean => {
   font-size: 0.8rem;
   color: var(--text-muted);
   flex-shrink: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .title {
