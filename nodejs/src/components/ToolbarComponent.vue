@@ -113,7 +113,9 @@ const alignNodes = (event: MouseEvent, align: string) => {
   border-radius: 4px;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .align-icon:hover {

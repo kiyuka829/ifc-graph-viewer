@@ -35,9 +35,7 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
         `${schema}.ifc`,
       );
       const expected = JSON.parse(
-        await readFile(
-          new URL(`fixtures/${schema}.expected.json`, import.meta.url),
-        ),
+        await readFile(new URL(`fixtures/${schema}.expected.json`, import.meta.url)),
       );
       assert.equal(data.root.type, "IfcProject");
       assert.equal(
@@ -58,10 +56,7 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
         model.lookup("globalId", "00000000000000000000A2").entityType,
         "IfcWall",
       );
-      assert.deepEqual(
-        model.lookup("globalId", "0000000000000000000001").items,
-        [],
-      );
+      assert.deepEqual(model.lookup("globalId", "0000000000000000000001").items, []);
       assert.equal(model.lookup("id", "1").entityType, "IfcProject");
       assert.deepEqual(model.lookup("id", "99999").items, []);
       assert.throws(() => model.getNode("99999"), /Node not found/);

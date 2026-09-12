@@ -18,19 +18,12 @@ export default defineConfig(({ mode, command, isPreview }) => {
       alias: {
         "#ifc-source": fileURLToPath(
           new URL(
-            browserBackend
-              ? "./src/data/webIfc.ts"
-              : "./src/data/api.ts",
+            browserBackend ? "./src/data/webIfc.ts" : "./src/data/api.ts",
             import.meta.url,
           ),
         ),
       },
     },
-    base:
-      command === "serve" && !isPreview
-        ? "/"
-        : browserBackend
-          ? "./"
-          : "/dist/",
+    base: command === "serve" && !isPreview ? "/" : browserBackend ? "./" : "/dist/",
   };
 });

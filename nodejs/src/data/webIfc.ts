@@ -39,11 +39,7 @@ export class WebIfcSource implements ModelSource {
   getNode(_path: string, id: string): ReturnType<ModelSource["getNode"]> {
     return this.call("getNode", [id]);
   }
-  lookup(
-    _path: string,
-    key: string,
-    value: string,
-  ): ReturnType<ModelSource["lookup"]> {
+  lookup(_path: string, key: string, value: string): ReturnType<ModelSource["lookup"]> {
     return this.call("lookup", [key, value]);
   }
   dispose(error = new Error("IFC model closed.")) {

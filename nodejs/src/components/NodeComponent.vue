@@ -209,12 +209,8 @@ const isId = (content: AttrContent): boolean => {
   >
     <div class="node-header">
       <!-- TODO: ID表記処理がごり押しなので注意 -->
-      <span class="id">{{
-        typeof node.id === "number" ? "#" + node.id : ""
-      }}</span>
-      <span class="title truncate-text" :title="node.type">{{
-        node.type
-      }}</span>
+      <span class="id">{{ typeof node.id === "number" ? "#" + node.id : "" }}</span>
+      <span class="title truncate-text" :title="node.type">{{ node.type }}</span>
       <span
         :class="['icon', { 'icon-disabled': !node.reference }]"
         @mousedown.prevent="(event) => onDotMouseDown(event, node.reference)"

@@ -13,12 +13,10 @@ const container = ref<HTMLDivElement | null>(null);
 const scrollTop = ref(0);
 
 const visibleCount = computed(
-  () => Math.ceil(props.containerHeight / props.itemHeight) + props.buffer
+  () => Math.ceil(props.containerHeight / props.itemHeight) + props.buffer,
 );
 
-const startIndex = computed(() =>
-  Math.floor(scrollTop.value / props.itemHeight)
-);
+const startIndex = computed(() => Math.floor(scrollTop.value / props.itemHeight));
 
 const endIndex = computed(() => startIndex.value + visibleCount.value);
 
@@ -26,7 +24,7 @@ const visibleItems = computed(() =>
   props.items.slice(startIndex.value, endIndex.value).map((item, i) => ({
     data: item,
     index: startIndex.value + i,
-  }))
+  })),
 );
 
 const totalHeight = computed(() => props.items.length * props.itemHeight);

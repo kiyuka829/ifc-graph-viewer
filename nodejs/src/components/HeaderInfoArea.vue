@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { HeaderEntry, IfcHeader, IfcHeaderValue, IfcStructuredHeader } from "./interfaces";
+import {
+  HeaderEntry,
+  IfcHeader,
+  IfcHeaderValue,
+  IfcStructuredHeader,
+} from "./interfaces";
 
 interface HeaderRow {
   key: string;
@@ -47,7 +52,8 @@ const flattenHeaderValue = (value: IfcHeaderValue, keyPath = ""): HeaderRow[] =>
 };
 
 const getHeaderRows = (header: IfcHeader): HeaderRow[] => flattenHeaderValue(header);
-const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcStructuredHeader;
+const getIfcHeader = (header: IfcHeader): IfcStructuredHeader =>
+  header as IfcStructuredHeader;
 </script>
 
 <template>
@@ -111,7 +117,9 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
               <tr>
                 <td class="key-cell">Preprocessor</td>
                 <td>
-                  {{ getIfcHeader(entry.header).file_name?.preprocessor_version || "—" }}
+                  {{
+                    getIfcHeader(entry.header).file_name?.preprocessor_version || "—"
+                  }}
                 </td>
               </tr>
               <tr>
@@ -122,7 +130,9 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
               </tr>
               <tr>
                 <td class="key-cell">Authorization</td>
-                <td>{{ getIfcHeader(entry.header).file_name?.authorization || "—" }}</td>
+                <td>
+                  {{ getIfcHeader(entry.header).file_name?.authorization || "—" }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -137,7 +147,9 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
                 <td>
                   {{
                     getIfcHeader(entry.header).file_description?.description.length
-                      ? getIfcHeader(entry.header).file_description?.description.join(", ")
+                      ? getIfcHeader(entry.header).file_description?.description.join(
+                          ", ",
+                        )
                       : "—"
                   }}
                 </td>
@@ -145,7 +157,10 @@ const getIfcHeader = (header: IfcHeader): IfcStructuredHeader => header as IfcSt
               <tr>
                 <td class="key-cell">Implementation Level</td>
                 <td>
-                  {{ getIfcHeader(entry.header).file_description?.implementation_level || "—" }}
+                  {{
+                    getIfcHeader(entry.header).file_description?.implementation_level ||
+                    "—"
+                  }}
                 </td>
               </tr>
             </tbody>

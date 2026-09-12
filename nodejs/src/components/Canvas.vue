@@ -3,7 +3,14 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import { IfcNode, Edge, Position, Attribute, SearchData, HeaderEntry } from "./interfaces";
+import {
+  IfcNode,
+  Edge,
+  Position,
+  Attribute,
+  SearchData,
+  HeaderEntry,
+} from "./interfaces";
 import { hasValue } from "./utils";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
@@ -191,9 +198,7 @@ function drag(event: MouseEvent) {
         const left = nodePosition.x;
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
-        const length = node.attributes.filter((attr) =>
-          hasValue(attr.content),
-        ).length;
+        const length = node.attributes.filter((attr) => hasValue(attr.content)).length;
         // ヘッダーの高さ32px、bodyのpadding16px(上下各8px)、属性の高さ24px+margin4px=28px
         const bottom =
           nodePosition.y +
@@ -431,9 +436,7 @@ const edgePosition = computed(() => {
   return edges.value.map((edge) => {
     const from = edge.from;
     const from_node = nodes.value.find((c) => c.id === from.nodeId);
-    const from_attr = from_node?.attributes.find(
-      (c) => c.name === from.attrName,
-    );
+    const from_attr = from_node?.attributes.find((c) => c.name === from.attrName);
     const from_edge = {
       x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition.x ?? 0),
       y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition.y ?? 16),
@@ -460,9 +463,7 @@ const selectNode = (node: IfcNode, toggle = false) => {
   if (toggle) {
     // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
-      selectedNodeIds.value = selectedNodeIds.value.filter(
-        (id) => id !== node.id,
-      );
+      selectedNodeIds.value = selectedNodeIds.value.filter((id) => id !== node.id);
     } else {
       selectedNodeIds.value.push(node.id);
     }
@@ -498,7 +499,8 @@ const addNode_ = (
   idx: number,
 ) => {
   isLoading.value = true;
-  modelSource.getNode(filepath.value, dstId)
+  modelSource
+    .getNode(filepath.value, dstId)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -612,10 +614,8 @@ const setScaleAroundPoint = (nextScale: number, point: Position) => {
 
   const scaleChange = clampedScale - previousScale;
   scale.value = clampedScale;
-  position.value.x -=
-    (point.x - position.value.x) * (scaleChange / previousScale);
-  position.value.y -=
-    (point.y - position.value.y) * (scaleChange / previousScale);
+  position.value.x -= (point.x - position.value.x) * (scaleChange / previousScale);
+  position.value.y -= (point.y - position.value.y) * (scaleChange / previousScale);
 };
 
 const setScaleAroundCanvasCenter = (nextScale: number) => {
@@ -645,9 +645,7 @@ const getGraphBounds = () => {
   return nodes.value.reduce(
     (acc, node) => {
       const nodeHeight =
-        32 +
-        16 +
-        28 * node.attributes.filter((attr) => hasValue(attr.content)).length;
+        32 + 16 + 28 * node.attributes.filter((attr) => hasValue(attr.content)).length;
       const left = node.position.x;
       const right = node.position.x + nodeWidth;
       const top = node.position.y;
@@ -754,7 +752,8 @@ const selectEntity = (id: string) => {
 };
 const addNodeById = (id: string, dstPosition: Position) => {
   isLoading.value = true;
-  modelSource.getNode(filepath.value, id)
+  modelSource
+    .getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
       const node = convertToNode(data.node);
@@ -780,8 +779,7 @@ const getRelativePosition = (event: MouseEvent) => {
   const rect = container.getBoundingClientRect();
 
   // 要素内でのマウスの相対座標
-  const relativeX =
-    (event.clientX - rect.left - position.value.x) / scale.value;
+  const relativeX = (event.clientX - rect.left - position.value.x) / scale.value;
   const relativeY = (event.clientY - rect.top - position.value.y) / scale.value;
 
   return { x: relativeX, y: relativeY };
@@ -938,7 +936,9 @@ const handleDragOver = (event: DragEvent) => {
       :class="{ active: isHeaderInfoActive }"
       :title="isHeaderInfoActive ? 'Hide file header info' : 'Show file header info'"
       @click="toggleHeaderInfo"
-    >{{ viewFilename }}</button>
+    >
+      {{ viewFilename }}
+    </button>
     <div class="header-center">
       <button
         class="header-search-btn"
@@ -1130,7 +1130,17 @@ const handleDragOver = (event: DragEvent) => {
 </template>
 
 <style scoped>
-.load-error { position: fixed; top: 60px; left: 20px; right: 20px; z-index: 1000; background: #fff0f0; color: #921b1b; padding: 12px; border: 1px solid #921b1b; }
+.load-error {
+  position: fixed;
+  top: 60px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: #fff0f0;
+  color: #921b1b;
+  padding: 12px;
+  border: 1px solid #921b1b;
+}
 /* ── Layout ───────────────────────────────────────────────── */
 .container {
   display: flex;
