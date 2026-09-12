@@ -1,12 +1,35 @@
 <script setup lang="ts">
-import { IfcNode, AttrContent } from "./interfaces";
+import { computed } from "vue";
+import type { GraphNode, GraphRelation } from "../data/graph";
+import { groupRelations } from "./utils";
 
 const props = defineProps<{
-  node: IfcNode;
+  node: GraphNode;
+  relations: GraphRelation[];
 }>();
 props;
 
+const nodeRelations = computed(() =>
+  props.node.relationIds
+    .map((id) => props.relations.find((relation) => relation.id === id))
+    .filter((relation): relation is GraphRelation => relation !== undefined),
+);
+const inverseRelationGroups = computed(() =>
+  groupRelations(nodeRelations.value.filter((relation) => relation.kind === "inverse")),
+);
+const relationGroups = computed(() =>
+  groupRelations(
+    nodeRelations.value.filter(
+      (relation) => relation.kind !== "inverse" && relation.kind !== "reference",
+    ),
+  ),
+);
+const referenceRelations = computed(() =>
+  nodeRelations.value.filter((relation) => relation.kind === "reference"),
+);
+
 const stringifyValue = (value: any): string => {
+  if (value == null) return "";
   if (Array.isArray(value)) {
     return `[${value.map(stringifyValue).join(", ")}]`;
   }
@@ -15,28 +38,15 @@ const stringifyValue = (value: any): string => {
   }
   return `${value}`;
 };
-const stringifyId = (value: any): string => {
-  // TODO: ifc, ifcx のID判定表記処理がごり押しなので注意
-  if (Array.isArray(value)) {
-    return value.map((v) => (typeof v === "number" ? `#${v}` : v)).join(", ");
-  }
-  return typeof value === "number" ? `#${value}` : `${value}`;
-};
-const stringifyContents = (content: AttrContent): string => {
-  if (!content || content.value == null) return "";
-
-  if (content.type === "id") {
-    return stringifyId(content.value);
-  }
-  return stringifyValue(content.value);
-};
+const isIfc = computed(() => props.node.header.secondary?.startsWith("#") ?? false);
+const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
 </script>
 
 <template>
   <div class="property-area">
     <h3>Node Details</h3>
-    <p><strong>ID:</strong> {{ node.id }}</p>
-    <p><strong>Type:</strong> {{ node.type }}</p>
+    <p><strong>ID:</strong> {{ stringifyId(node.id) }}</p>
+    <p><strong>Type:</strong> {{ node.header.primary }}</p>
 
     <h4>Attributes</h4>
     <table>
@@ -47,17 +57,38 @@ const stringifyContents = (content: AttrContent): string => {
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="attribute in node.attributes.filter((attr) => !attr.inverse)"
-          :key="attribute.name"
-        >
-          <td>{{ attribute.displayName ?? attribute.name }}</td>
-          <td>{{ stringifyContents(attribute.content) }}</td>
+        <tr v-for="attribute in node.attributes" :key="attribute.name">
+          <td>{{ attribute.name }}</td>
+          <td>{{ stringifyValue(attribute.value) }}</td>
         </tr>
       </tbody>
     </table>
 
-    <template v-if="node.attributes.some((attr) => attr.inverse)">
+    <template v-if="relationGroups.length">
+      <h4>Relations</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Kind</th>
+            <th>Name</th>
+            <th>Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="relations in relationGroups" :key="relations[0].id">
+            <td>{{ relations[0].kind }}</td>
+            <td>{{ relations[0].label }}</td>
+            <td>
+              {{
+                relations.map((relation) => stringifyId(relation.targetId)).join(", ")
+              }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
+
+    <template v-if="inverseRelationGroups.length">
       <h4>Inverse Attributes</h4>
       <table>
         <thead>
@@ -67,18 +98,19 @@ const stringifyContents = (content: AttrContent): string => {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="attribute in node.attributes.filter((attr) => attr.inverse)"
-            :key="attribute.name"
-          >
-            <td>{{ attribute.displayName ?? attribute.name }}</td>
-            <td>{{ stringifyContents(attribute.content) }}</td>
+          <tr v-for="relations in inverseRelationGroups" :key="relations[0].id">
+            <td>{{ relations[0].label }}</td>
+            <td>
+              {{
+                relations.map((relation) => stringifyId(relation.targetId)).join(", ")
+              }}
+            </td>
           </tr>
         </tbody>
       </table>
     </template>
 
-    <template v-if="node.reference">
+    <template v-if="referenceRelations.length">
       <h4>References</h4>
       <table>
         <thead>
@@ -87,8 +119,8 @@ const stringifyContents = (content: AttrContent): string => {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>{{ stringifyContents(node.reference.content) }}</td>
+          <tr v-for="relation in referenceRelations" :key="relation.id">
+            <td>{{ stringifyId(relation.targetId) }}</td>
           </tr>
         </tbody>
       </table>

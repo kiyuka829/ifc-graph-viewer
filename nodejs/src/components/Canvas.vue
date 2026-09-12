@@ -3,16 +3,15 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 
 import NodeComponent from "./NodeComponent.vue";
 import EdgeComponent from "./EdgeComponent.vue";
-import {
-  IfcNode,
-  Edge,
+import type {
+  CanvasEdge,
+  CanvasNodeState,
   Position,
-  Attribute,
   SearchData,
   HeaderEntry,
 } from "./interfaces";
-import { hasValue } from "./utils";
-import { graphResponseToIfcNode } from "./graphCompatibility";
+import { groupRelations, hasValue, relationPortId } from "./utils";
+import type { GraphNode, GraphNodeResponse, GraphRelation } from "../data/graph";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -24,14 +23,16 @@ import { enableIfc } from "../data/config";
 import { modelSource } from "../data/source";
 
 // ノードとエッジのデータ
-const nodes = ref<IfcNode[]>([]);
-const edges = ref<Edge[]>([]);
+const nodes = ref<GraphNode[]>([]);
+const relations = ref<GraphRelation[]>([]);
+const nodeStates = ref<Record<string, CanvasNodeState>>({});
+const edges = ref<CanvasEdge[]>([]);
 
 // エッジの描画中の状態
 const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 
 // 属性表示用のノード
-const viewedAttrNode = ref<IfcNode | null>(null);
+const viewedAttrNode = ref<GraphNode | null>(null);
 
 // 選択されたノード
 const selectedNodeIds = ref<string[]>([]);
@@ -149,6 +150,13 @@ function handleKeyDown(event: KeyboardEvent) {
     nodes.value = nodes.value.filter(
       (node) => !selectedNodeIds.value.includes(node.id),
     );
+    selectedNodeIds.value.forEach((id) => delete nodeStates.value[id]);
+    if (
+      viewedAttrNode.value &&
+      selectedNodeIds.value.includes(viewedAttrNode.value.id)
+    ) {
+      viewedAttrNode.value = null;
+    }
     selectedNodeIds.value = [];
   }
 }
@@ -195,11 +203,13 @@ function drag(event: MouseEvent) {
 
       // 選択範囲内のノードを選択
       nodes.value.forEach((node) => {
-        const nodePosition = node.position;
+        const nodePosition = nodeStates.value[node.id]?.position ?? { x: 0, y: 0 };
         const left = nodePosition.x;
         const right = nodePosition.x + 200;
         const top = nodePosition.y;
-        const length = node.attributes.filter((attr) => hasValue(attr.content)).length;
+        const length =
+          node.attributes.filter((attr) => hasValue(attr.value)).length +
+          relationRowCount(node);
         // ヘッダーの高さ32px、bodyのpadding16px(上下各8px)、属性の高さ24px+margin4px=28px
         const bottom =
           nodePosition.y +
@@ -245,6 +255,8 @@ function endDrag() {
 
 function clearCanvas() {
   nodes.value = [];
+  relations.value = [];
+  nodeStates.value = {};
   edges.value = [];
   filepath.value = "";
   viewFilename.value = "";
@@ -286,10 +298,8 @@ const uploadFile = async (files: FileList | File[]) => {
     viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
-    const node = convertToNode({ node: data.root, relations: data.relations });
-    nodes.value.push(node);
+    addGraphResponse({ node: data.root, relations: data.relations });
     filepath.value = data.path;
-    console.log(node);
   } catch (error) {
     // エラー処理
     loadError.value = error instanceof Error ? error.message : "Failed to load file.";
@@ -326,20 +336,59 @@ const ATTRIBUTE_EDGE_START_Y =
   NODE_HEADER_HEIGHT + NODE_BODY_PADDING_Y + ATTRIBUTE_HEIGHT / 2 + 0.5;
 const ATTRIBUTE_EDGE_ROW_GAP = 28;
 
-// レスポンスデータをNodeに変換
-function convertToNode(data: Parameters<typeof graphResponseToIfcNode>[0]): IfcNode {
-  const node = graphResponseToIfcNode(data);
-  let count = 0;
-  for (const attribute of node.attributes) {
-    attribute.edgePosition = {
-      x: attribute.inverse ? 0 : NODE_WIDTH,
-      y: ATTRIBUTE_EDGE_START_Y + count * ATTRIBUTE_EDGE_ROW_GAP,
-    };
-    hasValue(attribute.content) && count++;
-  }
-  if (node.reference) node.reference.edgePosition = { x: 0, y: REFERENCE_EDGE_Y };
+const isInverseRelation = (relation: GraphRelation) =>
+  relation.kind === "inverse" || relation.kind === "reference";
 
-  return node;
+const relationGroups = (node: GraphNode) =>
+  groupRelations(
+    node.relationIds
+      .map((id) => relations.value.find((relation) => relation.id === id))
+      .filter((relation): relation is GraphRelation => relation !== undefined),
+  );
+
+const relationRowCount = (node: GraphNode) =>
+  relationGroups(node).filter((group) => group[0].kind !== "reference").length;
+
+function updatePortPositions(node: GraphNode) {
+  const state = nodeStates.value[node.id];
+  if (!state) return;
+  const visibleAttributes = node.attributes.filter((attribute) =>
+    hasValue(attribute.value),
+  );
+  const portPositions: Record<string, Position> = {};
+  const groups = relationGroups(node);
+  const references = groups.find((group) => group[0].kind === "reference");
+  if (references) portPositions.reference = { x: 0, y: REFERENCE_EDGE_Y };
+  groups
+    .filter((group) => group[0].kind !== "reference")
+    .forEach((group, index) => {
+      const relation = group[0];
+      portPositions[relationPortId(relation)] = {
+        x: isInverseRelation(relation) ? 0 : NODE_WIDTH,
+        y:
+          ATTRIBUTE_EDGE_START_Y +
+          (visibleAttributes.length + index) * ATTRIBUTE_EDGE_ROW_GAP,
+      };
+    });
+  state.portPositions = portPositions;
+}
+
+function addGraphResponse(
+  data: GraphNodeResponse,
+  position = { x: 40, y: 60 },
+): GraphNode {
+  for (const relation of data.relations) {
+    if (!relations.value.some((item) => item.id === relation.id))
+      relations.value.push(relation);
+  }
+  const existing = nodes.value.find((item) => item.id === data.node.id);
+  if (!existing) {
+    nodes.value.push(data.node);
+    nodeStates.value[data.node.id] = { position: { ...position }, portPositions: {} };
+  }
+  const graphNode = existing ?? data.node;
+  updatePortPositions(graphNode);
+  return graphNode;
 }
 
 // ノードの位置を更新するハンドラ
@@ -348,8 +397,12 @@ const updateNodePosition = (moveDistance: { x: number; y: number }) => {
     // 選択されたノードのみ移動
     if (selectedNodeIds.value.includes(node.id)) {
       const startPosition = dragStartNodePositions.value[node.id];
-      node.position.x = startPosition.x + moveDistance.x;
-      node.position.y = startPosition.y + moveDistance.y;
+      const state = nodeStates.value[node.id];
+      if (state)
+        state.position = {
+          x: startPosition.x + moveDistance.x,
+          y: startPosition.y + moveDistance.y,
+        };
     }
   });
 };
@@ -370,8 +423,8 @@ const alignNodePosition = (
   const selectedNodes = nodes.value.filter((node) =>
     selectedNodeIds.value.includes(node.id),
   );
-  const xs = selectedNodes.map((node) => node.position.x);
-  const ys = selectedNodes.map((node) => node.position.y);
+  const xs = selectedNodes.map((node) => nodeStates.value[node.id].position.x);
+  const ys = selectedNodes.map((node) => nodeStates.value[node.id].position.y);
   const [minX, maxX] = [Math.min(...xs), Math.max(...xs)];
   const [minY, maxY] = [Math.min(...ys), Math.max(...ys)];
   if (align === "left") {
@@ -388,22 +441,28 @@ const alignNodePosition = (
     setAlignNodePosition(selectedNodes, { y: maxY });
   } else if (align === "horizontal") {
     const interval = (maxX - minX) / (selectedNodes.length - 1);
-    selectedNodes.sort((a, b) => a.position.x - b.position.x);
+    selectedNodes.sort(
+      (a, b) => nodeStates.value[a.id].position.x - nodeStates.value[b.id].position.x,
+    );
     setAlignNodePosition(selectedNodes, { x: minX }, interval);
   } else if (align === "vertical") {
     const interval = (maxY - minY) / (selectedNodes.length - 1);
-    selectedNodes.sort((a, b) => a.position.y - b.position.y);
+    selectedNodes.sort(
+      (a, b) => nodeStates.value[a.id].position.y - nodeStates.value[b.id].position.y,
+    );
     setAlignNodePosition(selectedNodes, { y: minY }, interval);
   }
 };
 const setAlignNodePosition = (
-  selectedNodes: IfcNode[],
+  selectedNodes: GraphNode[],
   { x = null, y = null }: { x?: number | null; y?: number | null },
   interval = 0,
 ) => {
   selectedNodes.forEach((node, idx) => {
-    if (x !== null) node.position.x = x + interval * idx;
-    if (y !== null) node.position.y = y + interval * idx;
+    const state = nodeStates.value[node.id];
+    if (!state) return;
+    if (x !== null) state.position.x = x + interval * idx;
+    if (y !== null) state.position.y = y + interval * idx;
   });
 };
 
@@ -412,19 +471,19 @@ const edgePosition = computed(() => {
   /* パフォーマンス悪いかも */
   return edges.value.map((edge) => {
     const from = edge.from;
-    const from_node = nodes.value.find((c) => c.id === from.nodeId);
-    const from_attr = from_node?.attributes.find((c) => c.name === from.attrName);
+    const from_node = nodeStates.value[from.nodeId];
+    const from_port = from.portId ? from_node?.portPositions[from.portId] : undefined;
     const from_edge = {
-      x: (from_node?.position.x ?? 0) + (from_attr?.edgePosition.x ?? 0),
-      y: (from_node?.position.y ?? 0) + (from_attr?.edgePosition.y ?? 16),
+      x: (from_node?.position.x ?? 0) + (from_port?.x ?? 0),
+      y: (from_node?.position.y ?? 0) + (from_port?.y ?? 16),
     };
 
     const to = edge.to;
-    const to_node = nodes.value.find((c) => c.id === to.nodeId);
-    const to_attr = to_node?.attributes.find((c) => c.name === to.attrName);
+    const to_node = nodeStates.value[to.nodeId];
+    const to_port = to.portId ? to_node?.portPositions[to.portId] : undefined;
     const to_edge = {
-      x: (to_node?.position.x ?? 0) + (to_attr?.edgePosition.x ?? 0),
-      y: (to_node?.position.y ?? 0) + (to_attr?.edgePosition.y ?? 16),
+      x: (to_node?.position.x ?? 0) + (to_port?.x ?? 0),
+      y: (to_node?.position.y ?? 0) + (to_port?.y ?? 16),
     };
 
     return {
@@ -436,7 +495,7 @@ const edgePosition = computed(() => {
 });
 
 // ノードの選択処理
-const selectNode = (node: IfcNode, toggle = false) => {
+const selectNode = (node: GraphNode, toggle = false) => {
   if (toggle) {
     // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
@@ -457,7 +516,7 @@ const selectNode = (node: IfcNode, toggle = false) => {
     dragStartNodePositions.value = nodes.value.reduce(
       (obj, node) => {
         if (selectedNodeIds.value.includes(node.id)) {
-          obj[node.id] = { ...node.position };
+          obj[node.id] = { ...nodeStates.value[node.id].position };
         }
         return obj;
       },
@@ -467,73 +526,35 @@ const selectNode = (node: IfcNode, toggle = false) => {
 };
 
 // ノードを追加するハンドラ
-const addNode_ = (
-  srcId: string,
-  dstId: string,
-  srcName: string,
-  inverse: boolean,
-  dstPosition: Position,
-  idx: number,
-) => {
+const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) => {
   isLoading.value = true;
   modelSource
-    .getNode(filepath.value, dstId)
+    .getNode(filepath.value, relation.targetId)
     .then((data) => {
-      // レスポンスを処理
-      const node = convertToNode(data);
-
-      // 表示済みならノードを追加しない
-      if (!nodes.value.find((c) => c.id === dstId)) {
-        nodes.value.push(node);
+      const wasVisible = nodes.value.some((node) => node.id === relation.targetId);
+      const node = addGraphResponse(data);
+      const targetRelation = data.relations.find(
+        (item) => item.sourceId === node.id && item.targetId === relation.sourceId,
+      );
+      const targetPort = targetRelation ? relationPortId(targetRelation) : undefined;
+      if (!wasVisible) {
+        const state = nodeStates.value[node.id];
+        const port = targetPort ? state.portPositions[targetPort] : undefined;
+        state.position = {
+          x: dstPosition.x - (port?.x ?? 0) + idx * 10,
+          y: dstPosition.y - (port?.y ?? 16) + idx * 10,
+        };
       }
-
-      // nodeIdと一致するattributeのnameを取得
-      const targetAttr = node.attributes.find((attr) => {
-        if (attr.content.type !== "id") return false;
-        if (Array.isArray(attr.content.value)) {
-          return attr.content.value.includes(srcId);
-        } else {
-          return attr.content.value === srcId;
-        }
-      });
-
-      // ノードの位置をエッジ接続点を合わせるように更新
-      // （ノードが複数あるときは重ならないように位置をずらす）
-      const position = {
-        x: dstPosition.x - (targetAttr?.edgePosition.x ?? 0) + idx * 10,
-        y: dstPosition.y - (targetAttr?.edgePosition.y ?? 16) + idx * 10,
-      };
-      node.position = position;
-
-      // エッジ作成
-      const from: { nodeId: string; attrName: string | undefined } = {
-        nodeId: "",
-        attrName: "",
-      };
-      const to: { nodeId: string; attrName: string | undefined } = {
-        nodeId: "",
-        attrName: "",
-      };
-      if (inverse) {
-        from.nodeId = dstId;
-        from.attrName = targetAttr?.name;
-        to.nodeId = srcId;
-        to.attrName = srcName;
-      } else {
-        from.nodeId = srcId;
-        from.attrName = srcName;
-        to.nodeId = dstId;
-        to.attrName = targetAttr?.name;
-      }
-
-      const id = `${from.nodeId}-${from.attrName}-${to.nodeId}-${to.attrName}`;
-      if (edges.value.find((c) => c.id === id)) {
+      if (edges.value.some((edge) => edge.relationId === relation.id)) {
         return;
       }
+      const source = { nodeId: relation.sourceId, portId: relationPortId(relation) };
+      const target = { nodeId: relation.targetId, portId: targetPort };
       edges.value.push({
-        id: id,
-        from: from,
-        to: to,
+        id: relation.id,
+        relationId: relation.id,
+        from: isInverseRelation(relation) ? target : source,
+        to: isInverseRelation(relation) ? source : target,
       });
     })
     .catch((error) => {
@@ -547,21 +568,10 @@ const addNode_ = (
 };
 
 const addNode = (
-  nodeId: string,
-  data: { position: Position; attribute: Attribute },
+  _nodeId: string,
+  data: { position: Position; relations: GraphRelation[] },
 ) => {
-  const id = data.attribute.content.value;
-  const ids = Array.isArray(id) ? id : [id];
-  ids.forEach((id, idx) => {
-    addNode_(
-      nodeId,
-      id as string,
-      data.attribute.name,
-      data.attribute.inverse,
-      data.position,
-      idx,
-    );
-  });
+  data.relations.forEach((relation, index) => addNode_(relation, data.position, index));
 };
 
 // 描画中のエッジを更新する
@@ -622,11 +632,16 @@ const getGraphBounds = () => {
   return nodes.value.reduce(
     (acc, node) => {
       const nodeHeight =
-        32 + 16 + 28 * node.attributes.filter((attr) => hasValue(attr.content)).length;
-      const left = node.position.x;
-      const right = node.position.x + nodeWidth;
-      const top = node.position.y;
-      const bottom = node.position.y + nodeHeight;
+        32 +
+        16 +
+        28 *
+          (node.attributes.filter((attr) => hasValue(attr.value)).length +
+            relationRowCount(node));
+      const nodePosition = nodeStates.value[node.id]?.position ?? { x: 0, y: 0 };
+      const left = nodePosition.x;
+      const right = nodePosition.x + nodeWidth;
+      const top = nodePosition.y;
+      const bottom = nodePosition.y + nodeHeight;
 
       return {
         minX: Math.min(acc.minX, left),
@@ -733,13 +748,7 @@ const addNodeById = (id: string, dstPosition: Position) => {
     .getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
-      const node = convertToNode(data);
-
-      // 表示済みならノードを追加しない
-      if (!nodes.value.find((c) => c.id === node.id)) {
-        node.position = dstPosition;
-        nodes.value.push(node);
-      }
+      addGraphResponse(data, dstPosition);
     })
     .catch((error) => {
       console.log(error);
@@ -1066,6 +1075,8 @@ const handleDragOver = (event: DragEvent) => {
           v-for="(node, _) in nodes"
           :key="node.id"
           :node="node"
+          :state="nodeStates[node.id]"
+          :relations="relations"
           :selected="selectedNodeIds.includes(node.id)"
           :scale="scale"
           @update:position="updateNodePosition($event)"
@@ -1097,7 +1108,7 @@ const handleDragOver = (event: DragEvent) => {
         <HeaderInfoArea :headers="headerInfo" />
       </div>
       <div v-else-if="viewedAttrNode">
-        <PropertyArea :node="viewedAttrNode" />
+        <PropertyArea :node="viewedAttrNode" :relations="relations" />
       </div>
       <div v-else class="sidebar-empty">
         <span>Select a node to view its properties</span>

@@ -1,36 +1,18 @@
-export interface IfcNode {
-  id: string;
-  type: string;
-  secondary?: string;
-  reference: Attribute | null;
-  attributes: Attribute[];
+export interface CanvasNodeState {
   position: Position;
-  // folded: boolean; // 折りたたみ状態
+  portPositions: Record<string, Position>;
 }
 
-export interface Attribute {
-  name: string;
-  displayName?: string;
-  content: AttrContent; // 接続先のIDまたはテキストデータ
-  inverse: boolean;
-  edgePosition: Position; // エッジの接続位置
-}
-
-export interface AttrContent {
-  type: string;
-  value: unknown;
-}
-
-// attrName = undefined はノードの左上に接続されているとき
-export interface Edge {
+export interface CanvasEdge {
   id: string;
+  relationId: string;
   from: {
     nodeId: string;
-    attrName: string | undefined;
+    portId?: string;
   };
   to: {
     nodeId: string;
-    attrName: string | undefined;
+    portId?: string;
   };
 }
 

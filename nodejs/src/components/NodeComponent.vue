@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { AttrContent, Attribute, IfcNode, Position } from "./interfaces";
-import { hasValue } from "./utils";
+import { computed, ref } from "vue";
+import type { GraphRelation, GraphNode } from "../data/graph";
+import type { CanvasNodeState, Position } from "./interfaces";
+import { groupRelations, hasValue, relationPortId } from "./utils";
 
 const props = defineProps<{
-  node: IfcNode;
+  node: GraphNode;
+  state: CanvasNodeState;
+  relations: GraphRelation[];
   selected: boolean;
   scale: number;
 }>();
@@ -28,9 +31,25 @@ const lastMousePosition = ref({ x: 0, y: 0 });
 const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
 const currentMouseMoveHandler = ref<((event: MouseEvent) => void) | null>(null);
 
-onMounted(() => {
-  // updateEdgePositions();
-});
+const relationGroups = computed(() =>
+  groupRelations(
+    props.node.relationIds
+      .map((id) => props.relations.find((relation) => relation.id === id))
+      .filter((relation): relation is GraphRelation => relation !== undefined),
+  ),
+);
+const references = computed(
+  () => relationGroups.value.find((group) => group[0].kind === "reference") ?? [],
+);
+const displayRelationGroups = computed(() =>
+  relationGroups.value.filter((group) => group[0].kind !== "reference"),
+);
+const relationLabel = (relation: GraphRelation) =>
+  relation.kind === "child" || relation.kind === "inherits"
+    ? `${relation.kind}: ${relation.label}`
+    : relation.label;
+const isInverse = (relation: GraphRelation) =>
+  relation.kind === "inverse" || relation.kind === "reference";
 
 // ノードの移動
 const onMouseDown = (event: MouseEvent) => {
@@ -80,8 +99,9 @@ const onMouseUp = () => {
 };
 
 // エッジドラッグ時のノード追加処理
-const onDotMouseDown = (event: MouseEvent, attribute: Attribute | null) => {
-  if (!attribute) return;
+const onDotMouseDown = (event: MouseEvent, relations: GraphRelation[]) => {
+  if (!relations.length) return;
+  const relation = relations[0];
   if (event.button === 2) {
     // 右クリックは処理しない
     return;
@@ -109,8 +129,9 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute | null) => {
   // dot のドラッグを開始
   isDotDragging.value = true;
 
-  startEdgePosition.value.x = attribute.edgePosition.x + node.position.x;
-  startEdgePosition.value.y = attribute.edgePosition.y + node.position.y;
+  const port = props.state.portPositions[relationPortId(relation)] ?? { x: 0, y: 0 };
+  startEdgePosition.value.x = port.x + props.state.position.x;
+  startEdgePosition.value.y = port.y + props.state.position.y;
   startMousePosition.value = { x: event.clientX, y: event.clientY };
   lastMousePosition.value = { ...startMousePosition.value };
 
@@ -129,8 +150,8 @@ const onDotMouseDown = (event: MouseEvent, attribute: Attribute | null) => {
 
   // dot 専用のイベントリスナーを設定
   currentMouseMoveHandler.value = (event: MouseEvent) =>
-    onDotMouseMove(event, attribute);
-  currentMouseUpHandler.value = () => onDotMouseUp(attribute);
+    onDotMouseMove(event, relation);
+  currentMouseUpHandler.value = () => onDotMouseUp(relations);
   document.addEventListener("mousemove", currentMouseMoveHandler.value);
   document.addEventListener("mouseup", currentMouseUpHandler.value);
 };
@@ -147,7 +168,7 @@ function calculateMovedPosition(): Position {
   };
 }
 
-const onDotMouseMove = (event: MouseEvent, attribute: Attribute) => {
+const onDotMouseMove = (event: MouseEvent, relation: GraphRelation) => {
   if (!isDotDragging.value) return;
   lastMousePosition.value = { x: event.clientX, y: event.clientY };
 
@@ -158,7 +179,7 @@ const onDotMouseMove = (event: MouseEvent, attribute: Attribute) => {
   };
   let posEnd = calculateMovedPosition();
 
-  if (attribute.inverse) {
+  if (isInverse(relation)) {
     // 逆属性の場合、from と to を入れ替える
     [posStart, posEnd] = [posEnd, posStart];
   }
@@ -170,7 +191,7 @@ const onDotMouseMove = (event: MouseEvent, attribute: Attribute) => {
   emit("update:drawingEdgePosition", edge);
 };
 
-const onDotMouseUp = (attribute: Attribute) => {
+const onDotMouseUp = (relations: GraphRelation[]) => {
   // dot のドラッグを終了
   isDotDragging.value = false;
 
@@ -186,13 +207,8 @@ const onDotMouseUp = (attribute: Attribute) => {
 
   emit("add:node", {
     position: position,
-    attribute: attribute,
+    relations,
   });
-};
-
-// id判定
-const isId = (content: AttrContent): boolean => {
-  return content.type === "id";
 };
 </script>
 
@@ -202,40 +218,45 @@ const isId = (content: AttrContent): boolean => {
     :class="{ selected: selected }"
     :style="{
       position: 'absolute',
-      top: node.position.y + 'px',
-      left: node.position.x + 'px',
+      top: state.position.y + 'px',
+      left: state.position.x + 'px',
     }"
     @mousedown="onMouseDown"
   >
     <div class="node-header">
-      <span v-if="node.secondary" class="id" :title="node.secondary">{{
-        node.secondary
+      <span v-if="node.header.secondary" class="id" :title="node.header.secondary">{{
+        node.header.secondary
       }}</span>
-      <span class="title truncate-text" :title="node.type">{{ node.type }}</span>
+      <span class="title truncate-text" :title="node.header.primary">{{
+        node.header.primary
+      }}</span>
       <span
-        :class="['icon', { 'icon-disabled': !node.reference }]"
-        @mousedown.prevent="(event) => onDotMouseDown(event, node.reference)"
+        :class="['icon', { 'icon-disabled': !references.length }]"
+        @mousedown.prevent="(event) => onDotMouseDown(event, references)"
       ></span>
     </div>
     <div class="node-body">
-      <template v-for="(attribute, _) in node.attributes" :key="attribute.name">
-        <div
-          class="attribute"
-          v-if="hasValue(attribute.content)"
-          :class="{ 'inverse-attribute': attribute.inverse }"
-        >
-          <span
-            class="truncate-text"
-            :title="attribute.displayName ?? attribute.name"
-            >{{ attribute.displayName ?? attribute.name }}</span
-          >
-          <span
-            class="dot"
-            v-if="isId(attribute.content)"
-            @mousedown.prevent="(event) => onDotMouseDown(event, attribute)"
-          ></span>
+      <template v-for="attribute in node.attributes" :key="attribute.name">
+        <div class="attribute" v-if="hasValue(attribute.value)">
+          <span class="truncate-text" :title="attribute.name">{{
+            attribute.name
+          }}</span>
         </div>
       </template>
+      <div
+        v-for="relations in displayRelationGroups"
+        :key="relationPortId(relations[0])"
+        class="attribute"
+        :class="{ 'inverse-attribute': isInverse(relations[0]) }"
+      >
+        <span class="truncate-text" :title="relationLabel(relations[0])">{{
+          relationLabel(relations[0])
+        }}</span>
+        <span
+          class="dot"
+          @mousedown.prevent="(event) => onDotMouseDown(event, relations)"
+        ></span>
+      </div>
     </div>
   </div>
   <!--  -->
