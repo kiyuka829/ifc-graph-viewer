@@ -7,7 +7,12 @@ export interface ModelData {
   path: string;
 }
 export interface ModelSource {
+  dispose?(): void;
   load(files: File[]): Promise<ModelData>;
   getNode(path: string, id: string): Promise<{ node: any }>;
-  lookup(path: string, key: string, value: string): Promise<{ items?: SearchData["items"]; entityType?: string }>;
+  lookup(
+    path: string,
+    key: string,
+    value: string,
+  ): Promise<{ items?: SearchData["items"]; entityType?: string }>;
 }

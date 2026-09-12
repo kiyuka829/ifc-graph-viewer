@@ -1,0 +1,1093 @@
+[
+  {
+    "id": 1,
+    "type": "IfcProject",
+    "attributes": [
+      {
+        "name": "GlobalId",
+        "content": {
+          "type": "value",
+          "value": "0000000000000000000001"
+        },
+        "inverse": false
+      },
+      {
+        "name": "OwnerHistory",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "検証プロジェクト"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "ObjectType",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "LongName",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Phase",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "RepresentationContexts",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "UnitsInContext",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "HasAssignments",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "IsDecomposedBy",
+        "content": {
+          "type": "id",
+          "value": [
+            6
+          ]
+        },
+        "inverse": true
+      },
+      {
+        "name": "Decomposes",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasAssociations",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "IsDefinedBy",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 2,
+    "type": "IfcCartesianPoint",
+    "attributes": [
+      {
+        "name": "Coordinates",
+        "content": {
+          "type": "value",
+          "value": [
+            1.25,
+            2.0,
+            3.0
+          ]
+        },
+        "inverse": false
+      },
+      {
+        "name": "LayerAssignments",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "StyledByItem",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          13,
+          3
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 3,
+    "type": "IfcAxis2Placement3D",
+    "attributes": [
+      {
+        "name": "Location",
+        "content": {
+          "type": "id",
+          "value": 2
+        },
+        "inverse": false
+      },
+      {
+        "name": "Axis",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "RefDirection",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "LayerAssignments",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "StyledByItem",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          4
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 4,
+    "type": "IfcLocalPlacement",
+    "attributes": [
+      {
+        "name": "PlacementRelTo",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "RelativePlacement",
+        "content": {
+          "type": "id",
+          "value": 3
+        },
+        "inverse": false
+      },
+      {
+        "name": "PlacesObject",
+        "content": {
+          "type": "id",
+          "value": [
+            5
+          ]
+        },
+        "inverse": true
+      },
+      {
+        "name": "ReferencedByPlacements",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 5,
+    "type": "IfcWall",
+    "attributes": [
+      {
+        "name": "GlobalId",
+        "content": {
+          "type": "value",
+          "value": "00000000000000000000A2"
+        },
+        "inverse": false
+      },
+      {
+        "name": "OwnerHistory",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "壁 A"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "ObjectType",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "ObjectPlacement",
+        "content": {
+          "type": "id",
+          "value": 4
+        },
+        "inverse": false
+      },
+      {
+        "name": "Representation",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Tag",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "HasAssignments",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "IsDecomposedBy",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "Decomposes",
+        "content": {
+          "type": "id",
+          "value": [
+            6
+          ]
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasAssociations",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "IsDefinedBy",
+        "content": {
+          "type": "id",
+          "value": [
+            12
+          ]
+        },
+        "inverse": true
+      },
+      {
+        "name": "ReferencedBy",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasStructuralMember",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "FillsVoids",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "ConnectedTo",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasCoverings",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasProjections",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "ReferencedInStructures",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasPorts",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "HasOpenings",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "IsConnectionRealization",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "ProvidesBoundaries",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "ConnectedFrom",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "ContainedInStructure",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 6,
+    "type": "IfcRelAggregates",
+    "attributes": [
+      {
+        "name": "GlobalId",
+        "content": {
+          "type": "value",
+          "value": "0000000000000000000003"
+        },
+        "inverse": false
+      },
+      {
+        "name": "OwnerHistory",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "RelatingObject",
+        "content": {
+          "type": "id",
+          "value": 1
+        },
+        "inverse": false
+      },
+      {
+        "name": "RelatedObjects",
+        "content": {
+          "type": "id",
+          "value": [
+            5
+          ]
+        },
+        "inverse": false
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 7,
+    "type": "IfcPropertySingleValue",
+    "attributes": [
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "Length"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "NominalValue",
+        "content": {
+          "type": "value",
+          "value": "IfcLengthMeasure(1.25)"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Unit",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "PropertyForDependance",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PropertyDependsOn",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PartOfComplex",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          11
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 8,
+    "type": "IfcPropertySingleValue",
+    "attributes": [
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "Text"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "NominalValue",
+        "content": {
+          "type": "value",
+          "value": "IfcLabel('日本語 O'Brien')"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Unit",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "PropertyForDependance",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PropertyDependsOn",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PartOfComplex",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          11
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 9,
+    "type": "IfcPropertySingleValue",
+    "attributes": [
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "Flag"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "NominalValue",
+        "content": {
+          "type": "value",
+          "value": "IfcBoolean(.T.)"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Unit",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "PropertyForDependance",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PropertyDependsOn",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PartOfComplex",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          11
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 10,
+    "type": "IfcPropertySingleValue",
+    "attributes": [
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "Unknown"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "NominalValue",
+        "content": {
+          "type": "value",
+          "value": "IfcLogical(.U.)"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Unit",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "PropertyForDependance",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PropertyDependsOn",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PartOfComplex",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": [
+          11
+        ]
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 11,
+    "type": "IfcPropertySet",
+    "attributes": [
+      {
+        "name": "GlobalId",
+        "content": {
+          "type": "value",
+          "value": "0000000000000000000004"
+        },
+        "inverse": false
+      },
+      {
+        "name": "OwnerHistory",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "Test"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "HasProperties",
+        "content": {
+          "type": "id",
+          "value": [
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        "inverse": false
+      },
+      {
+        "name": "HasAssociations",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "PropertyDefinitionOf",
+        "content": {
+          "type": "id",
+          "value": [
+            12
+          ]
+        },
+        "inverse": true
+      },
+      {
+        "name": "DefinesType",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 12,
+    "type": "IfcRelDefinesByProperties",
+    "attributes": [
+      {
+        "name": "GlobalId",
+        "content": {
+          "type": "value",
+          "value": "0000000000000000000005"
+        },
+        "inverse": false
+      },
+      {
+        "name": "OwnerHistory",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Description",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "RelatedObjects",
+        "content": {
+          "type": "id",
+          "value": [
+            5
+          ]
+        },
+        "inverse": false
+      },
+      {
+        "name": "RelatingPropertyDefinition",
+        "content": {
+          "type": "id",
+          "value": 11
+        },
+        "inverse": false
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 13,
+    "type": "IfcPolyline",
+    "attributes": [
+      {
+        "name": "Points",
+        "content": {
+          "type": "id",
+          "value": [
+            2,
+            2
+          ]
+        },
+        "inverse": false
+      },
+      {
+        "name": "LayerAssignments",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      },
+      {
+        "name": "StyledByItem",
+        "content": {
+          "type": "id",
+          "value": []
+        },
+        "inverse": true
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  },
+  {
+    "id": 14,
+    "type": "IfcSIUnit",
+    "attributes": [
+      {
+        "name": "Dimensions",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "UnitType",
+        "content": {
+          "type": "value",
+          "value": "LENGTHUNIT"
+        },
+        "inverse": false
+      },
+      {
+        "name": "Prefix",
+        "content": {
+          "type": "value",
+          "value": null
+        },
+        "inverse": false
+      },
+      {
+        "name": "Name",
+        "content": {
+          "type": "value",
+          "value": "METRE"
+        },
+        "inverse": false
+      }
+    ],
+    "references": {
+      "name": "references",
+      "content": {
+        "type": "id",
+        "value": []
+      },
+      "inverse": true
+    }
+  }
+]

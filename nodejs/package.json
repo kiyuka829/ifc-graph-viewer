@@ -4,15 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "dev": "npm run dev:python",
+    "build": "npm run build:python",
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
-    "build:pages": "vue-tsc && vite build --mode pages"
+    "dev:python": "vite --mode python",
+    "dev:browser": "vite --mode browser",
+    "build:python": "vue-tsc && vite build --mode python",
+    "build:browser": "vue-tsc && vite build --mode browser"
   },
   "dependencies": {
     "vite-svg-loader": "^5.1.0",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "web-ifc": "0.0.77"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
