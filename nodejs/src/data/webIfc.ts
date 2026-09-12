@@ -53,3 +53,7 @@ export class WebIfcSource implements ModelSource {
     this.pending.clear();
   }
 }
+
+export function createIfcSource(): ModelSource {
+  return new WebIfcSource();
+}

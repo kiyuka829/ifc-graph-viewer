@@ -9,7 +9,7 @@ export const modelSource: ModelSource = {
     const format = validateFiles(files, enableIfc);
     const next: ModelSource =
       enableIfc && format === "ifc"
-        ? new (await import("./webIfc")).WebIfcSource()
+        ? (await import("#ifc-source")).createIfcSource()
         : new IfcxSource();
     try {
       const data = await next.load(files);

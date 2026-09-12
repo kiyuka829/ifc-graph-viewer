@@ -29,8 +29,7 @@ jobs:
           cache-dependency-path: nodejs/package-lock.json
       - run: npm ci
       - run: npm test
-      - run: npm run build
-      - run: npm run build:pages
+      - run: npm run build:browser
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: nodejs/dist

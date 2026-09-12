@@ -30,13 +30,23 @@ async function postFormData<T>(url: string, payload: FormData): Promise<T> {
 export const apiSource: ModelSource = {
   load(files) {
     const form = new FormData();
-    files.forEach(file => {
+    files.forEach((file) => {
       // The Python endpoint dispatches using a case-sensitive suffix.
-      const filename = file.name.replace(/\.[^.]+$/, extension => extension.toLowerCase());
+      const filename = file.name.replace(/\.[^.]+$/, (extension) =>
+        extension.toLowerCase(),
+      );
       form.append("files", file, filename);
     });
     return postFormData<ModelData>(endpoint + "/upload", form);
   },
-  getNode(path, id) { return postJson(endpoint + "/get_node", { path, id }); },
-  lookup(path, key, value) { return postJson(endpoint + "/lookup_entity", { path, key, value }); },
+  getNode(path, id) {
+    return postJson(endpoint + "/get_node", { path, id });
+  },
+  lookup(path, key, value) {
+    return postJson(endpoint + "/lookup_entity", { path, key, value });
+  },
 };
+
+export function createIfcSource(): ModelSource {
+  return apiSource;
+}
