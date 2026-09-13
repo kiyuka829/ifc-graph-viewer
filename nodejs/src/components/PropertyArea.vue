@@ -1,12 +1,45 @@
 <script setup lang="ts">
-import { IfcNode, AttrContent } from "./interfaces";
+import { computed } from "vue";
+import { isRelationAttribute } from "../data/graph";
+import type { GraphAttribute, GraphNode, GraphRelation } from "../data/graph";
 
 const props = defineProps<{
-  node: IfcNode;
+  node: GraphNode;
+  relations: GraphRelation[];
 }>();
 props;
 
+const nodeRelations = computed(() =>
+  props.node.relationIds
+    .map((id) => props.relations.find((relation) => relation.id === id))
+    .filter((relation): relation is GraphRelation => relation !== undefined),
+);
+const relationsById = computed(
+  () => new Map(props.relations.map((relation) => [relation.id, relation])),
+);
+const attributeRelations = (attribute: GraphAttribute) =>
+  isRelationAttribute(attribute)
+    ? attribute.relationIds
+        .map((id) => relationsById.value.get(id))
+        .filter((relation): relation is GraphRelation => relation !== undefined)
+    : [];
+const isInverseAttribute = (attribute: GraphAttribute) =>
+  attributeRelations(attribute)[0]?.kind === "inverse";
+const attributes = computed(() =>
+  props.node.attributes.filter((attribute) => !isInverseAttribute(attribute)),
+);
+const inverseAttributes = computed(() =>
+  props.node.attributes.filter(isInverseAttribute),
+);
+const referenceRelations = computed(() =>
+  nodeRelations.value.filter((relation) => relation.kind === "reference"),
+);
+const references = computed(() =>
+  referenceRelations.value.map((relation) => stringifyId(relation.targetId)).join(", "),
+);
+
 const stringifyValue = (value: any): string => {
+  if (value == null) return "";
   if (Array.isArray(value)) {
     return `[${value.map(stringifyValue).join(", ")}]`;
   }
@@ -15,28 +48,21 @@ const stringifyValue = (value: any): string => {
   }
   return `${value}`;
 };
-const stringifyId = (value: any): string => {
-  // TODO: ifc, ifcx のID判定表記処理がごり押しなので注意
-  if (Array.isArray(value)) {
-    return value.map((v) => (typeof v === "number" ? `#${v}` : v)).join(", ");
-  }
-  return typeof value === "number" ? `#${value}` : `${value}`;
-};
-const stringifyContents = (content: AttrContent): string => {
-  if (!content || content.value == null) return "";
-
-  if (content.type === "id") {
-    return stringifyId(content.value);
-  }
-  return stringifyValue(content.value);
-};
+const isIfc = computed(() => props.node.header.secondary?.startsWith("#") ?? false);
+const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
+const stringifyAttribute = (attribute: GraphAttribute) =>
+  isRelationAttribute(attribute)
+    ? attributeRelations(attribute)
+        .map((relation) => stringifyId(relation.targetId))
+        .join(", ")
+    : stringifyValue(attribute.value);
 </script>
 
 <template>
   <div class="property-area">
     <h3>Node Details</h3>
-    <p><strong>ID:</strong> {{ node.id }}</p>
-    <p><strong>Type:</strong> {{ node.type }}</p>
+    <p><strong>ID:</strong> {{ stringifyId(node.id) }}</p>
+    <p v-if="node.header.primary"><strong>Type:</strong> {{ node.header.primary }}</p>
 
     <h4>Attributes</h4>
     <table>
@@ -47,17 +73,14 @@ const stringifyContents = (content: AttrContent): string => {
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="attribute in node.attributes.filter((attr) => !attr.inverse)"
-          :key="attribute.name"
-        >
+        <tr v-for="(attribute, index) in attributes" :key="index">
           <td>{{ attribute.name }}</td>
-          <td>{{ stringifyContents(attribute.content) }}</td>
+          <td>{{ stringifyAttribute(attribute) }}</td>
         </tr>
       </tbody>
     </table>
 
-    <template v-if="node.attributes.some((attr) => attr.inverse)">
+    <template v-if="inverseAttributes.length">
       <h4>Inverse Attributes</h4>
       <table>
         <thead>
@@ -67,18 +90,15 @@ const stringifyContents = (content: AttrContent): string => {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="attribute in node.attributes.filter((attr) => attr.inverse)"
-            :key="attribute.name"
-          >
+          <tr v-for="(attribute, index) in inverseAttributes" :key="index">
             <td>{{ attribute.name }}</td>
-            <td>{{ stringifyContents(attribute.content) }}</td>
+            <td>{{ stringifyAttribute(attribute) }}</td>
           </tr>
         </tbody>
       </table>
     </template>
 
-    <template v-if="node.reference">
+    <template v-if="referenceRelations.length">
       <h4>References</h4>
       <table>
         <thead>
@@ -88,7 +108,7 @@ const stringifyContents = (content: AttrContent): string => {
         </thead>
         <tbody>
           <tr>
-            <td>{{ stringifyContents(node.reference.content) }}</td>
+            <td>{{ references }}</td>
           </tr>
         </tbody>
       </table>

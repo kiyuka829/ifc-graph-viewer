@@ -2,27 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { IfcAPI } from "web-ifc";
+import { ifcNodeToGraph } from "../src/data/ifcGraph.ts";
 import { WebIfcModel } from "../src/data/webIfcModel.ts";
 
-const normalize = (node) => ({
-  ...node,
-  attributes: node.attributes.map((a) => ({
-    ...a,
-    content: {
-      ...a.content,
-      value:
-        a.inverse && Array.isArray(a.content.value)
-          ? [...a.content.value].sort((a, b) => a - b)
-          : a.content.value,
-    },
-  })),
-  references: {
-    ...node.references,
-    content: {
-      ...node.references.content,
-      value: [...node.references.content.value].sort((a, b) => a - b),
-    },
-  },
+const normalize = ({ node, relations }) => ({
+  node: { ...node, relationIds: [...node.relationIds].sort() },
+  relations: [...relations].sort((a, b) => a.id.localeCompare(b.id)),
 });
 for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
   test(`${schema}: all nodes match IfcOpenShell including typed values and inverse/reference split`, async () => {
@@ -37,7 +22,11 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       const expected = JSON.parse(
         await readFile(new URL(`fixtures/${schema}.expected.json`, import.meta.url)),
       );
-      assert.equal(data.root.type, "IfcProject");
+      assert.equal(data.root.header.primary, "IfcProject");
+      assert.deepEqual(
+        normalize({ node: data.root, relations: data.relations }),
+        normalize(ifcNodeToGraph(expected.find((node) => node.id === 1))),
+      );
       assert.equal(
         Object.values(data.searchData).reduce((n, g) => n + g.items.length, 0),
         expected.length,
@@ -48,8 +37,8 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       );
       for (const node of expected)
         assert.deepEqual(
-          normalize(model.getNode(String(node.id)).node),
-          normalize(node),
+          normalize(model.getNode(String(node.id))),
+          normalize(ifcNodeToGraph(node)),
           `#${node.id} ${node.type}`,
         );
       assert.equal(

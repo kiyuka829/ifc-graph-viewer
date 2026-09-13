@@ -1,6 +1,28 @@
 import type { ModelSource, ModelData } from "./model";
+import { ifcNodeToGraph } from "./ifcGraph.ts";
+import type { LegacyIfcNode } from "./ifcGraph.ts";
+import type { SearchData } from "../components/interfaces";
 
-const endpoint = import.meta.env.VITE_API_ENDPOINT as string;
+const endpoint = (import.meta.env?.VITE_API_ENDPOINT ?? "") as string;
+
+type LegacySearchData = Record<
+  string,
+  { items: { id: string | number; displayName: string }[] }
+>;
+type LegacyModelData = Omit<ModelData, "root" | "relations" | "searchData"> & {
+  root: LegacyIfcNode;
+  searchData: LegacySearchData;
+};
+type SearchResponse = { items?: { id: string | number; displayName: string }[] };
+
+function normalizeSearch<T extends SearchResponse>(
+  response: T,
+): Omit<T, "items"> & { items?: SearchData["items"] } {
+  return {
+    ...response,
+    items: response.items?.map((item) => ({ ...item, id: String(item.id) })),
+  };
+}
 
 async function postJson<T>(url: string, payload: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -28,7 +50,7 @@ async function postFormData<T>(url: string, payload: FormData): Promise<T> {
 }
 
 export const apiSource: ModelSource = {
-  load(files) {
+  async load(files) {
     const form = new FormData();
     files.forEach((file) => {
       // The Python endpoint dispatches using a case-sensitive suffix.
@@ -37,15 +59,44 @@ export const apiSource: ModelSource = {
       );
       form.append("files", file, filename);
     });
-    return postFormData<ModelData>(endpoint + "/upload", form);
+    const data = await postFormData<LegacyModelData>(endpoint + "/upload", form);
+    const root = ifcNodeToGraph(data.root);
+    return {
+      ...data,
+      root: root.node,
+      relations: root.relations,
+      searchData: normalizeSearchData(data.searchData),
+    };
   },
-  getNode(path, id) {
-    return postJson(endpoint + "/get_node", { path, id });
+  async getNode(path, id) {
+    const { node } = await postJson<{ node: LegacyIfcNode }>(endpoint + "/get_node", {
+      path,
+      id,
+    });
+    return ifcNodeToGraph(node);
   },
-  lookup(path, key, value) {
-    return postJson(endpoint + "/lookup_entity", { path, key, value });
+  async lookup(path, key, value) {
+    return normalizeSearch(
+      await postJson<SearchResponse & { entityType?: string }>(
+        endpoint + "/lookup_entity",
+        {
+          path,
+          key,
+          value,
+        },
+      ),
+    );
   },
 };
+
+function normalizeSearchData(searchData: LegacySearchData): ModelData["searchData"] {
+  return Object.fromEntries(
+    Object.entries(searchData).map(([type, data]) => [
+      type,
+      { items: data.items.map((item) => ({ ...item, id: String(item.id) })) },
+    ]),
+  );
+}
 
 export function createIfcSource(): ModelSource {
   return apiSource;
