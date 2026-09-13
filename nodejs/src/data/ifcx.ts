@@ -101,7 +101,7 @@ export class IfcxSource implements ModelSource {
           addReference(target, node.path);
         }
       for (const [, value] of flatten(node.attributes))
-        if (typeof value === "string" && nodes.has(value))
+        if (typeof value === "string" && value !== node.path && nodes.has(value))
           addReference(value, node.path);
     }
     const root = [...nodes.values()].find((node) => !compositionTargets.has(node.path));
@@ -158,7 +158,7 @@ export class IfcxSource implements ModelSource {
       ...(children.length ? [{ name: "children", relationIds: children }] : []),
       ...(inherits.length ? [{ name: "inherits", relationIds: inherits }] : []),
       ...flatten(node.attributes).map(([name, value]) =>
-        typeof value === "string" && this.nodes.has(value)
+        typeof value === "string" && value !== node.path && this.nodes.has(value)
           ? { name, relationIds: [addRelation("attribute", name, value)] }
           : { name, value },
       ),

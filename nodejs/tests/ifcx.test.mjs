@@ -49,9 +49,7 @@ test("composition returns graph nodes without mutating headers", async () => {
     wall.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
       { kind: "attribute", label: "parent", targetId: "project" },
-      { kind: "attribute", label: "self", targetId: "wall" },
       { kind: "reference", label: "references", targetId: "project" },
-      { kind: "reference", label: "references", targetId: "wall" },
       { kind: "reference", label: "references", targetId: "second" },
     ],
   );
@@ -116,10 +114,7 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   const target = await source.getNode("", "target");
   assert.deepEqual(target.node.attributes, [
     { name: "bsi::ifc::class::code", value: "IfcWall" },
-    {
-      name: "self",
-      relationIds: ['["target","attribute","self","target",0]'],
-    },
+    { name: "self", value: "target" },
     { name: "plain", value: "text" },
     { name: "nested::flag", value: true },
     { name: "array", value: [1, { x: 2 }] },
@@ -127,12 +122,10 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   assert.deepEqual(
     target.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
-      { kind: "attribute", label: "self", targetId: "target" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "other" },
-      { kind: "reference", label: "references", targetId: "target" },
     ],
   );
   const reversed = new IfcxSource();
