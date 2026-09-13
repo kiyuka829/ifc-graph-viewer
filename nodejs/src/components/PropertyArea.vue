@@ -34,6 +34,9 @@ const inverseAttributes = computed(() =>
 const referenceRelations = computed(() =>
   nodeRelations.value.filter((relation) => relation.kind === "reference"),
 );
+const references = computed(() =>
+  referenceRelations.value.map((relation) => stringifyId(relation.targetId)).join(", "),
+);
 
 const stringifyValue = (value: any): string => {
   if (value == null) return "";
@@ -104,8 +107,8 @@ const stringifyAttribute = (attribute: GraphAttribute) =>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="relation in referenceRelations" :key="relation.id">
-            <td>{{ stringifyId(relation.targetId) }}</td>
+          <tr>
+            <td>{{ references }}</td>
           </tr>
         </tbody>
       </table>
