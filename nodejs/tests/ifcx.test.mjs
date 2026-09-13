@@ -18,22 +18,21 @@ test("composition returns graph nodes without mutating headers", async () => {
     await fixture("overlay.ifcx"),
   ]);
   assert.equal(model.root.id, "project");
-  assert.deepEqual(model.root.header, { primary: "project" });
+  assert.deepEqual(model.root.header, { secondary: "project" });
   assert.equal(model.headers.length, 2);
   assert.deepEqual(model.root.attributes, [
     {
-      name: "wall",
-      relationIds: ['["project","child","wall","wall",0]'],
-    },
-    {
-      name: "__proto__",
-      relationIds: ['["project","child","__proto__","__proto__",0]'],
+      name: "children",
+      relationIds: [
+        '["project","child","wall","wall",0]',
+        '["project","child","__proto__","__proto__",0]',
+      ],
     },
     { name: "label", value: "Merged" },
     { name: "nested::replacement", value: 42 },
   ]);
   const base = await new IfcxSource().load([await fixture("base.ifcx")]);
-  assert.deepEqual(base.root.attributes.slice(3), [
+  assert.deepEqual(base.root.attributes.slice(2), [
     { name: "nested::flag", value: true },
     { name: "nested::empty", value: null },
     { name: "nested::array", value: [1, { x: 2 }] },
@@ -45,7 +44,7 @@ test("composition returns graph nodes without mutating headers", async () => {
     { id: "wall", displayName: "wall" },
   ]);
   const wall = await source.getNode("", "wall");
-  assert.deepEqual(wall.node.header, { primary: "wall" });
+  assert.deepEqual(wall.node.header, { secondary: "wall" });
   assert.deepEqual(
     wall.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
@@ -88,21 +87,20 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
     { id: "target", displayName: "target" },
   ]);
   assert.deepEqual((await source.getNode("", "target")).node.header, {
-    primary: "target",
-    secondary: "IfcWall",
+    primary: "IfcWall",
+    secondary: "target",
   });
   const root = await source.getNode("", "root");
   assert.deepEqual(root.node.attributes, [
     {
-      name: "first",
-      relationIds: ['["root","child","first","target",0]'],
+      name: "children",
+      relationIds: [
+        '["root","child","first","target",0]',
+        '["root","child","same","target",0]',
+      ],
     },
     {
-      name: "same",
-      relationIds: ['["root","child","same","target",0]'],
-    },
-    {
-      name: "same",
+      name: "inherits",
       relationIds: ['["root","inherits","same","target",0]'],
     },
   ]);
@@ -142,7 +140,7 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
     document([{ path: "target" }, { path: "root", children: { renamed: "target" } }]),
   ]);
   assert.deepEqual((await reversed.getNode("", "target")).node.header, {
-    primary: "target",
+    secondary: "target",
   });
 });
 

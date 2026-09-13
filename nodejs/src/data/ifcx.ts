@@ -148,15 +148,15 @@ export class IfcxSource implements ModelSource {
       });
       return id;
     };
+    const children = Object.entries(node.children).map(([label, targetId]) =>
+      addRelation("child", label, targetId),
+    );
+    const inherits = Object.entries(node.inherits).map(([label, targetId]) =>
+      addRelation("inherits", label, targetId),
+    );
     const attributes = [
-      ...Object.entries(node.children).map(([name, targetId]) => ({
-        name,
-        relationIds: [addRelation("child", name, targetId)],
-      })),
-      ...Object.entries(node.inherits).map(([name, targetId]) => ({
-        name,
-        relationIds: [addRelation("inherits", name, targetId)],
-      })),
+      ...(children.length ? [{ name: "children", relationIds: children }] : []),
+      ...(inherits.length ? [{ name: "inherits", relationIds: inherits }] : []),
       ...flatten(node.attributes).map(([name, value]) =>
         typeof value === "string" && this.nodes.has(value)
           ? { name, relationIds: [addRelation("attribute", name, value)] }
@@ -168,7 +168,10 @@ export class IfcxSource implements ModelSource {
     const code = classification(node);
     const graphNode: GraphNode = {
       id: node.path,
-      header: { primary: node.path, ...(code ? { secondary: code } : {}) },
+      header: {
+        ...(code ? { primary: code } : {}),
+        secondary: node.path,
+      },
       attributes,
       relationIds: relations.map((relation) => relation.id),
     };

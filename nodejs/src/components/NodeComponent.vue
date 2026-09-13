@@ -44,16 +44,8 @@ const attributeRelations = (relationIds: string[]) =>
   relationIds
     .map((id) => relationsById.value.get(id))
     .filter((relation): relation is GraphRelation => relation !== undefined);
-const relationLabel = (relation: GraphRelation) =>
-  relation.kind === "child" || relation.kind === "inherits"
-    ? `${relation.kind}: ${relation.label}`
-    : relation.label;
 const isInverse = (relation: GraphRelation) =>
   relation.kind === "inverse" || relation.kind === "reference";
-const attributeLabel = (name: string, relationIds: string[]) => {
-  const relation = attributeRelations(relationIds)[0];
-  return relation ? relationLabel(relation) : name;
-};
 const isInverseAttribute = (relationIds: string[]) => {
   const relation = attributeRelations(relationIds)[0];
   return relation ? isInverse(relation) : false;
@@ -235,9 +227,12 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
       <span v-if="node.header.secondary" class="id" :title="node.header.secondary">{{
         node.header.secondary
       }}</span>
-      <span class="title truncate-text" :title="node.header.primary">{{
-        node.header.primary
-      }}</span>
+      <span
+        v-if="node.header.primary"
+        class="title truncate-text"
+        :title="node.header.primary"
+        >{{ node.header.primary }}</span
+      >
       <span
         :class="['icon', { 'icon-disabled': !references.length }]"
         @mousedown.prevent="(event) => onDotMouseDown(event, references)"
@@ -259,7 +254,7 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
           :class="{ 'inverse-attribute': isInverseAttribute(attribute.relationIds) }"
         >
           <span class="truncate-text" :title="attribute.name">{{
-            attributeLabel(attribute.name, attribute.relationIds)
+            attribute.name
           }}</span>
           <span
             class="dot"

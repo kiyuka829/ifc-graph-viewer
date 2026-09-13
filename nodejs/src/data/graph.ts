@@ -2,7 +2,7 @@
 export type NodeId = string;
 
 export interface NodeHeader {
-  primary: string;
+  primary?: string;
   secondary?: string;
 }
 

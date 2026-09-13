@@ -59,7 +59,7 @@ const stringifyAttribute = (attribute: GraphAttribute) =>
   <div class="property-area">
     <h3>Node Details</h3>
     <p><strong>ID:</strong> {{ stringifyId(node.id) }}</p>
-    <p><strong>Type:</strong> {{ node.header.primary }}</p>
+    <p v-if="node.header.primary"><strong>Type:</strong> {{ node.header.primary }}</p>
 
     <h4>Attributes</h4>
     <table>

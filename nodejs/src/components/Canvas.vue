@@ -487,11 +487,18 @@ const edgePosition = computed(() => {
       x: (to_node?.position.x ?? 0) + (to_port?.x ?? 0),
       y: (to_node?.position.y ?? 0) + (to_port?.y ?? 16),
     };
+    const relation = relations.value.find(
+      (relation) => relation.id === edge.relationId,
+    );
 
     return {
       id: edge.id,
       from: from_edge,
       to: to_edge,
+      label:
+        relation?.kind === "child" || relation?.kind === "inherits"
+          ? relation.label
+          : undefined,
     };
   });
 });
@@ -1050,6 +1057,7 @@ const handleDragOver = (event: DragEvent) => {
             :key="edge.id"
             :from="edge.from"
             :to="edge.to"
+            :label="edge.label"
           />
           <!-- Drawing edge -->
           <EdgeComponent
