@@ -73,6 +73,7 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
         path: "target",
         attributes: {
           "bsi::ifc::class": { code: "IfcWall" },
+          parent: "root",
           self: "target",
           plain: "text",
           nested: { flag: true },
@@ -108,12 +109,18 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
       { kind: "child", label: "first", targetId: "target" },
       { kind: "child", label: "same", targetId: "target" },
       { kind: "inherits", label: "same", targetId: "target" },
+      { kind: "reference", label: "references", targetId: "target" },
     ],
   );
-  assert.equal(new Set(root.relations.map((relation) => relation.id)).size, 3);
+  assert.equal(new Set(root.relations.map((relation) => relation.id)).size, 4);
+  assert.equal(
+    root.relations.at(-1)?.originalRelationId,
+    '["target","attribute","parent","root",0]',
+  );
   const target = await source.getNode("", "target");
   assert.deepEqual(target.node.attributes, [
     { name: "bsi::ifc::class::code", value: "IfcWall" },
+    { name: "parent", relationIds: ['["target","attribute","parent","root",0]'] },
     { name: "self", value: "target" },
     { name: "plain", value: "text" },
     { name: "nested::flag", value: true },
@@ -122,10 +129,21 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   assert.deepEqual(
     target.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
+      { kind: "attribute", label: "parent", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "other" },
+    ],
+  );
+  assert.deepEqual(
+    target.relations.map((relation) => relation.originalRelationId),
+    [
+      undefined,
+      '["root","child","first","target",0]',
+      '["root","child","same","target",0]',
+      '["root","inherits","same","target",0]',
+      '["other","child","second","target",0]',
     ],
   );
   const reversed = new IfcxSource();

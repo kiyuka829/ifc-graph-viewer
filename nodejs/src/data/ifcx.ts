@@ -15,6 +15,7 @@ type NodeData = {
   inherits: Record<string, string>;
   attributes: JsonObject;
 };
+type Reference = { sourceId: string; originalRelationId: string };
 const isObject = (value: unknown): value is JsonObject =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 function flatten(object: JsonObject, prefix = ""): [string, IfcHeaderValue][] {
@@ -40,7 +41,7 @@ function classification(node: NodeData): string | undefined {
 /** Alpha composition follows the Python accessor: later fields override earlier fields shallowly. */
 export class IfcxSource implements ModelSource {
   private nodes = new Map<string, NodeData>();
-  private references = new Map<string, string[]>();
+  private references = new Map<string, Reference[]>();
 
   async load(files: File[]): Promise<ModelData> {
     const nodes = new Map<string, NodeData>();
@@ -90,19 +91,42 @@ export class IfcxSource implements ModelSource {
         });
       }
     }
-    const references = new Map<string, string[]>();
+    const references = new Map<string, Reference[]>();
     const compositionTargets = new Set<string>();
-    const addReference = (target: string, source: string) =>
-      references.get(target)?.push(source) ?? references.set(target, [source]);
+    const addReference = (
+      target: string,
+      sourceId: string,
+      originalRelationId: string,
+    ) =>
+      references.get(target)?.push({ sourceId, originalRelationId }) ??
+      references.set(target, [{ sourceId, originalRelationId }]);
     for (const node of nodes.values()) {
-      for (const refs of [node.children, node.inherits])
-        for (const target of Object.values(refs)) {
-          compositionTargets.add(target);
-          addReference(target, node.path);
-        }
-      for (const [, value] of flatten(node.attributes))
+      const occurrences = new Map<string, number>();
+      const addForwardReference = (
+        kind: GraphRelationKind,
+        label: string,
+        targetId: string,
+      ) => {
+        const key = JSON.stringify([node.path, kind, label, targetId]);
+        const occurrence = occurrences.get(key) ?? 0;
+        occurrences.set(key, occurrence + 1);
+        addReference(
+          targetId,
+          node.path,
+          relationId(node.path, kind, label, targetId, occurrence),
+        );
+      };
+      for (const [label, targetId] of Object.entries(node.children)) {
+        compositionTargets.add(targetId);
+        addForwardReference("child", label, targetId);
+      }
+      for (const [label, targetId] of Object.entries(node.inherits)) {
+        compositionTargets.add(targetId);
+        addForwardReference("inherits", label, targetId);
+      }
+      for (const [label, value] of flatten(node.attributes))
         if (typeof value === "string" && value !== node.path && nodes.has(value))
-          addReference(value, node.path);
+          addForwardReference("attribute", label, value);
     }
     const root = [...nodes.values()].find((node) => !compositionTargets.has(node.path));
     if (!root)
@@ -134,7 +158,12 @@ export class IfcxSource implements ModelSource {
   private nodeInfo(node: NodeData): GraphNodeResponse {
     const relations: GraphRelation[] = [];
     const occurrences = new Map<string, number>();
-    const addRelation = (kind: GraphRelationKind, label: string, targetId: string) => {
+    const addRelation = (
+      kind: GraphRelationKind,
+      label: string,
+      targetId: string,
+      originalRelationId?: string,
+    ) => {
       const key = JSON.stringify([node.path, kind, label, targetId]);
       const occurrence = occurrences.get(key) ?? 0;
       occurrences.set(key, occurrence + 1);
@@ -145,6 +174,7 @@ export class IfcxSource implements ModelSource {
         targetId,
         kind,
         label,
+        ...(originalRelationId ? { originalRelationId } : {}),
       });
       return id;
     };
@@ -163,8 +193,13 @@ export class IfcxSource implements ModelSource {
           : { name, value },
       ),
     ];
-    for (const sourceId of this.references.get(node.path) ?? [])
-      addRelation("reference", "references", sourceId);
+    for (const reference of this.references.get(node.path) ?? [])
+      addRelation(
+        "reference",
+        "references",
+        reference.sourceId,
+        reference.originalRelationId,
+      );
     const code = classification(node);
     const graphNode: GraphNode = {
       id: node.path,

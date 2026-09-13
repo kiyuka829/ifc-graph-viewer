@@ -28,6 +28,8 @@ export interface GraphRelation {
   targetId: NodeId;
   kind: GraphRelationKind;
   label: string;
+  /** The forward relation represented by a reverse reference, when known. */
+  originalRelationId?: string;
 }
 
 export function relationId(

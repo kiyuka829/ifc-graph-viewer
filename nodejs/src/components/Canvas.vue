@@ -542,9 +542,11 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
     .then((data) => {
       const wasVisible = nodes.value.some((node) => node.id === relation.targetId);
       const node = addGraphResponse(data);
-      const targetRelation = data.relations.find(
-        (item) => item.sourceId === node.id && item.targetId === relation.sourceId,
-      );
+      const targetRelation = relation.originalRelationId
+        ? data.relations.find((item) => item.id === relation.originalRelationId)
+        : data.relations.find(
+            (item) => item.sourceId === node.id && item.targetId === relation.sourceId,
+          );
       const targetPort = targetRelation ? relationPortId(targetRelation) : undefined;
       if (!wasVisible) {
         const state = nodeStates.value[node.id];
@@ -554,14 +556,17 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
           y: dstPosition.y - (port?.y ?? 16) + idx * 10,
         };
       }
-      if (edges.value.some((edge) => edge.relationId === relation.id)) {
+      const edgeRelation = relation.originalRelationId
+        ? (targetRelation ?? relation)
+        : relation;
+      if (edges.value.some((edge) => edge.relationId === edgeRelation.id)) {
         return;
       }
       const source = { nodeId: relation.sourceId, portId: relationPortId(relation) };
       const target = { nodeId: relation.targetId, portId: targetPort };
       edges.value.push({
-        id: relation.id,
-        relationId: relation.id,
+        id: edgeRelation.id,
+        relationId: edgeRelation.id,
         from: isInverseRelation(relation) ? target : source,
         to: isInverseRelation(relation) ? source : target,
       });
