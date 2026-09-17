@@ -271,3 +271,35 @@ test("unresolved refs remain grouped and resolve when their target is loaded", a
   assert.equal(resolved.root.attributes[0].relationIds.length, 2);
   assert.equal(resolved.root.attributes[0].unresolvedTargetIds, undefined);
 });
+
+test("children and inherits group missing targets without creating dangling relations", async () => {
+  for (const [name, kind] of [
+    ["children", "child"],
+    ["inherits", "inherits"],
+  ]) {
+    const source = new IfcxSource();
+    const input = document([
+      { path: "root", [name]: { first: "target", second: "missing" } },
+    ]);
+    const missing = await source.load([input]);
+    assert.deepEqual(missing.root.attributes, [
+      { name, relationIds: [], unresolvedTargetIds: ["target", "missing"] },
+    ]);
+    assert.deepEqual(missing.relations, []);
+    const mixed = await source.load([input, document([{ path: "target" }])]);
+    assert.equal(mixed.root.attributes.length, 1);
+    assert.deepEqual(mixed.root.attributes[0].unresolvedTargetIds, ["missing"]);
+    assert.equal(mixed.relations.length, 1);
+    assert.equal(mixed.relations[0].kind, kind);
+    assert.equal(mixed.relations[0].label, "first");
+    assert.equal(mixed.relations[0].targetId, "target");
+    const target = await source.getNode("", "target");
+    assert.equal(target.relations[0].originalRelationId, mixed.relations[0].id);
+    const resolved = await source.load([
+      input,
+      document([{ path: "target" }, { path: "missing" }]),
+    ]);
+    assert.equal(resolved.root.attributes[0].unresolvedTargetIds, undefined);
+    assert.equal(resolved.root.attributes[0].relationIds.length, 2);
+  }
+});

@@ -12,7 +12,7 @@ const props = defineProps<{
   selected: boolean;
   scale: number;
 }>();
-const node = props.node;
+const node = computed(() => props.node);
 const emit = defineEmits([
   "update:position",
   "add:node",

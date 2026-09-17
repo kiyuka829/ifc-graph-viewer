@@ -148,11 +148,11 @@ export class IfcxSource implements ModelSource {
       };
       for (const [label, targetId] of Object.entries(node.children)) {
         compositionTargets.add(targetId);
-        addForwardReference("child", label, targetId);
+        if (nodes.has(targetId)) addForwardReference("child", label, targetId);
       }
       for (const [label, targetId] of Object.entries(node.inherits)) {
         compositionTargets.add(targetId);
-        addForwardReference("inherits", label, targetId);
+        if (nodes.has(targetId)) addForwardReference("inherits", label, targetId);
       }
       for (const [label, value] of flatten(node.attributes))
         if (isNodeReference(label, value, node, nodes))
@@ -208,16 +208,24 @@ export class IfcxSource implements ModelSource {
       });
       return id;
     };
-    const children = Object.entries(node.children).map(([label, targetId]) =>
-      addRelation("child", label, targetId),
-    );
-    const inherits = Object.entries(node.inherits).map(([label, targetId]) =>
-      addRelation("inherits", label, targetId),
-    );
-    const attributes: GraphAttribute[] = [
-      ...(children.length ? [{ name: "children", relationIds: children }] : []),
-      ...(inherits.length ? [{ name: "inherits", relationIds: inherits }] : []),
-    ];
+    const attributes: GraphAttribute[] = [];
+    for (const [name, kind] of [
+      ["children", "child"],
+      ["inherits", "inherits"],
+    ] as const) {
+      const entries = Object.entries(node[name]);
+      if (!entries.length) continue;
+      const attribute: Extract<GraphAttribute, { relationIds: string[] }> = {
+        name,
+        relationIds: [],
+      };
+      for (const [label, targetId] of entries) {
+        if (this.nodes.has(targetId))
+          attribute.relationIds.push(addRelation(kind, label, targetId));
+        else (attribute.unresolvedTargetIds ??= []).push(targetId);
+      }
+      attributes.push(attribute);
+    }
     const referenceAttributes = new Map<
       string,
       Extract<GraphAttribute, { relationIds: string[] }>
