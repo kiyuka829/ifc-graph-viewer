@@ -542,12 +542,20 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
     .then((data) => {
       const wasVisible = nodes.value.some((node) => node.id === relation.targetId);
       const node = addGraphResponse(data);
+      const isIfcx = headerInfo.value[0]?.format === "ifcx";
       const targetRelation = relation.originalRelationId
         ? data.relations.find((item) => item.id === relation.originalRelationId)
-        : data.relations.find(
-            (item) => item.sourceId === node.id && item.targetId === relation.sourceId,
-          );
-      const targetPort = targetRelation ? relationPortId(targetRelation) : undefined;
+        : isIfcx
+          ? undefined
+          : data.relations.find(
+              (item) =>
+                item.sourceId === node.id && item.targetId === relation.sourceId,
+            );
+      const targetPort = targetRelation
+        ? relationPortId(targetRelation)
+        : isIfcx
+          ? "reference"
+          : undefined;
       if (!wasVisible) {
         const state = nodeStates.value[node.id];
         const port = targetPort ? state.portPositions[targetPort] : undefined;
