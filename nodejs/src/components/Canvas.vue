@@ -341,7 +341,7 @@ const isInverseRelation = (relation: GraphRelation) =>
 const attributeRowCount = (node: GraphNode) =>
   node.attributes.filter((attribute) =>
     isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0
+      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
       : hasValue(attribute.value),
   ).length;
 
@@ -350,7 +350,7 @@ function updatePortPositions(node: GraphNode) {
   if (!state) return;
   const visibleAttributes = node.attributes.filter((attribute) =>
     isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0
+      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
       : hasValue(attribute.value),
   );
   const portPositions: Record<string, Position> = {};
@@ -542,12 +542,20 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
     .then((data) => {
       const wasVisible = nodes.value.some((node) => node.id === relation.targetId);
       const node = addGraphResponse(data);
+      const isIfcx = headerInfo.value[0]?.format === "ifcx";
       const targetRelation = relation.originalRelationId
         ? data.relations.find((item) => item.id === relation.originalRelationId)
-        : data.relations.find(
-            (item) => item.sourceId === node.id && item.targetId === relation.sourceId,
-          );
-      const targetPort = targetRelation ? relationPortId(targetRelation) : undefined;
+        : isIfcx
+          ? undefined
+          : data.relations.find(
+              (item) =>
+                item.sourceId === node.id && item.targetId === relation.sourceId,
+            );
+      const targetPort = targetRelation
+        ? relationPortId(targetRelation)
+        : isIfcx
+          ? "reference"
+          : undefined;
       if (!wasVisible) {
         const state = nodeStates.value[node.id];
         const port = targetPort ? state.portPositions[targetPort] : undefined;

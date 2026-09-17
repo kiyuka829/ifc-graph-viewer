@@ -12,7 +12,7 @@ const props = defineProps<{
   selected: boolean;
   scale: number;
 }>();
-const node = props.node;
+const node = computed(() => props.node);
 const emit = defineEmits([
   "update:position",
   "add:node",
@@ -249,7 +249,10 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
           }}</span>
         </div>
         <div
-          v-else-if="isRelationAttribute(attribute) && attribute.relationIds.length"
+          v-else-if="
+            isRelationAttribute(attribute) &&
+            (attribute.relationIds.length || attribute.unresolvedTargetIds?.length)
+          "
           class="attribute"
           :class="{ 'inverse-attribute': isInverseAttribute(attribute.relationIds) }"
         >
@@ -258,8 +261,11 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
           }}</span>
           <span
             class="dot"
+            :class="{ 'dot-disabled': !attribute.relationIds.length }"
+            :title="attribute.relationIds.length ? undefined : 'Not found'"
             @mousedown.prevent="
               (event) =>
+                attribute.relationIds.length &&
                 onDotMouseDown(event, attributeRelations(attribute.relationIds))
             "
           ></span>
@@ -404,5 +410,9 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
   box-shadow:
     0 0 0 2px var(--accent-subtle),
     var(--shadow-lg);
+}
+.dot-disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 </style>

@@ -1,0 +1,70 @@
+{
+  "header": {
+    "ifcxVersion": "ifcx-alpha",
+    "author": "Reference display test"
+  },
+  "data": [
+    {
+      "path": "reference-demo",
+      "attributes": {
+        "mixed": [
+          {
+            "ref": "target-a"
+          },
+          {
+            "ref": "missing-a"
+          },
+          {
+            "ref": "target-b"
+          }
+        ],
+        "all-missing": [
+          {
+            "ref": "missing-b"
+          },
+          {
+            "ref": "missing-c"
+          }
+        ],
+        "all-valid": [
+          {
+            "ref": "target-a"
+          },
+          {
+            "ref": "target-b"
+          }
+        ],
+        "single-missing": {
+          "ref": "missing-d"
+        },
+        "plain-text": "target-a"
+      },
+      "children": {
+        "existing": "target-a",
+        "missing": "missing-child"
+      },
+      "inherits": {
+        "existing": "target-b",
+        "missing": "missing-inherits"
+      }
+    },
+    {
+      "path": "target-a",
+      "attributes": {
+        "description": "Existing target A"
+      },
+      "children": {
+        "missing": "missing-child-only"
+      },
+      "inherits": {
+        "missing": "missing-inherits-only"
+      }
+    },
+    {
+      "path": "target-b",
+      "attributes": {
+        "description": "Existing target B"
+      }
+    }
+  ]
+}
