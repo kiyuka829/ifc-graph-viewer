@@ -7,7 +7,8 @@ export interface NodeHeader {
 }
 
 export type GraphAttribute =
-  { name: string; value: unknown } | { name: string; relationIds: string[] };
+  | { name: string; value: unknown }
+  | { name: string; relationIds: string[]; unresolvedTargetIds?: string[] };
 
 export const isRelationAttribute = (
   attribute: GraphAttribute,

@@ -52,9 +52,14 @@ const isIfc = computed(() => props.node.header.secondary?.startsWith("#") ?? fal
 const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
 const stringifyAttribute = (attribute: GraphAttribute) =>
   isRelationAttribute(attribute)
-    ? attributeRelations(attribute)
-        .map((relation) => stringifyId(relation.targetId))
-        .join(", ")
+    ? [
+        ...attributeRelations(attribute).map((relation) =>
+          stringifyId(relation.targetId),
+        ),
+        ...(attribute.unresolvedTargetIds ?? []).map(
+          (id) => `${stringifyId(id)} (Not found)`,
+        ),
+      ].join(", ")
     : stringifyValue(attribute.value);
 </script>
 

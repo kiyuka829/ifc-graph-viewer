@@ -341,7 +341,7 @@ const isInverseRelation = (relation: GraphRelation) =>
 const attributeRowCount = (node: GraphNode) =>
   node.attributes.filter((attribute) =>
     isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0
+      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
       : hasValue(attribute.value),
   ).length;
 
@@ -350,7 +350,7 @@ function updatePortPositions(node: GraphNode) {
   if (!state) return;
   const visibleAttributes = node.attributes.filter((attribute) =>
     isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0
+      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
       : hasValue(attribute.value),
   );
   const portPositions: Record<string, Position> = {};

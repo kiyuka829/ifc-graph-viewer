@@ -1,0 +1,36 @@
+{
+  "header": {
+    "ifcxVersion": "ifcx-alpha",
+    "author": "Reference display test"
+  },
+  "data": [
+    {
+      "path": "reference-demo",
+      "attributes": {
+        "mixed": [
+          { "ref": "target-a" },
+          { "ref": "missing-a" },
+          { "ref": "target-b" }
+        ],
+        "all-missing": [
+          { "ref": "missing-b" },
+          { "ref": "missing-c" }
+        ],
+        "all-valid": [
+          { "ref": "target-a" },
+          { "ref": "target-b" }
+        ],
+        "single-missing": { "ref": "missing-d" },
+        "plain-text": "target-a"
+      }
+    },
+    {
+      "path": "target-a",
+      "attributes": { "description": "Existing target A" }
+    },
+    {
+      "path": "target-b",
+      "attributes": { "description": "Existing target B" }
+    }
+  ]
+}

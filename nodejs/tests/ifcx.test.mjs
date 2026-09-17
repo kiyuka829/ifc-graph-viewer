@@ -223,7 +223,6 @@ test("only ref fields create edges, including nested and repeated array referenc
     [
       ["label", "target"],
       ["links::label", "target"],
-      ["links::ref", "missing"],
       ["links::ref", "root"],
       ["links::ref", 42],
       ["links", "target"],
@@ -235,6 +234,7 @@ test("only ref fields create edges, including nested and repeated array referenc
     (a) => "relationIds" in a && a.name === "links::ref",
   );
   assert.equal(grouped.length, 1);
+  assert.deepEqual(grouped[0].unresolvedTargetIds, ["missing"]);
   assert.deepEqual(
     grouped[0].relationIds,
     outgoing.filter((r) => r.label === "links::ref").map((r) => r.id),
@@ -247,4 +247,27 @@ test("only ref fields create edges, including nested and repeated array referenc
       outgoing.filter((r) => r.targetId === id).map((r) => r.id),
     );
   }
+});
+
+test("unresolved refs remain grouped and resolve when their target is loaded", async () => {
+  const source = new IfcxSource();
+  const input = document([
+    { path: "root", attributes: { links: [{ ref: "missing" }, { ref: "another" }] } },
+  ]);
+  const model = await source.load([input]);
+  assert.deepEqual(model.root.attributes, [
+    {
+      name: "links::ref",
+      relationIds: [],
+      unresolvedTargetIds: ["missing", "another"],
+    },
+  ]);
+  assert.deepEqual(model.relations, []);
+  const resolved = await source.load([
+    input,
+    document([{ path: "missing" }, { path: "another" }]),
+  ]);
+  assert.equal(resolved.root.attributes.length, 1);
+  assert.equal(resolved.root.attributes[0].relationIds.length, 2);
+  assert.equal(resolved.root.attributes[0].unresolvedTargetIds, undefined);
 });

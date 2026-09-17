@@ -220,10 +220,14 @@ export class IfcxSource implements ModelSource {
     ];
     const referenceAttributes = new Map<
       string,
-      { name: string; relationIds: string[] }
+      Extract<GraphAttribute, { relationIds: string[] }>
     >();
     for (const [name, value] of flatten(node.attributes)) {
-      if (!isNodeReference(name, value, node, this.nodes)) {
+      if (
+        !(name === "ref" || name.endsWith("::ref")) ||
+        typeof value !== "string" ||
+        value === node.path
+      ) {
         attributes.push({ name, value });
         continue;
       }
@@ -233,7 +237,9 @@ export class IfcxSource implements ModelSource {
         referenceAttributes.set(name, attribute);
         attributes.push(attribute);
       }
-      attribute.relationIds.push(addRelation("attribute", name, value));
+      if (this.nodes.has(value))
+        attribute.relationIds.push(addRelation("attribute", name, value));
+      else (attribute.unresolvedTargetIds ??= []).push(value);
     }
     for (const reference of this.references.get(node.path) ?? [])
       addRelation(
