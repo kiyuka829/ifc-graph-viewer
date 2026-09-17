@@ -1,6 +1,7 @@
 import type { IfcHeader, IfcHeaderValue, SearchData } from "../components/interfaces";
 import { relationId } from "./graph.ts";
 import type {
+  GraphAttribute,
   GraphNode,
   GraphNodeResponse,
   GraphRelation,
@@ -18,11 +19,40 @@ type NodeData = {
 type Reference = { sourceId: string; originalRelationId: string };
 const isObject = (value: unknown): value is JsonObject =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+const containsRef = (value: IfcHeaderValue): boolean =>
+  Array.isArray(value)
+    ? value.some(containsRef)
+    : isObject(value) &&
+      (typeof value.ref === "string" || Object.values(value).some(containsRef));
+
 function flatten(object: JsonObject, prefix = ""): [string, IfcHeaderValue][] {
-  return Object.entries(object).flatMap(([key, value]) => {
-    const name = prefix ? `${prefix}::${key}` : key;
-    return isObject(value) ? flatten(value, name) : [[name, value]];
-  });
+  const flattenValue = (
+    name: string,
+    value: IfcHeaderValue,
+  ): [string, IfcHeaderValue][] => {
+    if (isObject(value)) return flatten(value, name);
+    // Keep numeric arrays (geometry, colors, etc.) intact; expand reference arrays.
+    if (Array.isArray(value) && containsRef(value))
+      return value.flatMap((item) => flattenValue(name, item));
+    return [[name, value]];
+  };
+  return Object.entries(object).flatMap(([key, value]) =>
+    flattenValue(prefix ? `${prefix}::${key}` : key, value),
+  );
+}
+
+function isNodeReference(
+  name: string,
+  value: IfcHeaderValue,
+  node: NodeData,
+  nodes: Map<string, NodeData>,
+): value is string {
+  return (
+    (name === "ref" || name.endsWith("::ref")) &&
+    typeof value === "string" &&
+    value !== node.path &&
+    nodes.has(value)
+  );
 }
 function referenceMap(
   value: IfcHeaderValue | undefined,
@@ -125,7 +155,7 @@ export class IfcxSource implements ModelSource {
         addForwardReference("inherits", label, targetId);
       }
       for (const [label, value] of flatten(node.attributes))
-        if (typeof value === "string" && value !== node.path && nodes.has(value))
+        if (isNodeReference(label, value, node, nodes))
           addForwardReference("attribute", label, value);
     }
     const root = [...nodes.values()].find((node) => !compositionTargets.has(node.path));
@@ -184,15 +214,27 @@ export class IfcxSource implements ModelSource {
     const inherits = Object.entries(node.inherits).map(([label, targetId]) =>
       addRelation("inherits", label, targetId),
     );
-    const attributes = [
+    const attributes: GraphAttribute[] = [
       ...(children.length ? [{ name: "children", relationIds: children }] : []),
       ...(inherits.length ? [{ name: "inherits", relationIds: inherits }] : []),
-      ...flatten(node.attributes).map(([name, value]) =>
-        typeof value === "string" && value !== node.path && this.nodes.has(value)
-          ? { name, relationIds: [addRelation("attribute", name, value)] }
-          : { name, value },
-      ),
     ];
+    const referenceAttributes = new Map<
+      string,
+      { name: string; relationIds: string[] }
+    >();
+    for (const [name, value] of flatten(node.attributes)) {
+      if (!isNodeReference(name, value, node, this.nodes)) {
+        attributes.push({ name, value });
+        continue;
+      }
+      let attribute = referenceAttributes.get(name);
+      if (!attribute) {
+        attribute = { name, relationIds: [] };
+        referenceAttributes.set(name, attribute);
+        attributes.push(attribute);
+      }
+      attribute.relationIds.push(addRelation("attribute", name, value));
+    }
     for (const reference of this.references.get(node.path) ?? [])
       addRelation(
         "reference",

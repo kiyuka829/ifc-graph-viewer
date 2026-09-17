@@ -48,7 +48,6 @@ test("composition returns graph nodes without mutating headers", async () => {
   assert.deepEqual(
     wall.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
-      { kind: "attribute", label: "parent", targetId: "project" },
       { kind: "reference", label: "references", targetId: "project" },
       { kind: "reference", label: "references", targetId: "second" },
     ],
@@ -73,7 +72,7 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
         path: "target",
         attributes: {
           "bsi::ifc::class": { code: "IfcWall" },
-          parent: "root",
+          parent: { ref: "root" },
           self: "target",
           plain: "text",
           nested: { flag: true },
@@ -115,12 +114,15 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   assert.equal(new Set(root.relations.map((relation) => relation.id)).size, 4);
   assert.equal(
     root.relations.at(-1)?.originalRelationId,
-    '["target","attribute","parent","root",0]',
+    '["target","attribute","parent::ref","root",0]',
   );
   const target = await source.getNode("", "target");
   assert.deepEqual(target.node.attributes, [
     { name: "bsi::ifc::class::code", value: "IfcWall" },
-    { name: "parent", relationIds: ['["target","attribute","parent","root",0]'] },
+    {
+      name: "parent::ref",
+      relationIds: ['["target","attribute","parent::ref","root",0]'],
+    },
     { name: "self", value: "target" },
     { name: "plain", value: "text" },
     { name: "nested::flag", value: true },
@@ -129,7 +131,7 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   assert.deepEqual(
     target.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
     [
-      { kind: "attribute", label: "parent", targetId: "root" },
+      { kind: "attribute", label: "parent::ref", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
       { kind: "reference", label: "references", targetId: "root" },
@@ -178,4 +180,71 @@ test("same filename layers are composed in selection order", async () => {
   ]);
   assert.equal(model.root.attributes[0].value, 2);
   assert.equal(model.headers.length, 2);
+});
+
+test("only ref fields create edges, including nested and repeated array references", async () => {
+  const source = new IfcxSource();
+  const model = await source.load([
+    document([
+      {
+        path: "root",
+        attributes: {
+          label: "target",
+          direct: { ref: "target" },
+          links: [
+            { ref: "target", label: "target" },
+            { ref: "target" },
+            { ref: "missing" },
+            { ref: "root" },
+            { ref: 42 },
+            { nested: [{ ref: "other" }] },
+            "target",
+          ],
+          strings: ["target"],
+          points: [[1, 2, 3]],
+        },
+      },
+      { path: "target" },
+      { path: "other" },
+    ]),
+  ]);
+  const outgoing = model.relations.filter((relation) => relation.kind === "attribute");
+  assert.deepEqual(
+    outgoing.map(({ label, targetId }) => [label, targetId]),
+    [
+      ["direct::ref", "target"],
+      ["links::ref", "target"],
+      ["links::ref", "target"],
+      ["links::nested::ref", "other"],
+    ],
+  );
+  assert.deepEqual(
+    model.root.attributes.filter((a) => "value" in a).map((a) => [a.name, a.value]),
+    [
+      ["label", "target"],
+      ["links::label", "target"],
+      ["links::ref", "missing"],
+      ["links::ref", "root"],
+      ["links::ref", 42],
+      ["links", "target"],
+      ["strings", ["target"]],
+      ["points", [[1, 2, 3]]],
+    ],
+  );
+  const grouped = model.root.attributes.filter(
+    (a) => "relationIds" in a && a.name === "links::ref",
+  );
+  assert.equal(grouped.length, 1);
+  assert.deepEqual(
+    grouped[0].relationIds,
+    outgoing.filter((r) => r.label === "links::ref").map((r) => r.id),
+  );
+  assert.equal(new Set(grouped[0].relationIds).size, 2);
+  for (const id of ["target", "other"]) {
+    const target = await source.getNode("", id);
+    assert.deepEqual(
+      target.relations.map((r) => r.originalRelationId),
+      outgoing.filter((r) => r.targetId === id).map((r) => r.id),
+    );
+  }
 });
