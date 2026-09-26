@@ -186,6 +186,175 @@ test("imports accepts absent and empty metadata", async () => {
   assert.equal((await source.load([document([{ path: "root" }], [])])).root.id, "root");
 });
 
+test("relative imports are silently skipped", async () => {
+  await withFetch(new Map(), async (requests) => {
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (warning) => warnings.push(warning);
+    try {
+      const model = await new IfcxSource().load([
+        new File(
+          [ifcx([{ path: "root" }], [{ uri: "relative.ifcx" }])],
+          "selected.ifcx",
+        ),
+      ]);
+      assert.deepEqual(requests, []);
+      assert.deepEqual(
+        model.headers.map(({ filename }) => filename),
+        ["selected.ifcx"],
+      );
+      assert.deepEqual(warnings, []);
+    } finally {
+      console.warn = originalWarn;
+    }
+  });
+});
+
+test("failed external imports warn and leave the selected file usable", async () => {
+  const network = "https://example.test/network.ifcx";
+  const missing = "https://example.test/missing.ifcx";
+  const unreadable = "https://example.test/unreadable.ifcx";
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
+  globalThis.fetch = async (uri) => {
+    switch (String(uri)) {
+      case network:
+        throw new Error("CORS blocked");
+      case missing:
+        return { ok: false, text: async () => "" };
+      default:
+        return { ok: true, text: async () => Promise.reject(new Error("Unreadable")) };
+    }
+  };
+  console.warn = (warning) => warnings.push(warning);
+  try {
+    const model = await new IfcxSource().load([
+      new File(
+        [
+          ifcx(
+            [{ path: "root" }],
+            [{ uri: network }, { uri: missing }, { uri: unreadable }],
+          ),
+        ],
+        "selected.ifcx",
+      ),
+    ]);
+    assert.deepEqual(
+      model.headers.map(({ filename }) => filename),
+      ["selected.ifcx"],
+    );
+    for (const uri of [network, missing, unreadable])
+      assert.ok(warnings.some((warning) => warning.includes(uri)));
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});
+
+test("invalid external documents are skipped atomically", async () => {
+  const invalidJson = "https://example.test/invalid-json.ifcx";
+  const invalidDocument = "https://example.test/invalid-document.ifcx";
+  const invalidNode = "https://example.test/invalid-node.ifcx";
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (warning) => warnings.push(warning);
+  try {
+    await withFetch(
+      new Map([
+        [invalidJson, "{"],
+        [invalidDocument, "{}"],
+        [
+          invalidNode,
+          ifcx([
+            { path: "root", attributes: { leaked: true } },
+            { path: "invalid", children: [] },
+          ]),
+        ],
+      ]),
+      async () => {
+        const model = await new IfcxSource().load([
+          new File(
+            [
+              ifcx(
+                [{ path: "root" }],
+                [{ uri: invalidJson }, { uri: invalidDocument }, { uri: invalidNode }],
+              ),
+            ],
+            "selected.ifcx",
+          ),
+        ]);
+        assert.deepEqual(
+          model.headers.map(({ filename }) => filename),
+          ["selected.ifcx"],
+        );
+      },
+    );
+    assert.ok(
+      warnings.some(
+        (warning) =>
+          warning.includes(`${invalidJson}:`) && warning.includes("Invalid JSON"),
+      ),
+    );
+    assert.ok(
+      warnings.some(
+        (warning) =>
+          warning.includes(`${invalidDocument}:`) &&
+          warning.includes("Expected IFCX version"),
+      ),
+    );
+    assert.ok(
+      warnings.some(
+        (warning) =>
+          warning.includes(`${invalidNode}:`) && warning.includes("children must be"),
+      ),
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test("failed nested imports do not prevent their parent from loading", async () => {
+  const parent = "https://example.test/parent.ifcx";
+  const failedChild = "https://example.test/failed-child.ifcx";
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (warning) => warnings.push(warning);
+  try {
+    await withFetch(
+      new Map([
+        [
+          parent,
+          ifcx(
+            [{ path: "root", attributes: { parent: true } }],
+            [{ uri: failedChild }],
+          ),
+        ],
+      ]),
+      async () => {
+        const model = await new IfcxSource().load([
+          new File([ifcx([{ path: "root" }], [{ uri: parent }])], "selected.ifcx"),
+        ]);
+        assert.deepEqual(
+          model.headers.map(({ filename }) => filename),
+          [parent, "selected.ifcx"],
+        );
+        assert.deepEqual(model.root.attributes, [{ name: "parent", value: true }]);
+      },
+    );
+    assert.ok(warnings.some((warning) => warning.includes(failedChild)));
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test("invalid selected documents still reject", async () => {
+  await assert.rejects(
+    new IfcxSource().load([document([{ path: "root", inherits: [] }])]),
+    /inherits must be an object of path strings/,
+  );
+});
+
 test("imports fetched documents before the selected file and includes their headers", async () => {
   const uri = "https://example.test/import.ifcx";
   await withFetch(

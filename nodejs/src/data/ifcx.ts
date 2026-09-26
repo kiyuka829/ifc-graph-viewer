@@ -10,9 +10,15 @@ type NodeData = {
   attributes: JsonObject;
 };
 type Reference = { sourceId: string; endpoint: LinkEndpoint; label?: string };
+type IfcxNode = {
+  path: string;
+  children?: Record<string, string>;
+  inherits?: Record<string, string>;
+  attributes?: JsonObject;
+};
 type IfcxDocument = {
   header: IfcHeader;
-  data: unknown[];
+  data: IfcxNode[];
   imports?: { uri: string }[];
 };
 const isObject = (value: unknown): value is JsonObject =>
@@ -45,6 +51,14 @@ function validateIfcxDocument(document: unknown, name: string): IfcxDocument {
       )
     )
       throw new Error(`${name}: Each import must be an object with a string uri.`);
+  }
+  for (const entry of document.data) {
+    if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)
+      throw new Error(`${name}: Each node must have a non-empty path.`);
+    if (entry.attributes !== undefined && !isObject(entry.attributes))
+      throw new Error(`${name}: attributes must be an object.`);
+    referenceMap(entry.children, "children");
+    referenceMap(entry.inherits, "inherits");
   }
   return document as IfcxDocument;
 }
@@ -108,25 +122,29 @@ export class IfcxSource implements ModelSource {
     const documents: { document: IfcxDocument; name: string }[] = [];
     const selectedDocuments: { document: IfcxDocument; name: string }[] = [];
     const importedUris = new Set<string>();
-    const addImports = async (document: IfcxDocument, name: string): Promise<void> => {
+    const addImports = async (document: IfcxDocument): Promise<void> => {
       for (const { uri } of document.imports ?? []) {
         try {
           new URL(uri);
         } catch {
-          throw new Error(`${name}: Import URI must be absolute.`);
+          continue;
         }
         if (importedUris.has(uri)) continue;
         importedUris.add(uri);
-        const response = await fetch(uri);
-        if (!response.ok) throw new Error(`${uri}: Failed to fetch import.`);
-        const importedDocument = parseIfcxDocument(await response.text(), uri);
-        await addImports(importedDocument, uri);
-        documents.push({ document: importedDocument, name: uri });
+        try {
+          const response = await fetch(uri);
+          if (!response.ok) throw new Error("Failed to fetch import.");
+          const importedDocument = parseIfcxDocument(await response.text(), uri);
+          await addImports(importedDocument);
+          documents.push({ document: importedDocument, name: uri });
+        } catch (error) {
+          console.warn(`${uri}: Skipped import: ${String(error)}`);
+        }
       }
     };
     for (const file of files) {
       const document = parseIfcxDocument(await file.text(), file.name);
-      await addImports(document, file.name);
+      await addImports(document);
       selectedDocuments.push({ document, name: file.name });
     }
     documents.push(...selectedDocuments);
@@ -137,24 +155,20 @@ export class IfcxSource implements ModelSource {
         header: document.header,
       });
       for (const entry of document.data) {
-        if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)
-          throw new Error(`${name}: Each node must have a non-empty path.`);
-        if (entry.attributes !== undefined && !isObject(entry.attributes))
-          throw new Error(`${name}: attributes must be an object.`);
         const previous = nodes.get(entry.path);
         nodes.set(entry.path, {
           path: entry.path,
           children: {
             ...previous?.children,
-            ...referenceMap(entry.children, "children"),
+            ...entry.children,
           },
           inherits: {
             ...previous?.inherits,
-            ...referenceMap(entry.inherits, "inherits"),
+            ...entry.inherits,
           },
           attributes: {
             ...previous?.attributes,
-            ...(entry.attributes as JsonObject | undefined),
+            ...entry.attributes,
           },
         });
       }
