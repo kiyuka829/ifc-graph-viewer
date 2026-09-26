@@ -36,12 +36,9 @@ test("API source converts legacy IFC responses and normalizes search IDs", async
   try {
     const loaded = await apiSource.load([new File(["IFC"], "MODEL.IFC")]);
     assert.equal(loaded.root.id, "1");
-    assert.deepEqual(
-      loaded.relations.map((relation) => relation.targetId),
-      ["2"],
-    );
+    assert.deepEqual(loaded.root.incoming, [{ nodeId: "2" }]);
     assert.equal(loaded.searchData.IfcProject.items[0].id, "1");
-    assert.equal((await apiSource.getNode("model.ifc", "1")).node.id, "1");
+    assert.equal((await apiSource.getNode("model.ifc", "1")).id, "1");
     assert.equal((await apiSource.lookup("model.ifc", "id", "1")).items[0].id, "1");
     assert.equal((await calls[0].options.body.get("files")).name, "MODEL.ifc");
   } finally {

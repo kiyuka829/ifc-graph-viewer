@@ -10,9 +10,9 @@ import type {
   SearchData,
   HeaderEntry,
 } from "./interfaces";
-import { hasValue, relationPortId } from "./utils";
-import { isRelationAttribute } from "../data/graph";
-import type { GraphNode, GraphNodeResponse, GraphRelation } from "../data/graph";
+import { attributePortId, hasValue, INCOMING_PORT_ID } from "./utils";
+import { isLinkAttribute } from "../data/graph";
+import type { LinkEndpoint, ViewLink, ViewNode } from "../data/graph";
 import PropertyArea from "./PropertyArea.vue";
 import HeaderInfoArea from "./HeaderInfoArea.vue";
 import SearchEntity from "./SearchEntity.vue";
@@ -24,8 +24,7 @@ import { enableIfc } from "../data/config";
 import { modelSource } from "../data/source";
 
 // ノードとエッジのデータ
-const nodes = ref<GraphNode[]>([]);
-const relations = ref<GraphRelation[]>([]);
+const nodes = ref<ViewNode[]>([]);
 const nodeStates = ref<Record<string, CanvasNodeState>>({});
 const edges = ref<CanvasEdge[]>([]);
 
@@ -33,7 +32,15 @@ const edges = ref<CanvasEdge[]>([]);
 const drawingEdge = ref<{ from: Position; to: Position } | null>(null);
 
 // 属性表示用のノード
-const viewedAttrNode = ref<GraphNode | null>(null);
+const viewedAttrNode = ref<ViewNode | null>(null);
+
+type LinkContext = {
+  ownerId: string;
+  direction: "outgoing" | "incoming";
+  link: ViewLink;
+  portId: string;
+  index: number;
+};
 
 // 選択されたノード
 const selectedNodeIds = ref<string[]>([]);
@@ -254,7 +261,6 @@ function endDrag() {
 
 function clearCanvas() {
   nodes.value = [];
-  relations.value = [];
   nodeStates.value = {};
   edges.value = [];
   filepath.value = "";
@@ -297,7 +303,7 @@ const uploadFile = async (files: FileList | File[]) => {
     viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
-    addGraphResponse({ node: data.root, relations: data.relations });
+    addViewNode(data.root);
     filepath.value = data.path;
   } catch (error) {
     // エラー処理
@@ -335,62 +341,43 @@ const ATTRIBUTE_EDGE_START_Y =
   NODE_HEADER_HEIGHT + NODE_BODY_PADDING_Y + ATTRIBUTE_HEIGHT / 2 + 0.5;
 const ATTRIBUTE_EDGE_ROW_GAP = 28;
 
-const isInverseRelation = (relation: GraphRelation) =>
-  relation.kind === "inverse" || relation.kind === "reference";
-
-const attributeRowCount = (node: GraphNode) =>
+const attributeRowCount = (node: ViewNode) =>
   node.attributes.filter((attribute) =>
-    isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
+    isLinkAttribute(attribute)
+      ? attribute.links.length > 0 || !!attribute.missingNodeIds?.length
       : hasValue(attribute.value),
   ).length;
 
-function updatePortPositions(node: GraphNode) {
+function updatePortPositions(node: ViewNode) {
   const state = nodeStates.value[node.id];
   if (!state) return;
   const visibleAttributes = node.attributes.filter((attribute) =>
-    isRelationAttribute(attribute)
-      ? attribute.relationIds.length > 0 || !!attribute.unresolvedTargetIds?.length
+    isLinkAttribute(attribute)
+      ? attribute.links.length > 0 || !!attribute.missingNodeIds?.length
       : hasValue(attribute.value),
   );
   const portPositions: Record<string, Position> = {};
-  const nodeRelations = node.relationIds
-    .map((id) => relations.value.find((relation) => relation.id === id))
-    .filter((relation): relation is GraphRelation => relation !== undefined);
-  if (nodeRelations.some((relation) => relation.kind === "reference"))
-    portPositions.reference = { x: 0, y: REFERENCE_EDGE_Y };
+  if (node.incoming.length)
+    portPositions[INCOMING_PORT_ID] = { x: 0, y: REFERENCE_EDGE_Y };
   visibleAttributes.forEach((attribute, index) => {
-    if (!isRelationAttribute(attribute)) return;
-    const attributeRelations = attribute.relationIds
-      .map((id) => relations.value.find((relation) => relation.id === id))
-      .filter((relation): relation is GraphRelation => relation !== undefined);
-    const relation = attributeRelations[0];
-    if (!relation) return;
-    const position = {
-      x: isInverseRelation(relation) ? 0 : NODE_WIDTH,
+    if (!isLinkAttribute(attribute) || !attribute.links.length) return;
+    portPositions[attributePortId(node.attributes.indexOf(attribute))] = {
+      x: attribute.direction === "incoming" ? 0 : NODE_WIDTH,
       y: ATTRIBUTE_EDGE_START_Y + index * ATTRIBUTE_EDGE_ROW_GAP,
     };
-    for (const item of attributeRelations) portPositions[item.id] = position;
   });
   state.portPositions = portPositions;
 }
 
-function addGraphResponse(
-  data: GraphNodeResponse,
-  position = { x: 40, y: 60 },
-): GraphNode {
-  for (const relation of data.relations) {
-    if (!relations.value.some((item) => item.id === relation.id))
-      relations.value.push(relation);
-  }
-  const existing = nodes.value.find((item) => item.id === data.node.id);
+function addViewNode(node: ViewNode, position = { x: 40, y: 60 }): ViewNode {
+  const existing = nodes.value.find((item) => item.id === node.id);
   if (!existing) {
-    nodes.value.push(data.node);
-    nodeStates.value[data.node.id] = { position: { ...position }, portPositions: {} };
+    nodes.value.push(node);
+    nodeStates.value[node.id] = { position: { ...position }, portPositions: {} };
   }
-  const graphNode = existing ?? data.node;
-  updatePortPositions(graphNode);
-  return graphNode;
+  const viewNode = existing ?? node;
+  updatePortPositions(viewNode);
+  return viewNode;
 }
 
 // ノードの位置を更新するハンドラ
@@ -456,7 +443,7 @@ const alignNodePosition = (
   }
 };
 const setAlignNodePosition = (
-  selectedNodes: GraphNode[],
+  selectedNodes: ViewNode[],
   { x = null, y = null }: { x?: number | null; y?: number | null },
   interval = 0,
 ) => {
@@ -487,24 +474,17 @@ const edgePosition = computed(() => {
       x: (to_node?.position.x ?? 0) + (to_port?.x ?? 0),
       y: (to_node?.position.y ?? 0) + (to_port?.y ?? 16),
     };
-    const relation = relations.value.find(
-      (relation) => relation.id === edge.relationId,
-    );
-
     return {
       id: edge.id,
       from: from_edge,
       to: to_edge,
-      label:
-        relation?.kind === "child" || relation?.kind === "inherits"
-          ? relation.label
-          : undefined,
+      label: edge.label,
     };
   });
 });
 
 // ノードの選択処理
-const selectNode = (node: GraphNode, toggle = false) => {
+const selectNode = (node: ViewNode, toggle = false) => {
   if (toggle) {
     // Shiftキーを押しながらの選択はトグル選択
     if (selectedNodeIds.value.includes(node.id)) {
@@ -534,28 +514,80 @@ const selectNode = (node: GraphNode, toggle = false) => {
   }
 };
 
+const attributeLink = (
+  node: ViewNode,
+  endpoint: LinkEndpoint,
+): LinkContext | undefined => {
+  const attributeIndex = node.attributes.findIndex(
+    (attribute) => isLinkAttribute(attribute) && attribute.name === endpoint.attribute,
+  );
+  if (attributeIndex < 0) return undefined;
+  const attribute = node.attributes[attributeIndex];
+  if (!isLinkAttribute(attribute)) return undefined;
+  const link = attribute.links[endpoint.index];
+  return link
+    ? {
+        ownerId: node.id,
+        direction: attribute.direction,
+        link,
+        portId: attributePortId(attributeIndex),
+        index: endpoint.index,
+      }
+    : undefined;
+};
+
+const findCounterpart = (
+  node: ViewNode,
+  connection: LinkContext,
+): LinkContext | undefined => {
+  if (connection.link.endpoint) return attributeLink(node, connection.link.endpoint);
+  const direction = connection.direction === "outgoing" ? "incoming" : "outgoing";
+  for (
+    let attributeIndex = 0;
+    attributeIndex < node.attributes.length;
+    attributeIndex++
+  ) {
+    const attribute = node.attributes[attributeIndex];
+    if (!isLinkAttribute(attribute) || attribute.direction !== direction) continue;
+    const index = attribute.links.findIndex(
+      (link) => link.nodeId === connection.ownerId,
+    );
+    if (index >= 0)
+      return {
+        ownerId: node.id,
+        direction,
+        link: attribute.links[index],
+        portId: attributePortId(attributeIndex),
+        index,
+      };
+  }
+  if (direction === "incoming") {
+    const index = node.incoming.findIndex((link) => link.nodeId === connection.ownerId);
+    if (index >= 0)
+      return {
+        ownerId: node.id,
+        direction,
+        link: node.incoming[index],
+        portId: INCOMING_PORT_ID,
+        index,
+      };
+  }
+  return undefined;
+};
+
+const connectionId = (connection: LinkContext) =>
+  JSON.stringify([connection.ownerId, connection.portId, connection.index]);
+
 // ノードを追加するハンドラ
-const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) => {
+const addNode_ = (connection: LinkContext, dstPosition: Position, idx: number) => {
   isLoading.value = true;
   modelSource
-    .getNode(filepath.value, relation.targetId)
+    .getNode(filepath.value, connection.link.nodeId)
     .then((data) => {
-      const wasVisible = nodes.value.some((node) => node.id === relation.targetId);
-      const node = addGraphResponse(data);
-      const isIfcx = headerInfo.value[0]?.format === "ifcx";
-      const targetRelation = relation.originalRelationId
-        ? data.relations.find((item) => item.id === relation.originalRelationId)
-        : isIfcx
-          ? undefined
-          : data.relations.find(
-              (item) =>
-                item.sourceId === node.id && item.targetId === relation.sourceId,
-            );
-      const targetPort = targetRelation
-        ? relationPortId(targetRelation)
-        : isIfcx
-          ? "reference"
-          : undefined;
+      const wasVisible = nodes.value.some((node) => node.id === data.id);
+      const node = addViewNode(data);
+      const counterpart = findCounterpart(node, connection);
+      const targetPort = counterpart?.portId;
       if (!wasVisible) {
         const state = nodeStates.value[node.id];
         const port = targetPort ? state.portPositions[targetPort] : undefined;
@@ -564,19 +596,18 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
           y: dstPosition.y - (port?.y ?? 16) + idx * 10,
         };
       }
-      const edgeRelation = relation.originalRelationId
-        ? (targetRelation ?? relation)
-        : relation;
-      if (edges.value.some((edge) => edge.relationId === edgeRelation.id)) {
-        return;
-      }
-      const source = { nodeId: relation.sourceId, portId: relationPortId(relation) };
-      const target = { nodeId: relation.targetId, portId: targetPort };
+      const outgoing = connection.direction === "outgoing" ? connection : counterpart;
+      const id = connectionId(
+        connection.link.endpoint ? (counterpart ?? connection) : connection,
+      );
+      if (edges.value.some((edge) => edge.id === id)) return;
+      const source = { nodeId: connection.ownerId, portId: connection.portId };
+      const target = { nodeId: connection.link.nodeId, portId: targetPort };
       edges.value.push({
-        id: edgeRelation.id,
-        relationId: edgeRelation.id,
-        from: isInverseRelation(relation) ? target : source,
-        to: isInverseRelation(relation) ? source : target,
+        id,
+        label: (outgoing ?? connection).link.label,
+        from: connection.direction === "incoming" ? target : source,
+        to: connection.direction === "incoming" ? source : target,
       });
     })
     .catch((error) => {
@@ -590,10 +621,29 @@ const addNode_ = (relation: GraphRelation, dstPosition: Position, idx: number) =
 };
 
 const addNode = (
-  _nodeId: string,
-  data: { position: Position; relations: GraphRelation[] },
+  nodeId: string,
+  data: {
+    position: Position;
+    group: {
+      direction: "outgoing" | "incoming";
+      links: ViewLink[];
+      portId: string;
+    };
+  },
 ) => {
-  data.relations.forEach((relation, index) => addNode_(relation, data.position, index));
+  data.group.links.forEach((link, index) =>
+    addNode_(
+      {
+        ownerId: nodeId,
+        direction: data.group.direction,
+        link,
+        portId: data.group.portId,
+        index,
+      },
+      data.position,
+      index,
+    ),
+  );
 };
 
 // 描画中のエッジを更新する
@@ -765,7 +815,7 @@ const addNodeById = (id: string, dstPosition: Position) => {
     .getNode(filepath.value, id)
     .then((data) => {
       // レスポンスを処理
-      addGraphResponse(data, dstPosition);
+      addViewNode(data, dstPosition);
     })
     .catch((error) => {
       console.log(error);
@@ -1094,7 +1144,6 @@ const handleDragOver = (event: DragEvent) => {
           :key="node.id"
           :node="node"
           :state="nodeStates[node.id]"
-          :relations="relations"
           :selected="selectedNodeIds.includes(node.id)"
           :scale="scale"
           @update:position="updateNodePosition($event)"
@@ -1126,7 +1175,7 @@ const handleDragOver = (event: DragEvent) => {
         <HeaderInfoArea :headers="headerInfo" />
       </div>
       <div v-else-if="viewedAttrNode">
-        <PropertyArea :node="viewedAttrNode" :relations="relations" />
+        <PropertyArea :node="viewedAttrNode" />
       </div>
       <div v-else class="sidebar-empty">
         <span>Select a node to view its properties</span>

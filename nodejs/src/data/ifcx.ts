@@ -1,12 +1,5 @@
 import type { IfcHeader, IfcHeaderValue, SearchData } from "../components/interfaces";
-import { relationId } from "./graph.ts";
-import type {
-  GraphAttribute,
-  GraphNode,
-  GraphNodeResponse,
-  GraphRelation,
-  GraphRelationKind,
-} from "./graph.ts";
+import type { LinkEndpoint, ViewAttribute, ViewLink, ViewNode } from "./graph.ts";
 import type { ModelData, ModelSource } from "./model";
 
 type JsonObject = Record<string, IfcHeaderValue>;
@@ -16,7 +9,7 @@ type NodeData = {
   inherits: Record<string, string>;
   attributes: JsonObject;
 };
-type Reference = { sourceId: string; originalRelationId: string };
+type Reference = { sourceId: string; endpoint: LinkEndpoint; label?: string };
 const isObject = (value: unknown): value is JsonObject =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const containsRef = (value: IfcHeaderValue): boolean =>
@@ -123,40 +116,39 @@ export class IfcxSource implements ModelSource {
     }
     const references = new Map<string, Reference[]>();
     const compositionTargets = new Set<string>();
-    const addReference = (
-      target: string,
-      sourceId: string,
-      originalRelationId: string,
-    ) =>
-      references.get(target)?.push({ sourceId, originalRelationId }) ??
-      references.set(target, [{ sourceId, originalRelationId }]);
+    const addReference = (target: string, reference: Reference) =>
+      references.get(target)?.push(reference) ?? references.set(target, [reference]);
     for (const node of nodes.values()) {
-      const occurrences = new Map<string, number>();
-      const addForwardReference = (
-        kind: GraphRelationKind,
-        label: string,
-        targetId: string,
-      ) => {
-        const key = JSON.stringify([node.path, kind, label, targetId]);
-        const occurrence = occurrences.get(key) ?? 0;
-        occurrences.set(key, occurrence + 1);
-        addReference(
-          targetId,
-          node.path,
-          relationId(node.path, kind, label, targetId, occurrence),
-        );
-      };
+      let index = 0;
       for (const [label, targetId] of Object.entries(node.children)) {
         compositionTargets.add(targetId);
-        if (nodes.has(targetId)) addForwardReference("child", label, targetId);
+        if (nodes.has(targetId))
+          addReference(targetId, {
+            sourceId: node.path,
+            endpoint: { attribute: "children", index: index++ },
+            label,
+          });
       }
+      index = 0;
       for (const [label, targetId] of Object.entries(node.inherits)) {
         compositionTargets.add(targetId);
-        if (nodes.has(targetId)) addForwardReference("inherits", label, targetId);
+        if (nodes.has(targetId))
+          addReference(targetId, {
+            sourceId: node.path,
+            endpoint: { attribute: "inherits", index: index++ },
+            label,
+          });
       }
-      for (const [label, value] of flatten(node.attributes))
-        if (isNodeReference(label, value, node, nodes))
-          addForwardReference("attribute", label, value);
+      const indexes = new Map<string, number>();
+      for (const [label, value] of flatten(node.attributes)) {
+        if (!isNodeReference(label, value, node, nodes)) continue;
+        const linkIndex = indexes.get(label) ?? 0;
+        indexes.set(label, linkIndex + 1);
+        addReference(value, {
+          sourceId: node.path,
+          endpoint: { attribute: label, index: linkIndex },
+        });
+      }
     }
     const root = [...nodes.values()].find((node) => !compositionTargets.has(node.path));
     if (!root)
@@ -175,60 +167,33 @@ export class IfcxSource implements ModelSource {
     }
     for (const group of Object.values(searchData))
       group.items.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-    const response = this.nodeInfo(root);
     return {
-      root: response.node,
-      relations: response.relations,
+      root: this.nodeInfo(root),
       searchData,
       headers,
       path: files.map((file) => file.name).join(", "),
     };
   }
 
-  private nodeInfo(node: NodeData): GraphNodeResponse {
-    const relations: GraphRelation[] = [];
-    const occurrences = new Map<string, number>();
-    const addRelation = (
-      kind: GraphRelationKind,
-      label: string,
-      targetId: string,
-      originalRelationId?: string,
-    ) => {
-      const key = JSON.stringify([node.path, kind, label, targetId]);
-      const occurrence = occurrences.get(key) ?? 0;
-      occurrences.set(key, occurrence + 1);
-      const id = relationId(node.path, kind, label, targetId, occurrence);
-      relations.push({
-        id,
-        sourceId: node.path,
-        targetId,
-        kind,
-        label,
-        ...(originalRelationId ? { originalRelationId } : {}),
-      });
-      return id;
-    };
-    const attributes: GraphAttribute[] = [];
-    for (const [name, kind] of [
-      ["children", "child"],
-      ["inherits", "inherits"],
-    ] as const) {
+  private nodeInfo(node: NodeData): ViewNode {
+    const attributes: ViewAttribute[] = [];
+    for (const name of ["children", "inherits"] as const) {
       const entries = Object.entries(node[name]);
       if (!entries.length) continue;
-      const attribute: Extract<GraphAttribute, { relationIds: string[] }> = {
+      const attribute: Extract<ViewAttribute, { links: ViewLink[] }> = {
         name,
-        relationIds: [],
+        direction: "outgoing",
+        links: [],
       };
       for (const [label, targetId] of entries) {
-        if (this.nodes.has(targetId))
-          attribute.relationIds.push(addRelation(kind, label, targetId));
-        else (attribute.unresolvedTargetIds ??= []).push(targetId);
+        if (this.nodes.has(targetId)) attribute.links.push({ nodeId: targetId, label });
+        else (attribute.missingNodeIds ??= []).push(targetId);
       }
       attributes.push(attribute);
     }
     const referenceAttributes = new Map<
       string,
-      Extract<GraphAttribute, { relationIds: string[] }>
+      Extract<ViewAttribute, { links: ViewLink[] }>
     >();
     for (const [name, value] of flatten(node.attributes)) {
       if (
@@ -241,35 +206,32 @@ export class IfcxSource implements ModelSource {
       }
       let attribute = referenceAttributes.get(name);
       if (!attribute) {
-        attribute = { name, relationIds: [] };
+        attribute = { name, direction: "outgoing", links: [] };
         referenceAttributes.set(name, attribute);
         attributes.push(attribute);
       }
-      if (this.nodes.has(value))
-        attribute.relationIds.push(addRelation("attribute", name, value));
-      else (attribute.unresolvedTargetIds ??= []).push(value);
+      if (this.nodes.has(value)) attribute.links.push({ nodeId: value });
+      else (attribute.missingNodeIds ??= []).push(value);
     }
-    for (const reference of this.references.get(node.path) ?? [])
-      addRelation(
-        "reference",
-        "references",
-        reference.sourceId,
-        reference.originalRelationId,
-      );
     const code = classification(node);
-    const graphNode: GraphNode = {
+    return {
       id: node.path,
       header: {
         ...(code ? { primary: code } : {}),
         secondary: node.path,
       },
       attributes,
-      relationIds: relations.map((relation) => relation.id),
+      incoming: (this.references.get(node.path) ?? []).map(
+        ({ sourceId, endpoint, label }) => ({
+          nodeId: sourceId,
+          endpoint,
+          ...(label ? { label } : {}),
+        }),
+      ),
     };
-    return { node: graphNode, relations };
   }
 
-  async getNode(_path: string, id: string): Promise<GraphNodeResponse> {
+  async getNode(_path: string, id: string): Promise<ViewNode> {
     const node = this.nodes.get(id);
     if (!node) throw new Error(`Node not found: ${id}`);
     return this.nodeInfo(node);

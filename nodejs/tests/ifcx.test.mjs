@@ -11,7 +11,7 @@ const document = (data) =>
     "test.ifcx",
   );
 
-test("composition returns graph nodes without mutating headers", async () => {
+test("composition returns node-local data without mutating headers or search data", async () => {
   const source = new IfcxSource();
   const model = await source.load([
     await fixture("base.ifcx"),
@@ -23,9 +23,10 @@ test("composition returns graph nodes without mutating headers", async () => {
   assert.deepEqual(model.root.attributes, [
     {
       name: "children",
-      relationIds: [
-        '["project","child","wall","wall",0]',
-        '["project","child","__proto__","__proto__",0]',
+      direction: "outgoing",
+      links: [
+        { nodeId: "wall", label: "wall" },
+        { nodeId: "__proto__", label: "__proto__" },
       ],
     },
     { name: "label", value: "Merged" },
@@ -44,21 +45,26 @@ test("composition returns graph nodes without mutating headers", async () => {
     { id: "wall", displayName: "wall" },
   ]);
   const wall = await source.getNode("", "wall");
-  assert.deepEqual(wall.node.header, { secondary: "wall" });
-  assert.deepEqual(
-    wall.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
-    [
-      { kind: "reference", label: "references", targetId: "project" },
-      { kind: "reference", label: "references", targetId: "second" },
-    ],
-  );
+  assert.deepEqual(wall.header, { secondary: "wall" });
+  assert.deepEqual(wall.incoming, [
+    {
+      nodeId: "project",
+      endpoint: { attribute: "children", index: 0 },
+      label: "wall",
+    },
+    {
+      nodeId: "second",
+      endpoint: { attribute: "inherits", index: 0 },
+      label: "wall",
+    },
+  ]);
   assert.deepEqual((await source.lookup("", "id", "__proto__")).items, [
     { id: "__proto__", displayName: "__proto__" },
   ]);
   assert.deepEqual((await source.lookup("", "id", "missing")).items, []);
 });
 
-test("relations retain labels, relation kinds, repeated targets, classes, and scalar values", async () => {
+test("links retain labels, repeated targets, reverse endpoints, classes, and scalar values", async () => {
   const source = new IfcxSource();
   const model = await source.load([
     document([
@@ -84,75 +90,53 @@ test("relations retain labels, relation kinds, repeated targets, classes, and sc
   assert.deepEqual(model.searchData.IfcWall.items, [
     { id: "target", displayName: "target" },
   ]);
-  assert.deepEqual((await source.getNode("", "target")).node.header, {
-    primary: "IfcWall",
-    secondary: "target",
-  });
   const root = await source.getNode("", "root");
-  assert.deepEqual(root.node.attributes, [
+  assert.deepEqual(root.attributes.slice(0, 2), [
     {
       name: "children",
-      relationIds: [
-        '["root","child","first","target",0]',
-        '["root","child","same","target",0]',
+      direction: "outgoing",
+      links: [
+        { nodeId: "target", label: "first" },
+        { nodeId: "target", label: "same" },
       ],
     },
     {
       name: "inherits",
-      relationIds: ['["root","inherits","same","target",0]'],
+      direction: "outgoing",
+      links: [{ nodeId: "target", label: "same" }],
     },
   ]);
-  assert.deepEqual(
-    root.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
-    [
-      { kind: "child", label: "first", targetId: "target" },
-      { kind: "child", label: "same", targetId: "target" },
-      { kind: "inherits", label: "same", targetId: "target" },
-      { kind: "reference", label: "references", targetId: "target" },
-    ],
-  );
-  assert.equal(new Set(root.relations.map((relation) => relation.id)).size, 4);
-  assert.equal(
-    root.relations.at(-1)?.originalRelationId,
-    '["target","attribute","parent::ref","root",0]',
-  );
+  assert.deepEqual(root.incoming, [
+    {
+      nodeId: "target",
+      endpoint: { attribute: "parent::ref", index: 0 },
+    },
+  ]);
   const target = await source.getNode("", "target");
-  assert.deepEqual(target.node.attributes, [
+  assert.deepEqual(target.header, { primary: "IfcWall", secondary: "target" });
+  assert.deepEqual(target.attributes, [
     { name: "bsi::ifc::class::code", value: "IfcWall" },
     {
       name: "parent::ref",
-      relationIds: ['["target","attribute","parent::ref","root",0]'],
+      direction: "outgoing",
+      links: [{ nodeId: "root" }],
     },
     { name: "self", value: "target" },
     { name: "plain", value: "text" },
     { name: "nested::flag", value: true },
     { name: "array", value: [1, { x: 2 }] },
   ]);
-  assert.deepEqual(
-    target.relations.map(({ kind, label, targetId }) => ({ kind, label, targetId })),
-    [
-      { kind: "attribute", label: "parent::ref", targetId: "root" },
-      { kind: "reference", label: "references", targetId: "root" },
-      { kind: "reference", label: "references", targetId: "root" },
-      { kind: "reference", label: "references", targetId: "root" },
-      { kind: "reference", label: "references", targetId: "other" },
-    ],
-  );
-  assert.deepEqual(
-    target.relations.map((relation) => relation.originalRelationId),
-    [
-      undefined,
-      '["root","child","first","target",0]',
-      '["root","child","same","target",0]',
-      '["root","inherits","same","target",0]',
-      '["other","child","second","target",0]',
-    ],
-  );
+  assert.deepEqual(target.incoming, [
+    { nodeId: "root", endpoint: { attribute: "children", index: 0 }, label: "first" },
+    { nodeId: "root", endpoint: { attribute: "children", index: 1 }, label: "same" },
+    { nodeId: "root", endpoint: { attribute: "inherits", index: 0 }, label: "same" },
+    { nodeId: "other", endpoint: { attribute: "children", index: 0 }, label: "second" },
+  ]);
   const reversed = new IfcxSource();
   await reversed.load([
     document([{ path: "target" }, { path: "root", children: { renamed: "target" } }]),
   ]);
-  assert.deepEqual((await reversed.getNode("", "target")).node.header, {
+  assert.deepEqual((await reversed.getNode("", "target")).header, {
     secondary: "target",
   });
 });
@@ -168,7 +152,7 @@ test("failed loads preserve the prior model", async () => {
     document([{ path: "x", children: [] }]),
   ])
     await assert.rejects(source.load([file]));
-  assert.equal((await source.getNode("", "project")).node.id, "project");
+  assert.equal((await source.getNode("", "project")).id, "project");
   await assert.rejects(source.getNode("", "missing"), /Node not found/);
 });
 
@@ -182,7 +166,7 @@ test("same filename layers are composed in selection order", async () => {
   assert.equal(model.headers.length, 2);
 });
 
-test("only ref fields create edges, including nested and repeated array references", async () => {
+test("only ref fields create links, including nested and repeated array references", async () => {
   const source = new IfcxSource();
   const model = await source.load([
     document([
@@ -208,16 +192,6 @@ test("only ref fields create edges, including nested and repeated array referenc
       { path: "other" },
     ]),
   ]);
-  const outgoing = model.relations.filter((relation) => relation.kind === "attribute");
-  assert.deepEqual(
-    outgoing.map(({ label, targetId }) => [label, targetId]),
-    [
-      ["direct::ref", "target"],
-      ["links::ref", "target"],
-      ["links::ref", "target"],
-      ["links::nested::ref", "other"],
-    ],
-  );
   assert.deepEqual(
     model.root.attributes.filter((a) => "value" in a).map((a) => [a.name, a.value]),
     [
@@ -230,26 +204,21 @@ test("only ref fields create edges, including nested and repeated array referenc
       ["points", [[1, 2, 3]]],
     ],
   );
-  const grouped = model.root.attributes.filter(
-    (a) => "relationIds" in a && a.name === "links::ref",
+  const grouped = model.root.attributes.find(
+    (a) => "links" in a && a.name === "links::ref",
   );
-  assert.equal(grouped.length, 1);
-  assert.deepEqual(grouped[0].unresolvedTargetIds, ["missing"]);
-  assert.deepEqual(
-    grouped[0].relationIds,
-    outgoing.filter((r) => r.label === "links::ref").map((r) => r.id),
-  );
-  assert.equal(new Set(grouped[0].relationIds).size, 2);
-  for (const id of ["target", "other"]) {
-    const target = await source.getNode("", id);
-    assert.deepEqual(
-      target.relations.map((r) => r.originalRelationId),
-      outgoing.filter((r) => r.targetId === id).map((r) => r.id),
-    );
-  }
+  assert.deepEqual(grouped.links, [{ nodeId: "target" }, { nodeId: "target" }]);
+  assert.deepEqual(grouped.missingNodeIds, ["missing"]);
+  assert.deepEqual((await source.getNode("", "target")).incoming.slice(-2), [
+    { nodeId: "root", endpoint: { attribute: "links::ref", index: 0 } },
+    { nodeId: "root", endpoint: { attribute: "links::ref", index: 1 } },
+  ]);
+  assert.deepEqual((await source.getNode("", "other")).incoming, [
+    { nodeId: "root", endpoint: { attribute: "links::nested::ref", index: 0 } },
+  ]);
 });
 
-test("unresolved refs remain grouped and resolve when their target is loaded", async () => {
+test("unresolved links remain grouped and resolve when their targets are loaded", async () => {
   const source = new IfcxSource();
   const input = document([
     { path: "root", attributes: { links: [{ ref: "missing" }, { ref: "another" }] } },
@@ -258,48 +227,46 @@ test("unresolved refs remain grouped and resolve when their target is loaded", a
   assert.deepEqual(model.root.attributes, [
     {
       name: "links::ref",
-      relationIds: [],
-      unresolvedTargetIds: ["missing", "another"],
+      direction: "outgoing",
+      links: [],
+      missingNodeIds: ["missing", "another"],
     },
   ]);
-  assert.deepEqual(model.relations, []);
   const resolved = await source.load([
     input,
     document([{ path: "missing" }, { path: "another" }]),
   ]);
-  assert.equal(resolved.root.attributes.length, 1);
-  assert.equal(resolved.root.attributes[0].relationIds.length, 2);
-  assert.equal(resolved.root.attributes[0].unresolvedTargetIds, undefined);
+  assert.deepEqual(resolved.root.attributes[0].links, [
+    { nodeId: "missing" },
+    { nodeId: "another" },
+  ]);
+  assert.equal(resolved.root.attributes[0].missingNodeIds, undefined);
 });
 
-test("children and inherits group missing targets without creating dangling relations", async () => {
-  for (const [name, kind] of [
-    ["children", "child"],
-    ["inherits", "inherits"],
-  ]) {
+test("children and inherits group missing targets without dangling links", async () => {
+  for (const name of ["children", "inherits"]) {
     const source = new IfcxSource();
     const input = document([
       { path: "root", [name]: { first: "target", second: "missing" } },
     ]);
     const missing = await source.load([input]);
     assert.deepEqual(missing.root.attributes, [
-      { name, relationIds: [], unresolvedTargetIds: ["target", "missing"] },
+      {
+        name,
+        direction: "outgoing",
+        links: [],
+        missingNodeIds: ["target", "missing"],
+      },
     ]);
-    assert.deepEqual(missing.relations, []);
     const mixed = await source.load([input, document([{ path: "target" }])]);
-    assert.equal(mixed.root.attributes.length, 1);
-    assert.deepEqual(mixed.root.attributes[0].unresolvedTargetIds, ["missing"]);
-    assert.equal(mixed.relations.length, 1);
-    assert.equal(mixed.relations[0].kind, kind);
-    assert.equal(mixed.relations[0].label, "first");
-    assert.equal(mixed.relations[0].targetId, "target");
-    const target = await source.getNode("", "target");
-    assert.equal(target.relations[0].originalRelationId, mixed.relations[0].id);
-    const resolved = await source.load([
-      input,
-      document([{ path: "target" }, { path: "missing" }]),
+    assert.deepEqual(mixed.root.attributes[0], {
+      name,
+      direction: "outgoing",
+      links: [{ nodeId: "target", label: "first" }],
+      missingNodeIds: ["missing"],
+    });
+    assert.deepEqual((await source.getNode("", "target")).incoming, [
+      { nodeId: "root", endpoint: { attribute: name, index: 0 }, label: "first" },
     ]);
-    assert.equal(resolved.root.attributes[0].unresolvedTargetIds, undefined);
-    assert.equal(resolved.root.attributes[0].relationIds.length, 2);
   }
 });

@@ -1,4 +1,4 @@
-/** Format-independent data for expanding a model node into a graph. */
+/** Format-independent data consumed by the graph viewer. */
 export type NodeId = string;
 
 export interface NodeHeader {
@@ -6,53 +6,36 @@ export interface NodeHeader {
   secondary?: string;
 }
 
-export type GraphAttribute =
+export interface LinkEndpoint {
+  attribute: string;
+  index: number;
+}
+
+export interface ViewLink {
+  nodeId: NodeId;
+  /** Edge label, used by IFCX children and inheritance links. */
+  label?: string;
+  /** Matching endpoint on nodeId, when the source format provides it. */
+  endpoint?: LinkEndpoint;
+}
+
+export type ViewAttribute =
   | { name: string; value: unknown }
-  | { name: string; relationIds: string[]; unresolvedTargetIds?: string[] };
+  | {
+      name: string;
+      direction: "outgoing" | "incoming";
+      links: ViewLink[];
+      missingNodeIds?: NodeId[];
+    };
 
-export const isRelationAttribute = (
-  attribute: GraphAttribute,
-): attribute is Extract<GraphAttribute, { relationIds: string[] }> =>
-  "relationIds" in attribute;
+export const isLinkAttribute = (
+  attribute: ViewAttribute,
+): attribute is Extract<ViewAttribute, { links: ViewLink[] }> => "links" in attribute;
 
-export type GraphRelationKind =
-  "attribute" | "inverse" | "reference" | "child" | "inherits";
-
-/**
- * sourceId owns the expanded field and targetId is its referenced node.
- * inverse and reference relations retain that ownership while indicating the
- * reverse displayed direction through their kind.
- */
-export interface GraphRelation {
-  id: string;
-  sourceId: NodeId;
-  targetId: NodeId;
-  kind: GraphRelationKind;
-  label: string;
-  /** The forward relation represented by a reverse reference, when known. */
-  originalRelationId?: string;
-}
-
-export function relationId(
-  sourceId: NodeId,
-  kind: GraphRelationKind,
-  label: string,
-  targetId: NodeId,
-  occurrence = 0,
-): string {
-  return JSON.stringify([sourceId, kind, label, targetId, occurrence]);
-}
-
-export interface GraphNode {
+export interface ViewNode {
   id: NodeId;
   header: NodeHeader;
-  attributes: GraphAttribute[];
-  /** Relations whose sourceId is this node ID, in expansion order. */
-  relationIds: string[];
-}
-
-/** The graph data returned when a single source node is expanded. */
-export interface GraphNodeResponse {
-  node: GraphNode;
-  relations: GraphRelation[];
+  attributes: ViewAttribute[];
+  /** Generic reverse references displayed on the top-left port. */
+  incoming: ViewLink[];
 }

@@ -1,5 +1,5 @@
 import type { ModelSource, ModelData } from "./model";
-import { ifcNodeToGraph } from "./ifcGraph.ts";
+import { ifcNodeToViewNode } from "./ifcGraph.ts";
 import type { LegacyIfcNode } from "./ifcGraph.ts";
 import type { SearchData } from "../components/interfaces";
 
@@ -9,7 +9,7 @@ type LegacySearchData = Record<
   string,
   { items: { id: string | number; displayName: string }[] }
 >;
-type LegacyModelData = Omit<ModelData, "root" | "relations" | "searchData"> & {
+type LegacyModelData = Omit<ModelData, "root" | "searchData"> & {
   root: LegacyIfcNode;
   searchData: LegacySearchData;
 };
@@ -60,11 +60,9 @@ export const apiSource: ModelSource = {
       form.append("files", file, filename);
     });
     const data = await postFormData<LegacyModelData>(endpoint + "/upload", form);
-    const root = ifcNodeToGraph(data.root);
     return {
       ...data,
-      root: root.node,
-      relations: root.relations,
+      root: ifcNodeToViewNode(data.root),
       searchData: normalizeSearchData(data.searchData),
     };
   },
@@ -73,7 +71,7 @@ export const apiSource: ModelSource = {
       path,
       id,
     });
-    return ifcNodeToGraph(node);
+    return ifcNodeToViewNode(node);
   },
   async lookup(path, key, value) {
     return normalizeSearch(

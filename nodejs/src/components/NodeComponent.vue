@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { isRelationAttribute } from "../data/graph";
-import type { GraphRelation, GraphNode } from "../data/graph";
+import { isLinkAttribute } from "../data/graph";
+import type { ViewLink, ViewNode } from "../data/graph";
 import type { CanvasNodeState, Position } from "./interfaces";
-import { hasValue, relationPortId } from "./utils";
+import { attributePortId, hasValue, INCOMING_PORT_ID } from "./utils";
+
+type LinkGroup = {
+  direction: "outgoing" | "incoming";
+  links: ViewLink[];
+  portId: string;
+};
 
 const props = defineProps<{
-  node: GraphNode;
+  node: ViewNode;
   state: CanvasNodeState;
-  relations: GraphRelation[];
   selected: boolean;
   scale: number;
 }>();
@@ -32,24 +37,11 @@ const lastMousePosition = ref({ x: 0, y: 0 });
 const currentMouseUpHandler = ref<((event: MouseEvent) => void) | null>(null);
 const currentMouseMoveHandler = ref<((event: MouseEvent) => void) | null>(null);
 
-const relationsById = computed(
-  () => new Map(props.relations.map((relation) => [relation.id, relation])),
-);
-const references = computed(() =>
-  props.node.relationIds
-    .map((id) => relationsById.value.get(id))
-    .filter((relation): relation is GraphRelation => relation?.kind === "reference"),
-);
-const attributeRelations = (relationIds: string[]) =>
-  relationIds
-    .map((id) => relationsById.value.get(id))
-    .filter((relation): relation is GraphRelation => relation !== undefined);
-const isInverse = (relation: GraphRelation) =>
-  relation.kind === "inverse" || relation.kind === "reference";
-const isInverseAttribute = (relationIds: string[]) => {
-  const relation = attributeRelations(relationIds)[0];
-  return relation ? isInverse(relation) : false;
-};
+const incoming = computed<LinkGroup>(() => ({
+  direction: "incoming",
+  links: props.node.incoming,
+  portId: INCOMING_PORT_ID,
+}));
 
 // ノードの移動
 const onMouseDown = (event: MouseEvent) => {
@@ -99,9 +91,8 @@ const onMouseUp = () => {
 };
 
 // エッジドラッグ時のノード追加処理
-const onDotMouseDown = (event: MouseEvent, relations: GraphRelation[]) => {
-  if (!relations.length) return;
-  const relation = relations[0];
+const onDotMouseDown = (event: MouseEvent, group: LinkGroup) => {
+  if (!group.links.length) return;
   if (event.button === 2) {
     // 右クリックは処理しない
     return;
@@ -129,7 +120,7 @@ const onDotMouseDown = (event: MouseEvent, relations: GraphRelation[]) => {
   // dot のドラッグを開始
   isDotDragging.value = true;
 
-  const port = props.state.portPositions[relationPortId(relation)] ?? { x: 0, y: 0 };
+  const port = props.state.portPositions[group.portId] ?? { x: 0, y: 0 };
   startEdgePosition.value.x = port.x + props.state.position.x;
   startEdgePosition.value.y = port.y + props.state.position.y;
   startMousePosition.value = { x: event.clientX, y: event.clientY };
@@ -150,8 +141,8 @@ const onDotMouseDown = (event: MouseEvent, relations: GraphRelation[]) => {
 
   // dot 専用のイベントリスナーを設定
   currentMouseMoveHandler.value = (event: MouseEvent) =>
-    onDotMouseMove(event, relation);
-  currentMouseUpHandler.value = () => onDotMouseUp(relations);
+    onDotMouseMove(event, group.direction);
+  currentMouseUpHandler.value = () => onDotMouseUp(group);
   document.addEventListener("mousemove", currentMouseMoveHandler.value);
   document.addEventListener("mouseup", currentMouseUpHandler.value);
 };
@@ -168,7 +159,7 @@ function calculateMovedPosition(): Position {
   };
 }
 
-const onDotMouseMove = (event: MouseEvent, relation: GraphRelation) => {
+const onDotMouseMove = (event: MouseEvent, direction: "outgoing" | "incoming") => {
   if (!isDotDragging.value) return;
   lastMousePosition.value = { x: event.clientX, y: event.clientY };
 
@@ -179,7 +170,7 @@ const onDotMouseMove = (event: MouseEvent, relation: GraphRelation) => {
   };
   let posEnd = calculateMovedPosition();
 
-  if (isInverse(relation)) {
+  if (direction === "incoming") {
     // 逆属性の場合、from と to を入れ替える
     [posStart, posEnd] = [posEnd, posStart];
   }
@@ -191,7 +182,7 @@ const onDotMouseMove = (event: MouseEvent, relation: GraphRelation) => {
   emit("update:drawingEdgePosition", edge);
 };
 
-const onDotMouseUp = (relations: GraphRelation[]) => {
+const onDotMouseUp = (group: LinkGroup) => {
   // dot のドラッグを終了
   isDotDragging.value = false;
 
@@ -207,7 +198,7 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
 
   emit("add:node", {
     position: position,
-    relations,
+    group,
   });
 };
 </script>
@@ -234,14 +225,14 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
         >{{ node.header.primary }}</span
       >
       <span
-        :class="['icon', { 'icon-disabled': !references.length }]"
-        @mousedown.prevent="(event) => onDotMouseDown(event, references)"
+        :class="['icon', { 'icon-disabled': !node.incoming.length }]"
+        @mousedown.prevent="(event) => onDotMouseDown(event, incoming)"
       ></span>
     </div>
     <div class="node-body">
       <template v-for="(attribute, index) in node.attributes" :key="index">
         <div
-          v-if="!isRelationAttribute(attribute) && hasValue(attribute.value)"
+          v-if="!isLinkAttribute(attribute) && hasValue(attribute.value)"
           class="attribute"
         >
           <span class="truncate-text" :title="attribute.name">{{
@@ -250,23 +241,27 @@ const onDotMouseUp = (relations: GraphRelation[]) => {
         </div>
         <div
           v-else-if="
-            isRelationAttribute(attribute) &&
-            (attribute.relationIds.length || attribute.unresolvedTargetIds?.length)
+            isLinkAttribute(attribute) &&
+            (attribute.links.length || attribute.missingNodeIds?.length)
           "
           class="attribute"
-          :class="{ 'inverse-attribute': isInverseAttribute(attribute.relationIds) }"
+          :class="{ 'inverse-attribute': attribute.direction === 'incoming' }"
         >
           <span class="truncate-text" :title="attribute.name">{{
             attribute.name
           }}</span>
           <span
             class="dot"
-            :class="{ 'dot-disabled': !attribute.relationIds.length }"
-            :title="attribute.relationIds.length ? undefined : 'Not found'"
+            :class="{ 'dot-disabled': !attribute.links.length }"
+            :title="attribute.links.length ? undefined : 'Not found'"
             @mousedown.prevent="
               (event) =>
-                attribute.relationIds.length &&
-                onDotMouseDown(event, attributeRelations(attribute.relationIds))
+                attribute.links.length &&
+                onDotMouseDown(event, {
+                  direction: attribute.direction,
+                  links: attribute.links,
+                  portId: attributePortId(index),
+                })
             "
           ></span>
         </div>

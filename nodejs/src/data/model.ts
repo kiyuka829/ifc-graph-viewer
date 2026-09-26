@@ -1,9 +1,8 @@
 import type { HeaderEntry, SearchData } from "../components/interfaces";
-import type { GraphNode, GraphNodeResponse, GraphRelation } from "./graph";
+import type { ViewNode } from "./graph";
 
 export interface ModelData {
-  root: GraphNode;
-  relations: GraphRelation[];
+  root: ViewNode;
   searchData: Record<string, SearchData>;
   headers: HeaderEntry[];
   path: string;
@@ -11,7 +10,7 @@ export interface ModelData {
 export interface ModelSource {
   dispose?(): void;
   load(files: File[]): Promise<ModelData>;
-  getNode(path: string, id: string): Promise<GraphNodeResponse>;
+  getNode(path: string, id: string): Promise<ViewNode>;
   lookup(
     path: string,
     key: string,

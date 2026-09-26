@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { ifcNodeToGraph } from "../src/data/ifcGraph.ts";
-import { relationId } from "../src/data/graph.ts";
+import { ifcNodeToViewNode } from "../src/data/ifcGraph.ts";
 
-test("converts IFC values and relations without losing occurrence or direction", () => {
-  const graph = ifcNodeToGraph({
+test("converts IFC values and node-local links without losing occurrence or direction", () => {
+  const node = ifcNodeToViewNode({
     id: 12,
     type: "IfcWall",
     attributes: [
@@ -22,7 +21,7 @@ test("converts IFC values and relations without losing occurrence or direction",
     },
   });
 
-  assert.deepEqual(graph.node, {
+  assert.deepEqual(node, {
     id: "12",
     header: { primary: "IfcWall", secondary: "#12" },
     attributes: [
@@ -30,67 +29,22 @@ test("converts IFC values and relations without losing occurrence or direction",
       { name: "NullValue", value: null },
       {
         name: "Points",
-        relationIds: [
-          '["12","attribute","Points","3",0]',
-          '["12","attribute","Points","3",1]',
-          '["12","attribute","Points","4",0]',
-        ],
+        direction: "outgoing",
+        links: [{ nodeId: "3" }, { nodeId: "3" }, { nodeId: "4" }],
       },
       {
         name: "IsDefinedBy",
-        relationIds: ['["12","inverse","IsDefinedBy","25",0]'],
+        direction: "incoming",
+        links: [{ nodeId: "25" }],
       },
       { name: "Tags", value: [] },
     ],
-    relationIds: [
-      '["12","attribute","Points","3",0]',
-      '["12","attribute","Points","3",1]',
-      '["12","attribute","Points","4",0]',
-      '["12","inverse","IsDefinedBy","25",0]',
-      '["12","reference","references","1",0]',
-    ],
+    incoming: [{ nodeId: "1" }],
   });
-  assert.deepEqual(graph.relations, [
-    {
-      id: '["12","attribute","Points","3",0]',
-      sourceId: "12",
-      targetId: "3",
-      kind: "attribute",
-      label: "Points",
-    },
-    {
-      id: '["12","attribute","Points","3",1]',
-      sourceId: "12",
-      targetId: "3",
-      kind: "attribute",
-      label: "Points",
-    },
-    {
-      id: '["12","attribute","Points","4",0]',
-      sourceId: "12",
-      targetId: "4",
-      kind: "attribute",
-      label: "Points",
-    },
-    {
-      id: '["12","inverse","IsDefinedBy","25",0]',
-      sourceId: "12",
-      targetId: "25",
-      kind: "inverse",
-      label: "IsDefinedBy",
-    },
-    {
-      id: '["12","reference","references","1",0]',
-      sourceId: "12",
-      targetId: "1",
-      kind: "reference",
-      label: "references",
-    },
-  ]);
 });
 
 test("keeps non-reference payloads as attributes", () => {
-  const graph = ifcNodeToGraph({
+  const node = ifcNodeToViewNode({
     id: "wall-a",
     type: "IfcWall",
     attributes: [
@@ -108,16 +62,16 @@ test("keeps non-reference payloads as attributes", () => {
     },
   });
 
-  assert.deepEqual(graph.node.attributes, [
+  assert.deepEqual(node.attributes, [
     { name: "Count", value: 2 },
     { name: "Flags", value: [true, false] },
     { name: "references", value: null },
   ]);
-  assert.deepEqual(graph.relations, []);
+  assert.deepEqual(node.incoming, []);
 });
 
 test("rejects malformed reference IDs while ignoring null IDs", () => {
-  const withNull = ifcNodeToGraph({
+  const input = {
     id: 1,
     type: "IfcProject",
     attributes: [
@@ -132,22 +86,12 @@ test("rejects malformed reference IDs while ignoring null IDs", () => {
       content: { type: "id", value: null },
       inverse: true,
     },
-  });
-
-  assert.deepEqual(withNull.relations, [
-    {
-      id: '["1","attribute","Malformed","2",0]',
-      sourceId: "1",
-      targetId: "2",
-      kind: "attribute",
-      label: "Malformed",
-    },
-  ]);
+  };
+  assert.deepEqual(ifcNodeToViewNode(input).attributes[0].links, [{ nodeId: "2" }]);
   assert.throws(
     () =>
-      ifcNodeToGraph({
-        ...withNull.node,
-        type: "IfcProject",
+      ifcNodeToViewNode({
+        ...input,
         attributes: [
           {
             name: "Malformed",
@@ -155,64 +99,21 @@ test("rejects malformed reference IDs while ignoring null IDs", () => {
             inverse: false,
           },
         ],
-        references: {
-          name: "references",
-          content: { type: "id", value: null },
-          inverse: true,
-        },
       }),
     /IFC relation IDs must be strings or numbers/,
   );
 });
 
-test("relation IDs encode tuple fields without separator collisions", () => {
-  assert.equal(
-    relationId("source", "attribute", "a,b", "target", 2),
-    '["source","attribute","a,b","target",2]',
-  );
-  assert.notEqual(
-    relationId("source", "attribute", "a,b", "target", 0),
-    relationId("source,a", "attribute", "b", "target", 0),
-  );
-});
-
-test("converts repeated and incoming references from the IFC fixture", async () => {
+test("converts repeated and generic incoming references from the IFC fixture", async () => {
   const fixture = JSON.parse(
     await readFile(new URL("fixtures/ifc4.expected.json", import.meta.url)),
   );
-  const polyline = ifcNodeToGraph(fixture.find((node) => node.id === 13));
-  const point = ifcNodeToGraph(fixture.find((node) => node.id === 2));
+  const polyline = ifcNodeToViewNode(fixture.find((node) => node.id === 13));
+  const point = ifcNodeToViewNode(fixture.find((node) => node.id === 2));
 
-  assert.deepEqual(polyline.relations, [
-    {
-      id: '["13","attribute","Points","2",0]',
-      sourceId: "13",
-      targetId: "2",
-      kind: "attribute",
-      label: "Points",
-    },
-    {
-      id: '["13","attribute","Points","2",1]',
-      sourceId: "13",
-      targetId: "2",
-      kind: "attribute",
-      label: "Points",
-    },
+  assert.deepEqual(polyline.attributes.find((a) => a.name === "Points").links, [
+    { nodeId: "2" },
+    { nodeId: "2" },
   ]);
-  assert.deepEqual(point.relations, [
-    {
-      id: '["2","reference","references","13",0]',
-      sourceId: "2",
-      targetId: "13",
-      kind: "reference",
-      label: "references",
-    },
-    {
-      id: '["2","reference","references","3",0]',
-      sourceId: "2",
-      targetId: "3",
-      kind: "reference",
-      label: "references",
-    },
-  ]);
+  assert.deepEqual(point.incoming, [{ nodeId: "13" }, { nodeId: "3" }]);
 });

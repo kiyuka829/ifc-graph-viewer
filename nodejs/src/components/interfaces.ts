@@ -5,7 +5,7 @@ export interface CanvasNodeState {
 
 export interface CanvasEdge {
   id: string;
-  relationId: string;
+  label?: string;
   from: {
     nodeId: string;
     portId?: string;

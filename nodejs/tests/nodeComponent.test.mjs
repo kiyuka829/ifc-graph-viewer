@@ -33,25 +33,20 @@ function text(vnode) {
 }
 
 test("reused node component renders new attributes and ports after a model replacement", () => {
-  const oldId = "old-child";
-  const newId = "new-child";
   const props = reactive({
     node: {
       id: "same-root",
       header: { secondary: "old-model" },
-      attributes: [{ name: "children", relationIds: [oldId] }],
-      relationIds: [oldId],
+      attributes: [
+        {
+          name: "children",
+          direction: "outgoing",
+          links: [{ nodeId: "old-target", label: "old" }],
+        },
+      ],
+      incoming: [],
     },
     state: { position: { x: 0, y: 0 }, portPositions: {} },
-    relations: [
-      {
-        id: oldId,
-        kind: "child",
-        sourceId: "same-root",
-        targetId: "old-target",
-        label: "old",
-      },
-    ],
     selected: false,
     scale: 1,
   });
@@ -66,18 +61,15 @@ test("reused node component renders new attributes and ports after a model repla
   props.node = {
     id: "same-root",
     header: { secondary: "new-model" },
-    attributes: [{ name: "children", relationIds: [newId] }],
-    relationIds: [newId],
+    attributes: [
+      {
+        name: "children",
+        direction: "outgoing",
+        links: [{ nodeId: "new-target", label: "new" }],
+      },
+    ],
+    incoming: [],
   };
-  props.relations = [
-    {
-      id: newId,
-      kind: "child",
-      sourceId: "same-root",
-      targetId: "new-target",
-      label: "new",
-    },
-  ];
   const updated = render({}, []);
   assert.match(text(updated), /new-model/);
   assert.doesNotMatch(text(updated), /old-model/);
@@ -112,7 +104,7 @@ test("reused node component renders new attributes and ports after a model repla
     assert.equal(emitted?.[0], "update:drawingEdgePosition");
     listeners.get("mouseup")();
     assert.equal(emitted[0], "add:node");
-    assert.equal(emitted[1].relations[0].targetId, "new-target");
+    assert.equal(emitted[1].group.links[0].nodeId, "new-target");
   } finally {
     globalThis.document = previousDocument;
   }
