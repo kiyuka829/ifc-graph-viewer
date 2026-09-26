@@ -2,13 +2,35 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { IfcAPI } from "web-ifc";
-import { ifcNodeToGraph } from "../src/data/ifcGraph.ts";
 import { WebIfcModel } from "../src/data/webIfcModel.ts";
 
-const normalize = ({ node, relations }) => ({
-  node: { ...node, relationIds: [...node.relationIds].sort() },
-  relations: [...relations].sort((a, b) => a.id.localeCompare(b.id)),
+const normalize = (node) => ({
+  ...node,
+  incoming: [...node.incoming].sort((a, b) => a.nodeId.localeCompare(b.nodeId)),
 });
+
+const expectedViewNode = (node) => ({
+  id: String(node.id),
+  header: { primary: node.type, secondary: `#${node.id}` },
+  attributes: node.attributes.map(({ name, content, inverse }) =>
+    content.type === "id"
+      ? {
+          name,
+          direction: inverse ? "incoming" : "outgoing",
+          links: (Array.isArray(content.value) ? content.value : [content.value])
+            .filter((id) => id !== null)
+            .map((id) => ({ nodeId: String(id) })),
+        }
+      : { name, value: content.value },
+  ),
+  incoming: (Array.isArray(node.references.content.value)
+    ? node.references.content.value
+    : [node.references.content.value]
+  )
+    .filter((id) => id !== null)
+    .map((id) => ({ nodeId: String(id) })),
+});
+
 for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
   test(`${schema}: all nodes match IfcOpenShell including typed values and inverse/reference split`, async () => {
     const api = new IfcAPI();
@@ -24,8 +46,8 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       );
       assert.equal(data.root.header.primary, "IfcProject");
       assert.deepEqual(
-        normalize({ node: data.root, relations: data.relations }),
-        normalize(ifcNodeToGraph(expected.find((node) => node.id === 1))),
+        normalize(data.root),
+        normalize(expectedViewNode(expected.find((node) => node.id === 1))),
       );
       assert.equal(
         Object.values(data.searchData).reduce((n, g) => n + g.items.length, 0),
@@ -38,7 +60,7 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       for (const node of expected)
         assert.deepEqual(
           normalize(model.getNode(String(node.id))),
-          normalize(ifcNodeToGraph(node)),
+          normalize(expectedViewNode(node)),
           `#${node.id} ${node.type}`,
         );
       assert.equal(

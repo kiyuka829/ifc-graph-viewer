@@ -1,3 +1,6 @@
+# Legacy, unmaintained Python IFCX implementation.
+# FastAPI currently rejects IFCX; the UI uses nodejs/src/data/ifcx.ts.
+
 import copy
 import json
 import re

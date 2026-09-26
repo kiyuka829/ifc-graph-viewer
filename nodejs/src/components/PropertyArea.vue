@@ -1,41 +1,23 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { isRelationAttribute } from "../data/graph";
-import type { GraphAttribute, GraphNode, GraphRelation } from "../data/graph";
+import { isLinkAttribute } from "../data/graph";
+import type { ViewAttribute, ViewNode } from "../data/graph";
 
 const props = defineProps<{
-  node: GraphNode;
-  relations: GraphRelation[];
+  node: ViewNode;
 }>();
-props;
-
-const nodeRelations = computed(() =>
-  props.node.relationIds
-    .map((id) => props.relations.find((relation) => relation.id === id))
-    .filter((relation): relation is GraphRelation => relation !== undefined),
-);
-const relationsById = computed(
-  () => new Map(props.relations.map((relation) => [relation.id, relation])),
-);
-const attributeRelations = (attribute: GraphAttribute) =>
-  isRelationAttribute(attribute)
-    ? attribute.relationIds
-        .map((id) => relationsById.value.get(id))
-        .filter((relation): relation is GraphRelation => relation !== undefined)
-    : [];
-const isInverseAttribute = (attribute: GraphAttribute) =>
-  attributeRelations(attribute)[0]?.kind === "inverse";
 const attributes = computed(() =>
-  props.node.attributes.filter((attribute) => !isInverseAttribute(attribute)),
+  props.node.attributes.filter(
+    (attribute) => !isLinkAttribute(attribute) || attribute.direction === "outgoing",
+  ),
 );
 const inverseAttributes = computed(() =>
-  props.node.attributes.filter(isInverseAttribute),
-);
-const referenceRelations = computed(() =>
-  nodeRelations.value.filter((relation) => relation.kind === "reference"),
+  props.node.attributes.filter(
+    (attribute) => isLinkAttribute(attribute) && attribute.direction === "incoming",
+  ),
 );
 const references = computed(() =>
-  referenceRelations.value.map((relation) => stringifyId(relation.targetId)).join(", "),
+  props.node.incoming.map((link) => stringifyId(link.nodeId)).join(", "),
 );
 
 const stringifyValue = (value: any): string => {
@@ -50,13 +32,11 @@ const stringifyValue = (value: any): string => {
 };
 const isIfc = computed(() => props.node.header.secondary?.startsWith("#") ?? false);
 const stringifyId = (id: string) => (isIfc.value ? `#${id}` : id);
-const stringifyAttribute = (attribute: GraphAttribute) =>
-  isRelationAttribute(attribute)
+const stringifyAttribute = (attribute: ViewAttribute) =>
+  isLinkAttribute(attribute)
     ? [
-        ...attributeRelations(attribute).map((relation) =>
-          stringifyId(relation.targetId),
-        ),
-        ...(attribute.unresolvedTargetIds ?? []).map(
+        ...attribute.links.map((link) => stringifyId(link.nodeId)),
+        ...(attribute.missingNodeIds ?? []).map(
           (id) => `${stringifyId(id)} (Not found)`,
         ),
       ].join(", ")
@@ -103,7 +83,7 @@ const stringifyAttribute = (attribute: GraphAttribute) =>
       </table>
     </template>
 
-    <template v-if="referenceRelations.length">
+    <template v-if="node.incoming.length">
       <h4>References</h4>
       <table>
         <thead>
