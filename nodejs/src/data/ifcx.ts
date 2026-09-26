@@ -10,8 +10,44 @@ type NodeData = {
   attributes: JsonObject;
 };
 type Reference = { sourceId: string; endpoint: LinkEndpoint; label?: string };
+type IfcxDocument = {
+  header: IfcHeader;
+  data: unknown[];
+  imports?: { uri: string }[];
+};
 const isObject = (value: unknown): value is JsonObject =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+
+function parseIfcxDocument(text: string, name: string): IfcxDocument {
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    throw new Error(`${name}: Invalid JSON.`);
+  }
+  return validateIfcxDocument(document, name);
+}
+
+function validateIfcxDocument(document: unknown, name: string): IfcxDocument {
+  if (
+    !isObject(document) ||
+    !isObject(document.header) ||
+    !["ifcx-alpha", "ifcx_alpha"].includes(String(document.header.ifcxVersion))
+  )
+    throw new Error(`${name}: Expected IFCX version 'ifcx-alpha' or 'ifcx_alpha'.`);
+  if (!Array.isArray(document.data)) throw new Error(`${name}: data must be an array.`);
+  if ("imports" in document) {
+    if (!Array.isArray(document.imports))
+      throw new Error(`${name}: imports must be an array.`);
+    if (
+      !document.imports.every(
+        (entry) => isObject(entry) && typeof entry.uri === "string",
+      )
+    )
+      throw new Error(`${name}: Each import must be an object with a string uri.`);
+  }
+  return document as IfcxDocument;
+}
 const containsRef = (value: IfcHeaderValue): boolean =>
   Array.isArray(value)
     ? value.some(containsRef)
@@ -70,26 +106,11 @@ export class IfcxSource implements ModelSource {
     const nodes = new Map<string, NodeData>();
     const headers: ModelData["headers"] = [];
     for (const file of files) {
-      let document: unknown;
-      try {
-        document = JSON.parse(await file.text());
-      } catch {
-        throw new Error(`${file.name}: Invalid JSON.`);
-      }
-      if (
-        !isObject(document) ||
-        !isObject(document.header) ||
-        !["ifcx-alpha", "ifcx_alpha"].includes(String(document.header.ifcxVersion))
-      )
-        throw new Error(
-          `${file.name}: Expected IFCX version 'ifcx-alpha' or 'ifcx_alpha'.`,
-        );
-      if (!Array.isArray(document.data))
-        throw new Error(`${file.name}: data must be an array.`);
+      const document = parseIfcxDocument(await file.text(), file.name);
       headers.push({
         filename: file.name,
         format: "ifcx",
-        header: document.header as IfcHeader,
+        header: document.header,
       });
       for (const entry of document.data) {
         if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)

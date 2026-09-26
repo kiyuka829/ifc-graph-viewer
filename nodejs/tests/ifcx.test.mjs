@@ -5,9 +5,15 @@ import { IfcxSource } from "../src/data/ifcx.ts";
 
 const fixture = async (name) =>
   new File([await readFile(new URL(`fixtures/${name}`, import.meta.url))], name);
-const document = (data) =>
+const document = (data, imports) =>
   new File(
-    [JSON.stringify({ header: { ifcxVersion: "ifcx-alpha" }, data })],
+    [
+      JSON.stringify({
+        header: { ifcxVersion: "ifcx-alpha" },
+        data,
+        ...(imports === undefined ? {} : { imports }),
+      }),
+    ],
     "test.ifcx",
   );
 
@@ -150,10 +156,20 @@ test("failed loads preserve the prior model", async () => {
     document([]),
     document([{ path: "x", children: { self: "x" } }]),
     document([{ path: "x", children: [] }]),
+    document([{ path: "x" }], null),
+    document([{ path: "x" }], [{}]),
+    document([{ path: "x" }], [{ uri: 1 }]),
+    document([{ path: "x" }], [[]]),
   ])
     await assert.rejects(source.load([file]));
   assert.equal((await source.getNode("", "project")).id, "project");
   await assert.rejects(source.getNode("", "missing"), /Node not found/);
+});
+
+test("imports accepts absent and empty metadata", async () => {
+  const source = new IfcxSource();
+  assert.equal((await source.load([document([{ path: "root" }])])).root.id, "root");
+  assert.equal((await source.load([document([{ path: "root" }], [])])).root.id, "root");
 });
 
 test("same filename layers are composed in selection order", async () => {
