@@ -5,17 +5,31 @@ import { IfcxSource } from "../src/data/ifcx.ts";
 
 const fixture = async (name) =>
   new File([await readFile(new URL(`fixtures/${name}`, import.meta.url))], name);
-const document = (data, imports) =>
-  new File(
-    [
-      JSON.stringify({
-        header: { ifcxVersion: "ifcx-alpha" },
-        data,
-        ...(imports === undefined ? {} : { imports }),
-      }),
-    ],
-    "test.ifcx",
-  );
+const ifcx = (data, imports) =>
+  JSON.stringify({
+    header: { ifcxVersion: "ifcx-alpha" },
+    data,
+    ...(imports === undefined ? {} : { imports }),
+  });
+const document = (data, imports) => new File([ifcx(data, imports)], "test.ifcx");
+
+async function withFetch(documents, run) {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (uri) => {
+    uri = String(uri);
+    requests.push(uri);
+    return {
+      ok: documents.has(uri),
+      text: async () => documents.get(uri),
+    };
+  };
+  try {
+    await run(requests);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
 
 test("composition returns node-local data without mutating headers or search data", async () => {
   const source = new IfcxSource();
@@ -170,6 +184,113 @@ test("imports accepts absent and empty metadata", async () => {
   const source = new IfcxSource();
   assert.equal((await source.load([document([{ path: "root" }])])).root.id, "root");
   assert.equal((await source.load([document([{ path: "root" }], [])])).root.id, "root");
+});
+
+test("imports fetched documents before the selected file and includes their headers", async () => {
+  const uri = "https://example.test/import.ifcx";
+  await withFetch(
+    new Map([[uri, ifcx([{ path: "root", attributes: { imported: true } }])]]),
+    async (requests) => {
+      const model = await new IfcxSource().load([
+        new File([ifcx([{ path: "root" }], [{ uri }])], "selected.ifcx"),
+      ]);
+      assert.deepEqual(requests, [uri]);
+      assert.deepEqual(
+        model.headers.map(({ filename }) => filename),
+        [uri, "selected.ifcx"],
+      );
+      assert.deepEqual(model.root.attributes, [{ name: "imported", value: true }]);
+      assert.equal(model.path, "selected.ifcx");
+    },
+  );
+});
+
+test("imports resolve recursively in dependency order", async () => {
+  const dependency = "https://example.test/dependency.ifcx";
+  const importer = "https://example.test/importer.ifcx";
+  await withFetch(
+    new Map([
+      [dependency, ifcx([{ path: "root", attributes: { dependency: true } }])],
+      [
+        importer,
+        ifcx([{ path: "root", attributes: { importer: true } }], [{ uri: dependency }]),
+      ],
+    ]),
+    async () => {
+      const model = await new IfcxSource().load([
+        new File([ifcx([{ path: "root" }], [{ uri: importer }])], "selected.ifcx"),
+      ]);
+      assert.deepEqual(
+        model.headers.map(({ filename }) => filename),
+        [dependency, importer, "selected.ifcx"],
+      );
+      assert.deepEqual(model.root.attributes, [
+        { name: "dependency", value: true },
+        { name: "importer", value: true },
+      ]);
+    },
+  );
+});
+
+test("repeated and cyclic imports fetch each URI once", async () => {
+  const first = "https://example.test/first.ifcx";
+  const second = "https://example.test/second.ifcx";
+  await withFetch(
+    new Map([
+      [first, ifcx([{ path: "root", attributes: { first: true } }], [{ uri: second }])],
+      [
+        second,
+        ifcx([{ path: "root", attributes: { second: true } }], [{ uri: first }]),
+      ],
+    ]),
+    async (requests) => {
+      await new IfcxSource().load([
+        new File(
+          [ifcx([{ path: "root" }], [{ uri: first }, { uri: first }])],
+          "selected.ifcx",
+        ),
+      ]);
+      assert.deepEqual(requests, [first, second]);
+    },
+  );
+});
+
+test("selected files override imported documents in selection order", async () => {
+  const firstImport = "https://example.test/first-import.ifcx";
+  const secondImport = "https://example.test/second-import.ifcx";
+  await withFetch(
+    new Map([
+      [firstImport, ifcx([{ path: "root", attributes: { value: "first import" } }])],
+      [secondImport, ifcx([{ path: "root", attributes: { value: "second import" } }])],
+    ]),
+    async () => {
+      const model = await new IfcxSource().load([
+        new File(
+          [
+            ifcx(
+              [{ path: "root", attributes: { value: "first" } }],
+              [{ uri: firstImport }],
+            ),
+          ],
+          "first.ifcx",
+        ),
+        new File(
+          [
+            ifcx(
+              [{ path: "root", attributes: { value: "second" } }],
+              [{ uri: secondImport }],
+            ),
+          ],
+          "second.ifcx",
+        ),
+      ]);
+      assert.deepEqual(model.root.attributes, [{ name: "value", value: "second" }]);
+      assert.deepEqual(
+        model.headers.map(({ filename }) => filename),
+        [firstImport, secondImport, "first.ifcx", "second.ifcx"],
+      );
+    },
+  );
 });
 
 test("same filename layers are composed in selection order", async () => {

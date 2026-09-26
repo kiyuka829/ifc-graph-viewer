@@ -105,18 +105,42 @@ export class IfcxSource implements ModelSource {
   async load(files: File[]): Promise<ModelData> {
     const nodes = new Map<string, NodeData>();
     const headers: ModelData["headers"] = [];
+    const documents: { document: IfcxDocument; name: string }[] = [];
+    const selectedDocuments: { document: IfcxDocument; name: string }[] = [];
+    const importedUris = new Set<string>();
+    const addImports = async (document: IfcxDocument, name: string): Promise<void> => {
+      for (const { uri } of document.imports ?? []) {
+        try {
+          new URL(uri);
+        } catch {
+          throw new Error(`${name}: Import URI must be absolute.`);
+        }
+        if (importedUris.has(uri)) continue;
+        importedUris.add(uri);
+        const response = await fetch(uri);
+        if (!response.ok) throw new Error(`${uri}: Failed to fetch import.`);
+        const importedDocument = parseIfcxDocument(await response.text(), uri);
+        await addImports(importedDocument, uri);
+        documents.push({ document: importedDocument, name: uri });
+      }
+    };
     for (const file of files) {
       const document = parseIfcxDocument(await file.text(), file.name);
+      await addImports(document, file.name);
+      selectedDocuments.push({ document, name: file.name });
+    }
+    documents.push(...selectedDocuments);
+    for (const { document, name } of documents) {
       headers.push({
-        filename: file.name,
+        filename: name,
         format: "ifcx",
         header: document.header,
       });
       for (const entry of document.data) {
         if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)
-          throw new Error(`${file.name}: Each node must have a non-empty path.`);
+          throw new Error(`${name}: Each node must have a non-empty path.`);
         if (entry.attributes !== undefined && !isObject(entry.attributes))
-          throw new Error(`${file.name}: attributes must be an object.`);
+          throw new Error(`${name}: attributes must be an object.`);
         const previous = nodes.get(entry.path);
         nodes.set(entry.path, {
           path: entry.path,
