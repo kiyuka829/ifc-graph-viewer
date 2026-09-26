@@ -2,12 +2,33 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { IfcAPI } from "web-ifc";
-import { ifcNodeToViewNode } from "../src/data/ifcGraph.ts";
 import { WebIfcModel } from "../src/data/webIfcModel.ts";
 
 const normalize = (node) => ({
   ...node,
   incoming: [...node.incoming].sort((a, b) => a.nodeId.localeCompare(b.nodeId)),
+});
+
+const expectedViewNode = (node) => ({
+  id: String(node.id),
+  header: { primary: node.type, secondary: `#${node.id}` },
+  attributes: node.attributes.map(({ name, content, inverse }) =>
+    content.type === "id"
+      ? {
+          name,
+          direction: inverse ? "incoming" : "outgoing",
+          links: (Array.isArray(content.value) ? content.value : [content.value])
+            .filter((id) => id !== null)
+            .map((id) => ({ nodeId: String(id) })),
+        }
+      : { name, value: content.value },
+  ),
+  incoming: (Array.isArray(node.references.content.value)
+    ? node.references.content.value
+    : [node.references.content.value]
+  )
+    .filter((id) => id !== null)
+    .map((id) => ({ nodeId: String(id) })),
 });
 
 for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
@@ -26,7 +47,7 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       assert.equal(data.root.header.primary, "IfcProject");
       assert.deepEqual(
         normalize(data.root),
-        normalize(ifcNodeToViewNode(expected.find((node) => node.id === 1))),
+        normalize(expectedViewNode(expected.find((node) => node.id === 1))),
       );
       assert.equal(
         Object.values(data.searchData).reduce((n, g) => n + g.items.length, 0),
@@ -39,7 +60,7 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
       for (const node of expected)
         assert.deepEqual(
           normalize(model.getNode(String(node.id))),
-          normalize(ifcNodeToViewNode(node)),
+          normalize(expectedViewNode(node)),
           `#${node.id} ${node.type}`,
         );
       assert.equal(

@@ -10,7 +10,7 @@ import {
   IFCGEOMETRICREPRESENTATIONSUBCONTEXT,
 } from "web-ifc";
 import type { ModelData } from "./model";
-import { ifcNodeToViewNode } from "./ifcGraph.ts";
+import type { ViewAttribute, ViewLink, ViewNode } from "./graph.ts";
 
 // Keep the WASM API inside its worker; only plain data crosses the boundary.
 export class WebIfcModel {
@@ -137,16 +137,16 @@ export class WebIfcModel {
     return { type: refs ? "id" : "value", value: convert(value, raw) };
   }
 
-  getNode(value: string) {
+  getNode(value: string): ViewNode {
     const id = Number(value);
     if (!this.ids.has(id)) throw new Error(`Node not found: ${value}`);
     const normal = this.api.GetLine(this.model, id);
     const expanded = this.api.GetLine(this.model, id, false, true);
     const raw = this.api.GetRawLineData(this.model, id).arguments;
     let rawIndex = 0;
-    const attributes = Object.keys(normal)
+    const attributes: ViewAttribute[] = Object.keys(normal)
       .filter((k) => k !== "expressID" && k !== "type")
-      .map((name) => {
+      .map((name): ViewAttribute => {
         // Derived attributes have a zero handle and consume no STEP argument.
         const derived =
           (normal[name]?.type === REF && normal[name].value === 0) ||
@@ -157,43 +157,51 @@ export class WebIfcModel {
               "WorldCoordinateSystem",
               "TrueNorth",
             ].includes(name));
-        return {
-          name,
-          content: derived
-            ? { type: "value", value: null }
-            : this.content(normal[name], raw[rawIndex++]),
-          inverse: false,
-        };
+        const content = derived
+          ? { type: "value", value: null }
+          : this.content(normal[name], raw[rawIndex++]);
+        return content.type === "id"
+          ? { name, direction: "outgoing", links: this.links(content.value) }
+          : { name, value: content.value };
       });
     const inverseIds = new Set<number>();
     for (const name of Object.keys(expanded).filter((k) => !(k in normal))) {
       this.visitReferences(expanded[name], (id) => inverseIds.add(id));
-      attributes.push({
-        name,
-        content: this.content(
-          expanded[name] == null
-            ? []
-            : Array.isArray(expanded[name])
-              ? expanded[name]
-              : [expanded[name]],
-        ),
-        inverse: true,
-      });
+      const content = this.content(
+        expanded[name] == null
+          ? []
+          : Array.isArray(expanded[name])
+            ? expanded[name]
+            : [expanded[name]],
+      );
+      attributes.push(
+        content.type === "id"
+          ? { name, direction: "incoming", links: this.links(content.value) }
+          : { name, value: content.value },
+      );
     }
-    return ifcNodeToViewNode({
-      id,
-      type: this.api.GetNameFromTypeCode(normal.type),
-      attributes,
-      references: {
-        name: "references",
-        content: {
-          type: "id",
-          value: [...(this.incoming.get(id) ?? [])]
-            .filter((ref) => !inverseIds.has(ref))
-            .sort((a, b) => a - b),
-        },
-        inverse: true,
+    return {
+      id: String(id),
+      header: {
+        primary: this.api.GetNameFromTypeCode(normal.type),
+        secondary: `#${id}`,
       },
+      attributes,
+      incoming: this.links(
+        [...(this.incoming.get(id) ?? [])]
+          .filter((ref) => !inverseIds.has(ref))
+          .sort((a, b) => a - b),
+      ),
+    };
+  }
+
+  private links(value: unknown): ViewLink[] {
+    const values = Array.isArray(value) ? value : [value];
+    return values.flatMap((id) => {
+      if (id === null) return [];
+      if (typeof id === "string" || typeof id === "number")
+        return [{ nodeId: String(id) }];
+      throw new TypeError("IFC relation IDs must be strings or numbers.");
     });
   }
 
