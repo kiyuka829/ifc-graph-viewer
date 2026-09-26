@@ -1,6 +1,5 @@
 import type { ModelSource, ModelData } from "./model";
-import { ifcNodeToViewNode } from "./ifcGraph.ts";
-import type { LegacyIfcNode } from "./ifcGraph.ts";
+import type { ViewNode } from "./graph.ts";
 import type { SearchData } from "../components/interfaces";
 
 const endpoint = (import.meta.env?.VITE_API_ENDPOINT ?? "") as string;
@@ -9,8 +8,8 @@ type LegacySearchData = Record<
   string,
   { items: { id: string | number; displayName: string }[] }
 >;
-type LegacyModelData = Omit<ModelData, "root" | "searchData"> & {
-  root: LegacyIfcNode;
+type ApiModelData = Omit<ModelData, "searchData"> & {
+  root: ViewNode;
   searchData: LegacySearchData;
 };
 type SearchResponse = { items?: { id: string | number; displayName: string }[] };
@@ -59,19 +58,18 @@ export const apiSource: ModelSource = {
       );
       form.append("files", file, filename);
     });
-    const data = await postFormData<LegacyModelData>(endpoint + "/upload", form);
+    const data = await postFormData<ApiModelData>(endpoint + "/upload", form);
     return {
       ...data,
-      root: ifcNodeToViewNode(data.root),
       searchData: normalizeSearchData(data.searchData),
     };
   },
   async getNode(path, id) {
-    const { node } = await postJson<{ node: LegacyIfcNode }>(endpoint + "/get_node", {
+    const { node } = await postJson<{ node: ViewNode }>(endpoint + "/get_node", {
       path,
       id,
     });
-    return ifcNodeToViewNode(node);
+    return node;
   },
   async lookup(path, key, value) {
     return normalizeSearch(
