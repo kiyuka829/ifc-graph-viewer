@@ -10,8 +10,58 @@ type NodeData = {
   attributes: JsonObject;
 };
 type Reference = { sourceId: string; endpoint: LinkEndpoint; label?: string };
+type IfcxNode = {
+  path: string;
+  children?: Record<string, string>;
+  inherits?: Record<string, string>;
+  attributes?: JsonObject;
+};
+type IfcxDocument = {
+  header: IfcHeader;
+  data: IfcxNode[];
+  imports?: { uri: string }[];
+};
 const isObject = (value: unknown): value is JsonObject =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+
+function parseIfcxDocument(text: string, name: string): IfcxDocument {
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    throw new Error(`${name}: Invalid JSON.`);
+  }
+  return validateIfcxDocument(document, name);
+}
+
+function validateIfcxDocument(document: unknown, name: string): IfcxDocument {
+  if (
+    !isObject(document) ||
+    !isObject(document.header) ||
+    !["ifcx-alpha", "ifcx_alpha"].includes(String(document.header.ifcxVersion))
+  )
+    throw new Error(`${name}: Expected IFCX version 'ifcx-alpha' or 'ifcx_alpha'.`);
+  if (!Array.isArray(document.data)) throw new Error(`${name}: data must be an array.`);
+  if ("imports" in document) {
+    if (!Array.isArray(document.imports))
+      throw new Error(`${name}: imports must be an array.`);
+    if (
+      !document.imports.every(
+        (entry) => isObject(entry) && typeof entry.uri === "string",
+      )
+    )
+      throw new Error(`${name}: Each import must be an object with a string uri.`);
+  }
+  for (const entry of document.data) {
+    if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)
+      throw new Error(`${name}: Each node must have a non-empty path.`);
+    if (entry.attributes !== undefined && !isObject(entry.attributes))
+      throw new Error(`${name}: attributes must be an object.`);
+    referenceMap(entry.children, "children");
+    referenceMap(entry.inherits, "inherits");
+  }
+  return document as IfcxDocument;
+}
 const containsRef = (value: IfcHeaderValue): boolean =>
   Array.isArray(value)
     ? value.some(containsRef)
@@ -69,47 +119,56 @@ export class IfcxSource implements ModelSource {
   async load(files: File[]): Promise<ModelData> {
     const nodes = new Map<string, NodeData>();
     const headers: ModelData["headers"] = [];
-    for (const file of files) {
-      let document: unknown;
-      try {
-        document = JSON.parse(await file.text());
-      } catch {
-        throw new Error(`${file.name}: Invalid JSON.`);
+    const documents: { document: IfcxDocument; name: string }[] = [];
+    const selectedDocuments: { document: IfcxDocument; name: string }[] = [];
+    const importedUris = new Set<string>();
+    const addImports = async (document: IfcxDocument): Promise<void> => {
+      for (const { uri } of document.imports ?? []) {
+        try {
+          new URL(uri);
+        } catch {
+          continue;
+        }
+        if (importedUris.has(uri)) continue;
+        importedUris.add(uri);
+        try {
+          const response = await fetch(uri);
+          if (!response.ok) throw new Error("Failed to fetch import.");
+          const importedDocument = parseIfcxDocument(await response.text(), uri);
+          await addImports(importedDocument);
+          documents.push({ document: importedDocument, name: uri });
+        } catch (error) {
+          console.warn(`${uri}: Skipped import: ${String(error)}`);
+        }
       }
-      if (
-        !isObject(document) ||
-        !isObject(document.header) ||
-        !["ifcx-alpha", "ifcx_alpha"].includes(String(document.header.ifcxVersion))
-      )
-        throw new Error(
-          `${file.name}: Expected IFCX version 'ifcx-alpha' or 'ifcx_alpha'.`,
-        );
-      if (!Array.isArray(document.data))
-        throw new Error(`${file.name}: data must be an array.`);
+    };
+    for (const file of files) {
+      const document = parseIfcxDocument(await file.text(), file.name);
+      await addImports(document);
+      selectedDocuments.push({ document, name: file.name });
+    }
+    documents.push(...selectedDocuments);
+    for (const { document, name } of documents) {
       headers.push({
-        filename: file.name,
+        filename: name,
         format: "ifcx",
-        header: document.header as IfcHeader,
+        header: document.header,
       });
       for (const entry of document.data) {
-        if (!isObject(entry) || typeof entry.path !== "string" || !entry.path)
-          throw new Error(`${file.name}: Each node must have a non-empty path.`);
-        if (entry.attributes !== undefined && !isObject(entry.attributes))
-          throw new Error(`${file.name}: attributes must be an object.`);
         const previous = nodes.get(entry.path);
         nodes.set(entry.path, {
           path: entry.path,
           children: {
             ...previous?.children,
-            ...referenceMap(entry.children, "children"),
+            ...entry.children,
           },
           inherits: {
             ...previous?.inherits,
-            ...referenceMap(entry.inherits, "inherits"),
+            ...entry.inherits,
           },
           attributes: {
             ...previous?.attributes,
-            ...(entry.attributes as JsonObject | undefined),
+            ...entry.attributes,
           },
         });
       }
