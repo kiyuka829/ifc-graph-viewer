@@ -6,7 +6,7 @@ import {
   FILE_SCHEMA,
   REF,
   LABEL,
-  REAL,
+  STRING,
   IFCGEOMETRICREPRESENTATIONSUBCONTEXT,
 } from "web-ifc";
 import type { ModelData } from "./model";
@@ -108,33 +108,23 @@ export class WebIfcModel {
 
   private content(value: any, raw?: any): { type: string; value: any } {
     if (raw === null) return { type: "value", value: null };
+    const source = raw === undefined ? value : raw;
     const isRef = (v: any) => v?.type === REF && v.value > 0;
-    const refs = isRef(value) || (Array.isArray(value) && value.every(isRef));
+    const refs = isRef(source) || (Array.isArray(source) && source.every(isRef));
     const convert = (v: any, r: any): any => {
-      if (Array.isArray(v)) return v.map((item, i) => convert(item, r?.[i]));
+      if (Array.isArray(r)) return r.map((item, i) => convert(v?.[i], item));
       if (r?.type === LABEL) {
-        const val = this.unwrap(v);
-        let literal =
-          typeof val === "string"
-            ? `'${val}'`
-            : typeof val === "boolean"
-              ? val
-                ? ".T."
-                : ".F."
-              : String(val).replace("e", "E");
-        if (v?.name === "IFCLOGICAL" && val === null) literal = ".U.";
-        if (
-          typeof val === "number" &&
-          v.type === REAL &&
-          Number.isInteger(val) &&
-          !literal.includes("E")
-        )
-          literal += ".";
+        const val = r.value;
+        // web-ifc maps IfcBoolean and IfcLogical literals to JS values; restore .T./.F./.U.
+        let literal = val;
+        if (typeof val === "boolean") literal = val ? ".T." : ".F.";
+        else if (v?.name === "IFCLOGICAL" && val === undefined) literal = ".U.";
+        else if (v?.type === STRING) literal = `'${val}'`;
         return `${this.api.GetNameFromTypeCode(r.typecode)}(${literal})`;
       }
-      return this.unwrap(v);
+      return this.unwrap(r);
     };
-    return { type: refs ? "id" : "value", value: convert(value, raw) };
+    return { type: refs ? "id" : "value", value: convert(value, source) };
   }
 
   getNode(value: string): ViewNode {
