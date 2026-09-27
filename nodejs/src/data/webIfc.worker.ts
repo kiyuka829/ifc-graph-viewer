@@ -14,6 +14,8 @@ self.onmessage = async ({ data }) => {
     await ready;
     let result;
     if (method === "load") result = model.load(new Uint8Array(args[0]), args[1]);
+    else if (method === "buildIncoming") result = await model.buildIncoming();
+    else if (method === "getSearchItems") result = model.getSearchItems(args[0]);
     else if (method === "getNode") result = model.getNode(args[0]);
     else if (method === "lookup") result = model.lookup(args[0], args[1]);
     else throw new Error("Unknown IFC operation.");

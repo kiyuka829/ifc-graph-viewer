@@ -22,8 +22,23 @@ for (const [schema, fileSchema] of Object.entries({
       );
       assert.equal(data.root.header.primary, "IfcProject");
       assert.equal(data.headers[0].header.file_schema.schemas[0], fileSchema);
-      assert.deepEqual(data.searchData.IfcWall.items, [
+      assert.equal(Object.getPrototypeOf(data.searchData), null);
+      assert.deepEqual(data.searchData.IfcWall, { items: [] });
+      assert.deepEqual(model.getNode("2").incoming, []);
+      let indexing = true;
+      const indexes = model.buildIncoming().finally(() => (indexing = false));
+      await Promise.resolve();
+      assert.equal(indexing, true);
+      assert.deepEqual(model.getNode("2").incoming, []);
+      await indexes;
+      assert.equal(indexing, false);
+      assert.deepEqual(model.getSearchItems("IfcWall"), [
         { id: "5", displayName: "#5 | 00000000000000000000A2 | 壁 A" },
+      ]);
+      assert.deepEqual(model.getSearchItems("UnknownType"), []);
+      assert.deepEqual(model.getNode("2").incoming, [
+        { nodeId: "3" },
+        { nodeId: "13" },
       ]);
       const wall = model.getNode("5");
       assert.equal(wall.header.primary, "IfcWall");

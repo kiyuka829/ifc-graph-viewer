@@ -1,10 +1,12 @@
 import type { ModelData, ModelSource } from "./model";
+import type { SearchItem } from "../components/interfaces";
 
 export class WebIfcSource implements ModelSource {
   private worker = new Worker(new URL("./webIfc.worker.ts", import.meta.url), {
     type: "module",
   });
   private serial = 0;
+  private incoming?: Promise<void>;
   private pending = new Map<
     number,
     { resolve: (value: any) => void; reject: (error: Error) => void }
@@ -35,6 +37,12 @@ export class WebIfcSource implements ModelSource {
   async load(files: File[]): Promise<ModelData> {
     const bytes = await files[0].arrayBuffer();
     return this.call("load", [bytes, files[0].name], [bytes]);
+  }
+  buildIncoming(): Promise<void> {
+    return (this.incoming ??= this.call("buildIncoming", []));
+  }
+  getSearchItems(_path: string, type: string): Promise<SearchItem[]> {
+    return this.call("getSearchItems", [type]);
   }
   getNode(_path: string, id: string): ReturnType<ModelSource["getNode"]> {
     return this.call("getNode", [id]);

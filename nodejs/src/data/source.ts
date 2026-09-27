@@ -21,6 +21,11 @@ export const modelSource: ModelSource = {
       throw error;
     }
   },
+  get buildIncoming() {
+    return active?.buildIncoming?.bind(active);
+  },
+  getSearchItems: (path, type) =>
+    active?.getSearchItems?.(path, type) ?? Promise.resolve([]),
   getNode: (path, id) =>
     active
       ? active.getNode(path, id)

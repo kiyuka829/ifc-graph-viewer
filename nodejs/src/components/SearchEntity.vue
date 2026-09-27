@@ -8,7 +8,7 @@ const props = defineProps<{
   lookupElements?: { [key: string]: SearchData } | null;
 }>();
 
-const emits = defineEmits(["select", "query"]);
+const emits = defineEmits(["select", "query", "load"]);
 
 const searchQuery = ref("");
 const searchInput = ref<HTMLInputElement | null>(null);
@@ -50,6 +50,7 @@ function openSubMenu(item: string, idx: number) {
   const scrollTop = mainList.value.scrollTop;
 
   searchItems.value = elements[item].items;
+  if (!searchItems.value.length) emits("load", item);
   subMenuTop.value = idx * 23 + 39.5 - scrollTop;
   hoverItem.value = item;
 }
@@ -66,6 +67,13 @@ const handleClick = (event: MouseEvent) => {
 watch(searchQuery, (value) => {
   emits("query", value);
 });
+
+watch(
+  () => activeElements.value[hoverItem.value]?.items,
+  (items) => {
+    if (hoverItem.value) searchItems.value = items ?? [];
+  },
+);
 
 watch(
   () => props.lookupElements,
