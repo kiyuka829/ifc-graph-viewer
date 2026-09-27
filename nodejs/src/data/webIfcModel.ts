@@ -37,21 +37,7 @@ export class WebIfcModel {
       throw new Error("Unable to open IFC: invalid file or unsupported schema.");
     const all = this.api.GetAllLines(this.model);
     for (let i = 0; i < all.size(); i++) this.ids.add(all.get(i));
-    const searchData: ModelData["searchData"] = Object.create(null);
-    for (const id of this.ids) {
-      const line = this.api.GetLine(this.model, id);
-      const type = this.api.GetNameFromTypeCode(line.type);
-      (searchData[type] ??= { items: [] }).items.push(this.searchItem(line));
-      this.visitReferences(
-        this.api.GetRawLineData(this.model, id).arguments,
-        (target) => {
-          if (!this.incoming.has(target)) this.incoming.set(target, new Set());
-          this.incoming.get(target)!.add(id);
-        },
-      );
-    }
-    for (const group of Object.values(searchData))
-      group.items.sort((a, b) => Number(a.id) - Number(b.id));
+    const searchData = this.buildIndexes();
     const projects = this.api.GetLineIDsWithType(this.model, IFCPROJECT);
     if (!projects.size()) throw new Error("IFC contains no IfcProject.");
     const headerArgs = (type: number) =>
@@ -87,6 +73,25 @@ export class WebIfcModel {
         },
       ],
     };
+  }
+
+  private buildIndexes(): ModelData["searchData"] {
+    const searchData: ModelData["searchData"] = Object.create(null);
+    for (const id of this.ids) {
+      const line = this.api.GetLine(this.model, id);
+      const type = this.api.GetNameFromTypeCode(line.type);
+      (searchData[type] ??= { items: [] }).items.push(this.searchItem(line));
+      this.visitReferences(
+        this.api.GetRawLineData(this.model, id).arguments,
+        (target) => {
+          if (!this.incoming.has(target)) this.incoming.set(target, new Set());
+          this.incoming.get(target)!.add(id);
+        },
+      );
+    }
+    for (const group of Object.values(searchData))
+      group.items.sort((a, b) => Number(a.id) - Number(b.id));
+    return searchData;
   }
 
   private visitReferences(value: any, visit: (id: number) => void) {
