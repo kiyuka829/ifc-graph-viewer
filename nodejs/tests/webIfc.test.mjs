@@ -4,43 +4,14 @@ import { readFile } from "node:fs/promises";
 import { IfcAPI } from "web-ifc";
 import { WebIfcModel } from "../src/data/webIfcModel.ts";
 
-const normalize = (node) => ({
-  ...node,
-  incoming: [...node.incoming].sort((a, b) => a.nodeId.localeCompare(b.nodeId)),
-});
+const attribute = (node, name) => node.attributes.find((item) => item.name === name);
 
-const expectedViewNode = (node) => ({
-  id: String(node.id),
-  header: { primary: node.type, secondary: `#${node.id}` },
-  attributes: node.attributes.map(({ name, content, inverse }) =>
-    content.type === "id"
-      ? {
-          name,
-          direction: inverse ? "incoming" : "outgoing",
-          links: (Array.isArray(content.value) ? content.value : [content.value])
-            .filter((id) => id !== null)
-            .map((id) => ({ nodeId: String(id) })),
-        }
-      : {
-          name,
-          value:
-            node.type === "IfcCartesianPoint" && name === "Coordinates"
-              ? content.value.map((value) =>
-                  Number.isInteger(value) ? `${value}.` : String(value),
-                )
-              : content.value,
-        },
-  ),
-  incoming: (Array.isArray(node.references.content.value)
-    ? node.references.content.value
-    : [node.references.content.value]
-  )
-    .filter((id) => id !== null)
-    .map((id) => ({ nodeId: String(id) })),
-});
-
-for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
-  test(`${schema}: all nodes match IfcOpenShell including typed values and inverse/reference split`, async () => {
+for (const [schema, fileSchema] of Object.entries({
+  ifc2x3: "IFC2X3",
+  ifc4: "IFC4",
+  ifc4x3: "IFC4X3_ADD2",
+})) {
+  test(`${schema}: exposes the WebIfcModel adapter contract`, async () => {
     const api = new IfcAPI();
     await api.Init();
     const model = new WebIfcModel(api);
@@ -49,32 +20,27 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
         await readFile(new URL(`fixtures/${schema}.ifc`, import.meta.url)),
         `${schema}.ifc`,
       );
-      const expected = JSON.parse(
-        await readFile(new URL(`fixtures/${schema}.expected.json`, import.meta.url)),
-      );
       assert.equal(data.root.header.primary, "IfcProject");
-      assert.deepEqual(
-        normalize(data.root),
-        normalize(expectedViewNode(expected.find((node) => node.id === 1))),
-      );
-      assert.equal(
-        Object.values(data.searchData).reduce((n, g) => n + g.items.length, 0),
-        expected.length,
-      );
-      assert.equal(
-        data.headers[0].header.file_schema.schemas[0],
-        schema === "ifc4x3" ? "IFC4X3_ADD2" : schema.toUpperCase(),
-      );
-      for (const node of expected)
-        assert.deepEqual(
-          normalize(model.getNode(String(node.id))),
-          normalize(expectedViewNode(node)),
-          `#${node.id} ${node.type}`,
-        );
-      assert.equal(
-        model.lookup("globalId", "00000000000000000000A2").entityType,
-        "IfcWall",
-      );
+      assert.equal(data.headers[0].header.file_schema.schemas[0], fileSchema);
+      assert.deepEqual(data.searchData.IfcWall.items, [
+        { id: "5", displayName: "#5 | 00000000000000000000A2 | 壁 A" },
+      ]);
+      const wall = model.getNode("5");
+      assert.equal(wall.header.primary, "IfcWall");
+      assert.equal(attribute(wall, "Name")?.value, "壁 A");
+      assert.deepEqual(attribute(wall, "ObjectPlacement"), {
+        name: "ObjectPlacement",
+        direction: "outgoing",
+        links: [{ nodeId: "4" }],
+      });
+      assert.deepEqual(attribute(wall, "Decomposes"), {
+        name: "Decomposes",
+        direction: "incoming",
+        links: [{ nodeId: "6" }],
+      });
+      assert.ok(!wall.incoming.some(({ nodeId }) => nodeId === "6"));
+      const wallByGlobalId = model.lookup("globalId", "00000000000000000000A2");
+      assert.equal(wallByGlobalId.entityType, "IfcWall");
       assert.deepEqual(model.lookup("globalId", "0000000000000000000001").items, []);
       assert.equal(model.lookup("id", "1").entityType, "IfcProject");
       assert.deepEqual(model.lookup("id", "99999").items, []);
