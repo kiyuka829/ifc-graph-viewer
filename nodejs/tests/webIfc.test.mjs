@@ -21,7 +21,15 @@ const expectedViewNode = (node) => ({
             .filter((id) => id !== null)
             .map((id) => ({ nodeId: String(id) })),
         }
-      : { name, value: content.value },
+      : {
+          name,
+          value:
+            node.type === "IfcCartesianPoint" && name === "Coordinates"
+              ? content.value.map((value) =>
+                  Number.isInteger(value) ? `${value}.` : String(value),
+                )
+              : content.value,
+        },
   ),
   incoming: (Array.isArray(node.references.content.value)
     ? node.references.content.value
@@ -76,6 +84,52 @@ for (const schema of ["ifc2x3", "ifc4", "ifc4x3"]) {
     }
   });
 }
+
+test("preserves raw numbers and displays typed IFC values", async () => {
+  const api = new IfcAPI();
+  await api.Init();
+  const model = new WebIfcModel(api);
+  const ifc = String.raw`ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION((''),'2;1');
+FILE_NAME('','','',(''),'','','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+DATA;
+#1=IFCPROJECT('0000000000000000000001',$,$,$,$,$,$,$,$);
+#97=IFCPROPERTYSINGLEVALUE('Label',$,IFCLABEL('\X2\65E5672C8A9E\X0\'),$);
+#98=IFCPROPERTYSINGLEVALUE('Identifier',$,IFCIDENTIFIER('1234'),$);
+#99=IFCPROPERTYSINGLEVALUE('Area',$,IFCAREAMEASURE(288.),$);
+#100=IFCPROPERTYSINGLEVALUE('True',$,IFCBOOLEAN(.T.),$);
+#101=IFCPROPERTYSINGLEVALUE('False',$,IFCBOOLEAN(.F.),$);
+#102=IFCPROPERTYSINGLEVALUE('Unknown',$,IFCLOGICAL(.U.),$);
+#103=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);
+#104=IFCCARTESIANPOINT((2.,2.E0));
+ENDSEC;
+END-ISO-10303-21;`;
+  const value = (id, name) => {
+    const attribute = model
+      .getNode(String(id))
+      .attributes.find((item) => item.name === name);
+    assert.ok(attribute && "value" in attribute);
+    return attribute.value;
+  };
+  try {
+    model.load(new TextEncoder().encode(ifc), "values.ifc");
+    assert.equal(value(97, "NominalValue"), "IfcLabel('日本語')");
+    assert.equal(value(98, "NominalValue"), "IfcIdentifier('1234')");
+    assert.equal(value(99, "NominalValue"), "IfcAreaMeasure(288.)");
+    assert.equal(value(100, "NominalValue"), "IfcBoolean(.T.)");
+    assert.equal(value(101, "NominalValue"), "IfcBoolean(.F.)");
+    assert.equal(value(102, "NominalValue"), "IfcLogical(.U.)");
+    assert.equal(value(103, "UnitType"), "LENGTHUNIT");
+    assert.equal(value(103, "Name"), "METRE");
+    assert.deepEqual(value(104, "Coordinates"), ["2.", "2.E0"]);
+  } finally {
+    model.dispose();
+  }
+});
+
 test("rejects invalid IFC and files without a project, and releases model state", async () => {
   const api = new IfcAPI();
   await api.Init();
