@@ -10,12 +10,27 @@ import {
   IFCGEOMETRICREPRESENTATIONSUBCONTEXT,
 } from "web-ifc";
 import type { ModelData } from "./model";
+import type { SearchItem } from "../components/interfaces";
 import type { ViewAttribute, ViewLink, ViewNode } from "./graph.ts";
+
+const yieldToEvents = (() => {
+  const { port1, port2 } = new MessageChannel();
+  const callbacks: (() => void)[] = [];
+  port1.onmessage = () => callbacks.shift()?.();
+  for (const port of [port1, port2])
+    (port as MessagePort & { unref?: () => void }).unref?.();
+  return () =>
+    new Promise<void>((resolve) => {
+      callbacks.push(resolve);
+      port2.postMessage(null);
+    });
+})();
 
 // Keep the WASM API inside its worker; only plain data crosses the boundary.
 export class WebIfcModel {
   private model = -1;
   private ids = new Set<number>();
+  private typeIds = new Map<string, number>();
   private incoming = new Map<number, Set<number>>();
   private api: IfcAPI;
   constructor(api: IfcAPI) {
@@ -26,6 +41,7 @@ export class WebIfcModel {
     if (this.model >= 0) this.api.CloseModel(this.model);
     this.model = -1;
     this.ids.clear();
+    this.typeIds.clear();
     this.incoming.clear();
   }
 
@@ -38,20 +54,11 @@ export class WebIfcModel {
     const all = this.api.GetAllLines(this.model);
     for (let i = 0; i < all.size(); i++) this.ids.add(all.get(i));
     const searchData: ModelData["searchData"] = Object.create(null);
-    for (const id of this.ids) {
-      const line = this.api.GetLine(this.model, id);
-      const type = this.api.GetNameFromTypeCode(line.type);
-      (searchData[type] ??= { items: [] }).items.push(this.searchItem(line));
-      this.visitReferences(
-        this.api.GetRawLineData(this.model, id).arguments,
-        (target) => {
-          if (!this.incoming.has(target)) this.incoming.set(target, new Set());
-          this.incoming.get(target)!.add(id);
-        },
-      );
+    const types = this.api.GetAllTypesOfModel(this.model);
+    for (const { typeID: typeId, typeName } of types) {
+      this.typeIds.set(typeName, typeId);
+      searchData[typeName] = { items: [] };
     }
-    for (const group of Object.values(searchData))
-      group.items.sort((a, b) => Number(a.id) - Number(b.id));
     const projects = this.api.GetLineIDsWithType(this.model, IFCPROJECT);
     if (!projects.size()) throw new Error("IFC contains no IfcProject.");
     const headerArgs = (type: number) =>
@@ -87,6 +94,32 @@ export class WebIfcModel {
         },
       ],
     };
+  }
+
+  async buildIncoming(): Promise<void> {
+    const incoming = new Map<number, Set<number>>();
+    let count = 0;
+    for (const id of this.ids) {
+      if (count++ % 10000 === 0) await yieldToEvents();
+      this.visitReferences(
+        this.api.GetRawLineData(this.model, id).arguments,
+        (target) => {
+          if (!incoming.has(target)) incoming.set(target, new Set());
+          incoming.get(target)!.add(id);
+        },
+      );
+    }
+    this.incoming = incoming;
+  }
+
+  getSearchItems(typeName: string): SearchItem[] {
+    const typeId = this.typeIds.get(typeName);
+    if (typeId === undefined) return [];
+    const ids = this.api.GetLineIDsWithType(this.model, typeId);
+    const items = Array.from({ length: ids.size() }, (_, i) =>
+      this.searchItem(this.api.GetLine(this.model, ids.get(i))),
+    );
+    return items.sort((a, b) => Number(a.id) - Number(b.id));
   }
 
   private visitReferences(value: any, visit: (id: number) => void) {

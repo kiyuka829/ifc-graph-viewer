@@ -1,4 +1,4 @@
-import type { HeaderEntry, SearchData } from "../components/interfaces";
+import type { HeaderEntry, SearchData, SearchItem } from "../components/interfaces";
 import type { ViewNode } from "./graph";
 
 export interface ModelData {
@@ -10,6 +10,8 @@ export interface ModelData {
 export interface ModelSource {
   dispose?(): void;
   load(files: File[]): Promise<ModelData>;
+  buildIncoming?(): Promise<void>;
+  getSearchItems?(path: string, type: string): Promise<SearchItem[]>;
   getNode(path: string, id: string): Promise<ViewNode>;
   lookup(
     path: string,

@@ -78,6 +78,8 @@ const loadError = ref("");
 const fileInput = ref<HTMLInputElement | null>(null);
 const viewFilename = ref<string>("");
 const isLoading = ref(false);
+let loadGeneration = 0;
+const pendingSearchTypes = new Map<string, number>();
 
 // ヘッダー情報の表示状態
 const headerInfo = ref<HeaderEntry[]>([]);
@@ -274,6 +276,7 @@ function clearCanvas() {
   lookupElements.value = null;
   headerInfo.value = [];
   isHeaderInfoActive.value = false;
+  pendingSearchTypes.clear();
 
   selectedNodeIds.value = [];
   rectSelectedNodeIds.value = [];
@@ -299,12 +302,33 @@ const uploadFile = async (files: FileList | File[]) => {
   // ファイルをサーバーにアップロード
   try {
     const data = await modelSource.load(fileArray);
+    const generation = ++loadGeneration;
     clearCanvas();
     viewFilename.value = fileArray.map((f) => f.name).join(", ");
     ifcElements.value = data.searchData;
     headerInfo.value = data.headers;
     addViewNode(data.root);
     filepath.value = data.path;
+    void modelSource
+      .buildIncoming?.()
+      ?.then(async () => {
+        if (generation !== loadGeneration) return;
+        const refreshed = await Promise.all(
+          nodes.value.map((node) => modelSource.getNode(filepath.value, node.id)),
+        );
+        if (generation !== loadGeneration) return;
+        const refreshedById = new Map(refreshed.map((node) => [node.id, node]));
+        nodes.value = nodes.value.map((node) => refreshedById.get(node.id) ?? node);
+        nodes.value.forEach(updatePortPositions);
+        if (viewedAttrNode.value)
+          viewedAttrNode.value =
+            refreshedById.get(viewedAttrNode.value.id) ?? viewedAttrNode.value;
+      })
+      .catch((error) => {
+        if (generation === loadGeneration)
+          loadError.value =
+            error instanceof Error ? error.message : "Failed to build IFC references.";
+      });
   } catch (error) {
     // エラー処理
     loadError.value = error instanceof Error ? error.message : "Failed to load file.";
@@ -809,6 +833,33 @@ const selectEntity = (id: string) => {
   // 選択された項目の処理
   addNodeById(id, { ...nodeSpawnPosition.value });
 };
+const loadSearchItems = (type: string) => {
+  if (
+    pendingSearchTypes.has(type) ||
+    !ifcElements.value[type] ||
+    ifcElements.value[type].items.length
+  )
+    return;
+  const generation = loadGeneration;
+  pendingSearchTypes.set(type, generation);
+  void modelSource
+    .getSearchItems?.(filepath.value, type)
+    ?.then((items) => {
+      if (generation !== loadGeneration || !ifcElements.value[type]) return;
+      ifcElements.value = {
+        ...ifcElements.value,
+        [type]: { items },
+      };
+    })
+    .catch((error) => {
+      if (generation === loadGeneration)
+        loadError.value =
+          error instanceof Error ? error.message : "Failed to load IFC search items.";
+    })
+    .finally(() => {
+      if (pendingSearchTypes.get(type) === generation) pendingSearchTypes.delete(type);
+    });
+};
 const addNodeById = (id: string, dstPosition: Position) => {
   isLoading.value = true;
   modelSource
@@ -1072,6 +1123,7 @@ const handleDragOver = (event: DragEvent) => {
         :elements="ifcElements"
         :lookup-elements="lookupElements"
         @select="selectEntity"
+        @load="loadSearchItems"
         @query="handleSearchQuery"
       />
     </div>
